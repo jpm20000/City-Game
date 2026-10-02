@@ -54,10 +54,28 @@ public sealed class SimulationTests
         grid.SetZone(cell, zone);
     }
 
-    private SimulationSystem RunSeededCity(GridData grid, int days)
+    // A 3x3 power plant in the west commercial strip, touching the east-west road.
+    private static readonly Vector2Int s_SeedPlantOrigin = new Vector2Int(0, 9);
+    private const int SeedPlantSupply = 600;
+
+    private static void AddSeedPlant(GridData grid, SimulationSystem sim, int supply = SeedPlantSupply)
+    {
+        Vector2Int size = new Vector2Int(3, 3);
+        foreach (Vector2Int cell in grid.GetFootprint(s_SeedPlantOrigin, size, 0))
+        {
+            grid.SetZone(cell, ZoneType.None);
+        }
+        grid.Occupy(s_SeedPlantOrigin, size, 0, 1);
+        sim.Sources = new[] { new ServiceSource(s_SeedPlantOrigin, size, 0, supply) };
+        sim.Modifiers = new CityModifiers { UpkeepPerDay = 100f };   // §7 power plant upkeep
+    }
+
+    // plantSupply 0 = no power plant.
+    private SimulationSystem RunSeededCity(GridData grid, int days, int plantSupply = SeedPlantSupply)
     {
         SeedCity(grid);
         SimulationSystem sim = new SimulationSystem(grid, new RoadNetwork(grid), m_Config);
+        if (plantSupply > 0) AddSeedPlant(grid, sim, plantSupply);
         for (int day = 0; day < days; day++)
         {
             sim.Tick();
@@ -136,7 +154,7 @@ public sealed class SimulationTests
         // Small town so no demand is clamped at 1 and the multiplier stays visible.
         PopulationSystem population = new PopulationSystem(m_Config);
         population.RecountCapacity(m_Grid, new CityModifiers { Housing = 10 });
-        for (int i = 0; i < 30; i++) population.Step(0.10f, 0.10f, 0.10f, 0);
+        for (int i = 0; i < 30; i++) population.Step(0.10f, 0.10f, 0.10f, default);
         population.RecountCapacity(m_Grid, new CityModifiers { Housing = 10 });
         DemandSystem demand = new DemandSystem(m_Config);
 
@@ -183,7 +201,7 @@ public sealed class SimulationTests
         for (int i = 0; i < 50; i++)
         {
             population.RecountCapacity(m_Grid, modifiers);
-            population.Step(0.10f, 0.10f, 0.10f, 0);
+            population.Step(0.10f, 0.10f, 0.10f, default);
         }
 
         Assert.AreEqual(10, population.Population);
@@ -201,24 +219,25 @@ public sealed class SimulationTests
         for (int i = 0; i < 50; i++)
         {
             population.RecountCapacity(m_Grid, new CityModifiers { Housing = 10, CommercialJobs = 100 });
-            population.Step(0.10f, 0.10f, 0.10f, 0);
+            population.Step(0.10f, 0.10f, 0.10f, default);
         }
 
         population.RecountCapacity(m_Grid, new CityModifiers { Housing = 4, CommercialJobs = 100 });
-        population.Step(0.10f, 0.10f, 0.10f, 0);
+        population.Step(0.10f, 0.10f, 0.10f, default);
 
         Assert.AreEqual(4, population.Population);
         Assert.AreEqual(6, population.Homeless);
     }
 
     // Fills the given housing over 60 steps with fixed capacity and taxes.
-    private PopulationSystem StepCity(CityModifiers modifiers, float taxR = 0.10f, float taxC = 0.10f, float taxI = 0.10f)
+    private PopulationSystem StepCity(CityModifiers modifiers, float taxR = 0.10f, float taxC = 0.10f, float taxI = 0.10f,
+        ServiceStats services = default)
     {
         PopulationSystem population = new PopulationSystem(m_Config);
         for (int i = 0; i < 60; i++)
         {
             population.RecountCapacity(m_Grid, modifiers);
-            population.Step(taxR, taxC, taxI, modifiers.ServiceCount);
+            population.Step(taxR, taxC, taxI, services);
         }
         return population;
     }
@@ -272,18 +291,19 @@ public sealed class SimulationTests
         CityModifiers city = new CityModifiers { Housing = 100, CommercialJobs = 100 };
         float neutral = StepCity(city).AverageHappiness;
         float jobTaxes = StepCity(city, 0.10f, 0.20f, 0.20f).AverageHappiness;
-        city.ServiceCount = 2;
-        float parks = StepCity(city).AverageHappiness;
+        float parks = StepCity(city, services: new ServiceStats(0.10f, 0f)).AverageHappiness;
+        float blackout = StepCity(city, services: new ServiceStats(0f, 1f)).AverageHappiness;
 
         Assert.AreEqual(m_Config.JobTaxPenalty * 0.20f, neutral - jobTaxes, 1e-4f);
-        Assert.AreEqual(2 * m_Config.ServiceBonusEach, parks - neutral, 1e-4f);
+        Assert.AreEqual(0.10f, parks - neutral, 1e-4f);
+        Assert.AreEqual(m_Config.PowerPenalty, neutral - blackout, 1e-4f);
     }
 
     [Test]
     public void Happiness_BreakdownExplainsTotal()
     {
-        CityModifiers city = new CityModifiers { Housing = 100, CommercialJobs = 30, IndustrialJobs = 20, ServiceCount = 1 };
-        PopulationSystem population = StepCity(city, 0.12f, 0.15f, 0.10f);
+        CityModifiers city = new CityModifiers { Housing = 100, CommercialJobs = 30, IndustrialJobs = 20 };
+        PopulationSystem population = StepCity(city, 0.12f, 0.15f, 0.10f, new ServiceStats(0.05f, 0.5f));
         HappinessBreakdown h = population.Happiness;
 
         Assert.AreEqual(population.AverageHappiness, h.Total, 1e-5f);
@@ -291,10 +311,22 @@ public sealed class SimulationTests
         Assert.Less(h.Unemployment, 0f);    // 60 workers, 50 jobs
         Assert.AreEqual(-(m_Config.TaxPenalty * 0.02f + m_Config.JobTaxPenalty * 0.05f), h.Taxes, 1e-4f);
         Assert.AreEqual(-m_Config.PollutionPenalty * 20f / 150f, h.Pollution, 1e-4f);
-        Assert.AreEqual(m_Config.ServiceBonusEach, h.Services, 1e-5f);
+        Assert.AreEqual(0.05f, h.Services, 1e-5f);
+        Assert.AreEqual(-m_Config.PowerPenalty * 0.5f, h.Power, 1e-5f);
     }
 
     // --- Growth ---
+
+    // A plant with ample supply standing on row 1 at `plantX`, fed by the row-0 road.
+    private GrowthSystem MakeGrowth(int plantX = -1)
+    {
+        PowerSystem power = new PowerSystem(m_Grid, m_Config);
+        if (plantX >= 0)
+        {
+            power.SetSources(new[] { new ServiceSource(new Vector2Int(plantX, 1), Vector2Int.one, 0, 1000) });
+        }
+        return new GrowthSystem(m_Grid, m_Roads, power, m_Config);
+    }
 
     [Test]
     public void Growth_ZonedCellWithRoadAccess_GrowsToLevel1()
@@ -302,7 +334,7 @@ public sealed class SimulationTests
         LayRoadRow0(5);
         Vector2Int cell = new Vector2Int(2, 1);
         m_Grid.SetZone(cell, ZoneType.Residential);
-        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        GrowthSystem growth = MakeGrowth();
 
         growth.Apply(new DemandSnapshot(1f, 0f, 0f));
 
@@ -314,7 +346,7 @@ public sealed class SimulationTests
     {
         Vector2Int cell = new Vector2Int(5, 5);
         m_Grid.SetZone(cell, ZoneType.Residential);
-        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        GrowthSystem growth = MakeGrowth();
 
         growth.Apply(new DemandSnapshot(1f, 1f, 1f));
 
@@ -327,7 +359,7 @@ public sealed class SimulationTests
         LayRoadRow0(5);
         Vector2Int cell = new Vector2Int(2, 1);
         m_Grid.SetZone(cell, ZoneType.Residential);
-        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        GrowthSystem growth = MakeGrowth();
 
         growth.Apply(new DemandSnapshot(m_Config.GrowthDemandThreshold, 0f, 0f));
 
@@ -342,7 +374,7 @@ public sealed class SimulationTests
         {
             m_Grid.SetZone(new Vector2Int(x, 1), ZoneType.Industrial);
         }
-        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        GrowthSystem growth = MakeGrowth(plantX: 8);
         DemandSnapshot full = new DemandSnapshot(0f, 0f, 1f); // budget = 3
 
         Assert.AreEqual(3, growth.Apply(full).Count);
@@ -362,7 +394,7 @@ public sealed class SimulationTests
         LayRoadRow0(3);
         Vector2Int cell = new Vector2Int(1, 1);
         m_Grid.SetZone(cell, ZoneType.Commercial);
-        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        GrowthSystem growth = MakeGrowth(plantX: 2);
 
         for (int i = 0; i < 10; i++)
         {
@@ -376,7 +408,7 @@ public sealed class SimulationTests
     public void GetBlocker_ReportsEachReason()
     {
         LayRoadRow0(5);
-        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        GrowthSystem growth = MakeGrowth();
         DemandSnapshot high = new DemandSnapshot(1f, 1f, 1f);
 
         Assert.AreEqual(GrowthBlocker.NotZoned, growth.GetBlocker(new Vector2Int(2, 1), high));
@@ -406,7 +438,7 @@ public sealed class SimulationTests
         LayRoadRow0(5);
         Vector2Int cell = new Vector2Int(2, 1);
         m_Grid.SetZone(cell, ZoneType.Residential);
-        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        GrowthSystem growth = MakeGrowth();
         DemandSnapshot demand = new DemandSnapshot(0.5f, 0f, 0f);
 
         Assert.AreEqual(GrowthBlocker.None, growth.GetBlocker(cell, demand));
@@ -451,6 +483,32 @@ public sealed class SimulationTests
     }
 
     [Test]
+    public void Tick_SeededCity_WithoutPower_StaysAtLevel1()
+    {
+        SimulationSystem sim = RunSeededCity(m_Grid, 60, plantSupply: 0);
+
+        Assert.Greater(sim.Population.Population, 0);
+        for (int y = 0; y < 24; y++)
+        {
+            for (int x = 0; x < 24; x++)
+            {
+                Assert.LessOrEqual(m_Grid.GetBuildingLevel(new Vector2Int(x, y)), 1);
+            }
+        }
+        Assert.AreEqual(1f, sim.MeasureServices().UnpoweredHousingShare, 1e-5f);
+        Assert.Less(sim.Population.Happiness.Power, 0f);
+    }
+
+    [Test]
+    public void Tick_SeededCity_LoadNeverExceedsSupply()
+    {
+        SimulationSystem sim = RunSeededCity(m_Grid, 60, plantSupply: 200);
+
+        Assert.Greater(sim.Power.Demand, 200);                // the city outgrew its plant...
+        Assert.LessOrEqual(sim.Power.Load, sim.Power.Supply); // ...without overdrawing it
+    }
+
+    [Test]
     public void Tick_SeededCity_HighJobTaxesStallGrowth()
     {
         SimulationSystem normal = RunSeededCity(m_Grid, 60);
@@ -458,6 +516,7 @@ public sealed class SimulationTests
         GridData taxedGrid = new GridData(24, 24);
         SeedCity(taxedGrid);
         SimulationSystem taxed = new SimulationSystem(taxedGrid, new RoadNetwork(taxedGrid), m_Config);
+        AddSeedPlant(taxedGrid, taxed);
         taxed.Economy.TaxCommercial = 0.20f;
         taxed.Economy.TaxIndustrial = 0.20f;
         for (int day = 0; day < 60; day++) taxed.Tick();

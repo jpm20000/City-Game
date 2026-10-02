@@ -55,8 +55,12 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_JobTaxPenalty = 0.50f;
     [Tooltip("(tuned, M8) Pollution: happiness lost scales with industry's share of all development, IndustrialJobs / (Housing + Jobs).")]
     [SerializeField] private float m_PollutionPenalty = 0.50f;
+    [Tooltip("(M9) Bonus per service (park) whose coverage radius reaches a home; the Services term is the average over homes.")]
     [SerializeField] private float m_ServiceBonusEach = 0.05f;
+    [Tooltip("(M9) Cap on one home's service bonus.")]
     [SerializeField] private float m_ServiceBonusCap = 0.20f;
+    [Tooltip("(M9) Happiness lost when every home is unpowered (scaled by the unpowered share; ramps in with SmallTownGracePopulation).")]
+    [SerializeField] private float m_PowerPenalty = 0.10f;
     [SerializeField] private float m_HomelessPenalty = 0.30f;
     [SerializeField] private float m_LowHappinessThreshold = 0.5f;
     [SerializeField] private float m_LowHappinessDemandScale = 0.5f;
@@ -103,6 +107,7 @@ public sealed class BalanceConfig : ScriptableObject
     public float PollutionPenalty => m_PollutionPenalty;
     public float ServiceBonusEach => m_ServiceBonusEach;
     public float ServiceBonusCap => m_ServiceBonusCap;
+    public float PowerPenalty => m_PowerPenalty;
     public float HomelessPenalty => m_HomelessPenalty;
     public float LowHappinessThreshold => m_LowHappinessThreshold;
     public float LowHappinessDemandScale => m_LowHappinessDemandScale;

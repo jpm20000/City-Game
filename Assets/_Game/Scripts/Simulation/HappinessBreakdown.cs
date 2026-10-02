@@ -7,17 +7,19 @@ public readonly struct HappinessBreakdown
     public readonly float Taxes;
     public readonly float Pollution;
     public readonly float Services;
+    public readonly float Power;
     public readonly float Homeless;
 
-    public HappinessBreakdown(float baseValue, float unemployment, float taxes, float pollution, float services, float homeless)
+    public HappinessBreakdown(float baseValue, float unemployment, float taxes, float pollution, float services, float power, float homeless)
     {
         Base = baseValue;
         Unemployment = unemployment;
         Taxes = taxes;
         Pollution = pollution;
         Services = services;
+        Power = power;
         Homeless = homeless;
     }
 
-    public float Total => UnityEngine.Mathf.Clamp01(Base + Unemployment + Taxes + Pollution + Services + Homeless);
+    public float Total => UnityEngine.Mathf.Clamp01(Base + Unemployment + Taxes + Pollution + Services + Power + Homeless);
 }

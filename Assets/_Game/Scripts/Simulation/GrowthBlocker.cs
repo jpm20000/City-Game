@@ -6,5 +6,7 @@ public enum GrowthBlocker
     Occupied,
     MaxLevel,
     NoRoadAccess,
+    NoPower,            // grown cell without power can't upgrade
+    PowerAtCapacity,    // powered, but its network can't supply the upgrade
     LowDemand,
 }

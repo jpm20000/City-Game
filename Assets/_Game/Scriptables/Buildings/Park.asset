@@ -26,3 +26,5 @@ MonoBehaviour:
   m_ZoneRestriction: 0
   m_UnlockPopulation: 0
   m_Height: 0.25
+  m_CoverageRadius: 4
+  m_PowerSupply: 0

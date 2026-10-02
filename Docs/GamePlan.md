@@ -398,6 +398,7 @@ Each milestone is independently verifiable before moving on.
 | 6 | Sim core | Time / Economy / Population / Demand / Growth | Zoned cells auto-grow; money & pop change |
 | 7 | UI | HUD + toolbar + selection panel | Full loop playable from UI alone |
 | 8 | Polish | Placeholder art, feedback, balance, save/load | Vertical slice complete |
+| 9 | Services & utilities | Power plant + road-carried power grid, park coverage radius, info overlays | Upgrades need power; park placement matters; see §11 |
 
 **Status (2026-10-02):** M0–M8 implemented — the vertical slice is complete. M7 shipped as UGUI + TextMeshPro
 prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
@@ -442,8 +443,106 @@ colored blocks for buildings — no external art dependency for the prototype.
 
 Deliberately out of scope for the prototype, but designed for:
 
-- Power / water grids and service coverage radius.
+- Water grid (M9 ships power + coverage; water would reuse the same machinery).
 - Individual citizen agents (NavMesh) layered on top of the statistical model.
 - Freeform road drawing and zoning along curves.
 - Save/load is designed in but implemented late.
 - Progression, disasters, day/night, achievements.
+
+---
+
+## 11. Milestone 9 — Services & Utilities (plan, 2026-10-02)
+
+**Goal:** turn placed buildings from global stat sticks into *spatial* decisions. Today a park
+anywhere gives +0.05 to the whole city and the §7 power plant does not exist. After M9, where
+you put things matters: power flows along roads, and parks only help the homes near them.
+
+**Done when:** a fresh city grows to level 1 without power but stalls there with "Needs power"
+blockers; building a road-connected Power Plant lets it upgrade; a park only lifts happiness for
+residents inside its radius; the player can see both through overlays; save/load restores the
+same state; all EditMode tests pass.
+
+### Design
+
+**Power (utility)**
+- `Power Plant`: Utility, 3×3, $10,000, $100/day (the §7 numbers), supply **600** units (tunable).
+- Power travels **along roads**. The plant has to touch a road. Every road cell 4-connected to
+  that road is energised (it doesn't have to connect to the map edge). A grown cell beside an
+  energised road can be powered.
+- Each grown cell consumes its capacity (L1 = 4, L2 = 8, L3 = 16). Supply is handed out in
+  **BFS order from the plants**: cells closer to a plant along the roads get power first, and
+  ties are broken row-major, so the result is deterministic. When demand exceeds supply, the
+  cells furthest out lose power first.
+- Effect: **an unpowered cell can grow to L1 but cannot upgrade** (new `GrowthBlocker.NoPower`).
+  This keeps the opening exactly as it is now ($50k start, nothing to build first). It also
+  makes the $10k plant the first big purchase.
+- Happiness: new **Power** term = `-PowerPenalty × unpoweredHousing / Housing`. It ramps in
+  with `SmallTownGracePopulation`, the same way unemployment does.
+- Not saved: power is recomputed from the grid and the placed buildings, so **`SaveData`
+  stays at version 1**.
+
+**Coverage (services)**
+- `BuildingDefinition` gains `CoverageRadius` (in cells, Chebyshev distance from the
+  footprint) and `PowerSupply`. Park: radius **4**.
+- Per residential cell: `bonus = min(coveringServices × ServiceBonusEach, ServiceBonusCap)`.
+  The **Services** happiness term becomes the housing-weighted average of that bonus. So 4
+  parks still reach +0.20, but only if every home sits inside their combined coverage.
+- Global pollution stays as it is for M9. Local pollution is a candidate for M10.
+
+### Architecture (Simulation asmdef stays pure)
+
+| New / changed | Notes |
+|---|---|
+| `ServiceSource` struct | `{ Origin, EffectiveSize, CoverageRadius, PowerSupply }`. The runtime builds it from `BuildingInstance` (the asmdef can't see `BuildingDefinition`). |
+| `SimulationSystem.Sources` | `IReadOnlyList<ServiceSource>`, set by `GameManager` on Register/Unregister. It replaces `CityModifiers.ServiceCount`. |
+| `CoverageSystem` | Per-cell `byte` count of the services covering each cell. Recomputes only when the sources change (dirty flag). `GetCoverage(cell)`. |
+| `PowerSystem` | `Recompute(grid, sources, config)`: multi-source BFS over roads plus allocation. Exposes `IsPowered(cell)`, `IsEnergisedRoad(cell)`, `Supply`, `Demand`. |
+| `SimulationSystem.Tick` | Order unchanged. `PowerSystem` recomputes lazily on any grid/source change (like `RoadNetwork`); growth reserves upgrade draw during its scan. |
+| `GrowthSystem` | Eligibility for level ≥ 1 requires `Power.IsPowered`. `GetBlocker` → `NoPower` (checked after `NoRoadAccess`, before `LowDemand`). |
+| `HappinessBreakdown` | Adds a `Power` term. `Services` becomes coverage-weighted. `PopulationSystem.Step` takes the coverage and power views instead of `serviceCount`. |
+| `BalanceConfig` | `PowerPenalty`, `PowerPerLevel` (or reuse capacity), park/plant numbers live on their defs. Tag the new fields "(M9)" and mirror them in the `.asset`. |
+
+### Breakdown
+
+- **9a Sim core — done (2026-10-02).** 77 EditMode tests green; seeded city day 60: 114 pop without a plant (all L1), 212 with one (352/600 units drawn).
+  `ServiceSource`, `CoverageSystem`, `PowerSystem`, the new tick order, growth
+  gate, `NoPower` blocker, Power and Services happiness terms. Tests: BFS through roads only; a
+  plant that doesn't touch a road powers nothing; a disconnected road island stays dark;
+  brownout drops the furthest cells first; deterministic tie-break; coverage radius around a
+  rotated footprint; per-cell cap; growth stops at L1 without power; a save/load round trip
+  gives the same powered set.
+- **9b Content.** `PowerPlant` def + prefab (grey 3×3 block with two chimney stacks, Simple Lit,
+  `BoxCollider`, layer 9). Park gets `CoverageRadius = 4`. The plant appears on the toolbar
+  automatically (it's a Utility). `DebugSeedCity` also places a free plant so the debug flow
+  still reaches L3.
+- **9c Overlays & feedback.**
+  - New `InfoOverlay` (`GridTilemapView`) with modes **Off / Power / Coverage**, a new input
+    action `CycleOverlay` (key `V`) and toolbar "View" buttons.
+  - Power mode: powered, unpowered and energised-road tints.
+  - Coverage mode: shade by the per-cell bonus.
+  - With the Park or Plant tool selected, switch to the matching overlay automatically and
+    preview the new building's radius / energised roads under the ghost before you place it.
+- **9d UI wiring.**
+  - HUD power readout `used / supply` (red when short), from a new `GameEvents.PowerChanged`.
+  - `SelectionPanel`: Powered / Unpowered status, coverage count, and plant supply and load.
+  - `HappinessTooltip`: a "Power" line.
+  - Toasts: "Power shortage — N buildings dark" once per shortage, and "First power plant
+    online".
+- **9e Balance + play-through + docs.**
+  - Re-tune so the 60-day seeded run (with plant and 2 well-placed parks) lands in §7's
+    200–400 pop with positive cash flow, and with no plant it plateaus around 100.
+  - The plant's $100/day must be payable around 100–150 pop.
+  - Update the balance assertions in `SimulationTests`.
+  - Do a UI-only virtual-input play-through: roads → zones → stall at L1 → plant → upgrade →
+    park coverage → save/load.
+  - Update the `AGENTS.md` Systems section, the §7 numbers and the §8 status.
+
+### Risks / open questions
+- **Balance shift.** Gating L2/L3 roughly halves an unpowered city, so the existing day-60
+  assertions (212 pop) will break on purpose in 9a. Update them in 9e, not piecemeal.
+- **Per-tick cost.** BFS + allocation over 576 cells per tick is trivial. If the map grows
+  later, recompute only when roads, levels or sources change.
+- **Rotation.** Coverage must use `CellUtils.EffectiveSize`. Power adjacency uses the
+  footprint's perimeter.
+- **Scope guard.** Water, power lines (power off roads), local pollution and new service
+  types (police, clinic) are deferred to M10+.

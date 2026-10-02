@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class GameManager : MonoBehaviour
@@ -9,6 +10,8 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField] private GrowthVisuals m_GrowthVisuals;
 
     private CityModifiers m_Modifiers;
+    private readonly List<BuildingInstance> m_SourceBuildings = new();
+    private readonly List<ServiceSource> m_Sources = new();
 
     public GridData Grid { get; private set; }
     public RoadNetwork Roads { get; private set; }
@@ -58,11 +61,34 @@ public sealed class GameManager : MonoBehaviour
     public void RegisterBuilding(BuildingInstance building)
     {
         ApplyModifiers(building.Definition, 1);
+        if (IsSource(building.Definition))
+        {
+            m_SourceBuildings.Add(building);
+            RebuildSources();
+        }
     }
 
     public void UnregisterBuilding(BuildingInstance building)
     {
         ApplyModifiers(building.Definition, -1);
+        if (m_SourceBuildings.Remove(building)) RebuildSources();
+    }
+
+    private static bool IsSource(BuildingDefinition def)
+    {
+        return def.CoverageRadius > 0 || def.PowerSupply > 0;
+    }
+
+    private void RebuildSources()
+    {
+        m_Sources.Clear();
+        foreach (BuildingInstance b in m_SourceBuildings)
+        {
+            BuildingDefinition def = b.Definition;
+            m_Sources.Add(new ServiceSource(b.Origin, CellUtils.EffectiveSize(def.Size, b.Rotation),
+                def.CoverageRadius, def.PowerSupply));
+        }
+        Simulation.Sources = m_Sources;
     }
 
     private void ApplyModifiers(BuildingDefinition def, int sign)
@@ -77,7 +103,6 @@ public sealed class GameManager : MonoBehaviour
             m_Modifiers.CommercialJobs += sign * def.JobsProvided;
         }
         m_Modifiers.UpkeepPerDay += sign * def.UpkeepPerDay;
-        if (def.Category == BuildingCategory.Service) m_Modifiers.ServiceCount += sign;
 
         Simulation.Modifiers = m_Modifiers;
     }

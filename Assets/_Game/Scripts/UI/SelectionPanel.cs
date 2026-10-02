@@ -164,6 +164,10 @@ public sealed class SelectionPanel : MonoBehaviour
             case GrowthBlocker.LowDemand:
                 return $"<color=#F2C14E>{verb} waiting:</color> {ZoneName(zone).ToLowerInvariant()} demand is {demand.Get(zone):P0} " +
                        $"(needs over {m_GameManager.Balance.GrowthDemandThreshold:P0}).";
+            case GrowthBlocker.NoPower:
+                return $"<color=#F2665A>{verb} blocked:</color> needs power — connect a power plant to its road.";
+            case GrowthBlocker.PowerAtCapacity:
+                return $"<color=#F2C14E>{verb} waiting:</color> its power network is at capacity — build another plant.";
             case GrowthBlocker.Occupied:
                 return $"<color=#F2665A>{verb} blocked:</color> a placed building occupies this cell.";
             default:

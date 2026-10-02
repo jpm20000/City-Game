@@ -17,6 +17,10 @@ public sealed class BuildingDefinition : ScriptableObject
     [SerializeField] private ZoneType m_ZoneRestriction;
     [SerializeField] private int m_UnlockPopulation;
     [SerializeField] private float m_Height = 2f;
+    [Tooltip("Service reach in cells (Chebyshev distance from the footprint); 0 = no coverage.")]
+    [SerializeField] private int m_CoverageRadius;
+    [Tooltip("Power units fed into the roads this building touches; 0 = not a power source.")]
+    [SerializeField] private int m_PowerSupply;
 
     public string Id => m_Id;
     public string DisplayName => m_DisplayName;
@@ -32,4 +36,6 @@ public sealed class BuildingDefinition : ScriptableObject
     public ZoneType ZoneRestriction => m_ZoneRestriction;
     public int UnlockPopulation => m_UnlockPopulation;
     public float Height => m_Height;
+    public int CoverageRadius => m_CoverageRadius;
+    public int PowerSupply => m_PowerSupply;
 }

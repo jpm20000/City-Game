@@ -51,13 +51,14 @@ public sealed class SaveSystemTests
     }
 
     // Save -> JSON -> load into fresh systems, the same steps SaveGameController takes.
-    private SimulationSystem LoadIntoNew(SaveData saved, out GridData grid)
+    private SimulationSystem LoadIntoNew(SaveData saved, out GridData grid, ServiceSource[] sources = null)
     {
         Assert.IsTrue(SaveSystem.TryFromJson(SaveSystem.ToJson(saved), out SaveData loaded, out string error), error);
 
         grid = new GridData(loaded.Width, loaded.Height);
         SimulationSystem sim = new SimulationSystem(grid, new RoadNetwork(grid), m_Config);
         SaveSystem.ApplyGrid(loaded, grid);
+        if (sources != null) sim.Sources = sources;   // SaveGameController re-places buildings here
         SaveSystem.ApplySimulation(loaded, sim);
         return sim;
     }
@@ -165,6 +166,39 @@ public sealed class SaveSystemTests
         Assert.AreEqual(a.Population.Population, b.Population.Population);
         Assert.AreEqual(a.Population.AverageHappiness, b.Population.AverageHappiness);
         Assert.AreEqual(a.Economy.Money, b.Economy.Money);
+        AssertSameGrid(gridA, gridB);
+    }
+
+    [Test]
+    public void SaveWithPlantAndPark_ThenContinue_MatchesUninterruptedRun()
+    {
+        // Plant (west C strip, on the E-W road) and park; power and coverage aren't saved, they are
+        // derived from the re-placed buildings, so a different re-placement order must not matter.
+        ServiceSource plant = new ServiceSource(new Vector2Int(0, 9), new Vector2Int(3, 3), 0, 400);
+        ServiceSource park = new ServiceSource(new Vector2Int(14, 14), new Vector2Int(2, 2), 4, 0);
+        GridData gridA = new GridData(24, 24);
+        SeedCity(gridA);
+        SimulationSystem a = new SimulationSystem(gridA, new RoadNetwork(gridA), m_Config);
+        a.Sources = new[] { plant, park };
+        Run(a, 40);
+
+        SimulationSystem b = LoadIntoNew(SaveSystem.Capture(gridA, a), out GridData gridB, new[] { park, plant });
+
+        for (int y = 0; y < 24; y++)
+        {
+            for (int x = 0; x < 24; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                Assert.AreEqual(a.Power.IsPowered(cell), b.Power.IsPowered(cell), $"powered {cell}");
+            }
+        }
+        Assert.AreEqual(a.Population.Happiness.Services, b.Population.Happiness.Services, 1e-5f);
+
+        Run(a, 30);
+        Run(b, 30);
+
+        Assert.AreEqual(a.Population.Population, b.Population.Population);
+        Assert.AreEqual(a.Population.AverageHappiness, b.Population.AverageHappiness);
         AssertSameGrid(gridA, gridB);
     }
 

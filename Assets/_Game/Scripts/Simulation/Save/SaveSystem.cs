@@ -64,7 +64,7 @@ public static class SaveSystem
         grid.Import(data.Zones, data.Roads, data.Levels);
     }
 
-    // Step 2, after the grid is restored and SimulationSystem.Modifiers reflects placed buildings.
+    // Step 2, after the grid is restored and SimulationSystem.Modifiers/Sources reflect placed buildings.
     public static void ApplySimulation(SaveData data, SimulationSystem sim)
     {
         if (data == null) throw new ArgumentNullException(nameof(data));

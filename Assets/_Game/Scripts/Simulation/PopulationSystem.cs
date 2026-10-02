@@ -22,7 +22,7 @@ public sealed class PopulationSystem
     {
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
         AverageHappiness = config.StartingHappiness;
-        Happiness = new HappinessBreakdown(config.StartingHappiness, 0f, 0f, 0f, 0f, 0f);
+        Happiness = new HappinessBreakdown(config.StartingHappiness, 0f, 0f, 0f, 0f, 0f, 0f);
     }
 
     public void RecountCapacity(GridData grid, CityModifiers modifiers)
@@ -54,7 +54,7 @@ public sealed class PopulationSystem
         Workers = Mathf.FloorToInt(Population * m_Config.WorkerRatio);
     }
 
-    public void Step(float taxResidential, float taxCommercial, float taxIndustrial, int serviceCount)
+    public void Step(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services)
     {
         // Residents above capacity (e.g. after a demolish) are homeless and leave this tick.
         Homeless = Mathf.Max(0, Population - Housing);
@@ -69,14 +69,14 @@ public sealed class PopulationSystem
 
         RecountEmployment();
 
-        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, serviceCount);
+        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services);
         AverageHappiness = Happiness.Total;
     }
 
     // Load / new game: rebuilds the breakdown for the UI without touching the saved AverageHappiness.
-    public void RefreshHappinessBreakdown(float taxResidential, float taxCommercial, float taxIndustrial, int serviceCount)
+    public void RefreshHappinessBreakdown(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services)
     {
-        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, serviceCount);
+        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services);
     }
 
     // Happiness lost to taxes above the threshold (positive number). Also used by the tax panel preview.
@@ -87,9 +87,10 @@ public sealed class PopulationSystem
             + m_Config.JobTaxPenalty * (Mathf.Max(0f, taxCommercial - threshold) + Mathf.Max(0f, taxIndustrial - threshold));
     }
 
-    private HappinessBreakdown ComputeHappiness(float taxResidential, float taxCommercial, float taxIndustrial, int serviceCount)
+    private HappinessBreakdown ComputeHappiness(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services)
     {
-        // Unemployment and pollution ramp in with size: new towns are always lopsided.
+        // Unemployment, pollution and blackouts ramp in with size: new towns are always lopsided
+        // and can't afford a power plant yet.
         float cityWeight = Mathf.Clamp01((float)Population / Mathf.Max(m_Config.SmallTownGracePopulation, 1));
 
         return new HappinessBreakdown(
@@ -97,7 +98,8 @@ public sealed class PopulationSystem
             -m_Config.UnemploymentPenalty * cityWeight * Unemployed / Mathf.Max(Workers, 1),
             -TaxHappinessPenalty(taxResidential, taxCommercial, taxIndustrial),
             -m_Config.PollutionPenalty * cityWeight * IndustrialJobs / Mathf.Max(Housing + Jobs, 1),
-            Mathf.Min(serviceCount * m_Config.ServiceBonusEach, m_Config.ServiceBonusCap),
+            services.ServiceBonus,
+            -m_Config.PowerPenalty * cityWeight * services.UnpoweredHousingShare,
             -m_Config.HomelessPenalty * Homeless / Mathf.Max(Population + Homeless, 1));
     }
 

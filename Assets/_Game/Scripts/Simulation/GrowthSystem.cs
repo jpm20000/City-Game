@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Grows undeveloped zoned cells to level 1, then upgrades the lowest-level cells, scanning in
-// row-major order so results are deterministic. Writes levels into GridData; visuals react
+// row-major order so results are deterministic. Level 1 needs only road access; upgrades also need
+// power with headroom for the extra draw (reserved during the scan). Writes levels into GridData; visuals react
 // via GridData.OnCellChanged.
 public sealed class GrowthSystem
 {
@@ -11,13 +12,15 @@ public sealed class GrowthSystem
 
     private readonly GridData m_Grid;
     private readonly RoadNetwork m_Roads;
+    private readonly PowerSystem m_Power;
     private readonly BalanceConfig m_Config;
     private readonly List<Vector2Int> m_Changed = new();
 
-    public GrowthSystem(GridData grid, RoadNetwork roads, BalanceConfig config)
+    public GrowthSystem(GridData grid, RoadNetwork roads, PowerSystem power, BalanceConfig config)
     {
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Roads = roads ?? throw new ArgumentNullException(nameof(roads));
+        m_Power = power ?? throw new ArgumentNullException(nameof(power));
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
     }
 
@@ -54,6 +57,12 @@ public sealed class GrowthSystem
         if (m_Grid.IsOccupied(cell)) return GrowthBlocker.Occupied;
         if (m_Grid.GetBuildingLevel(cell) >= m_Config.MaxLevel) return GrowthBlocker.MaxLevel;
         if (!m_Roads.HasRoadAccess(cell)) return GrowthBlocker.NoRoadAccess;
+        int level = m_Grid.GetBuildingLevel(cell);
+        if (level > 0)
+        {
+            if (!m_Power.IsPowered(cell)) return GrowthBlocker.NoPower;
+            if (!m_Power.HasHeadroom(cell, UpgradeDraw(level))) return GrowthBlocker.PowerAtCapacity;
+        }
         if (demand.Get(zone) <= m_Config.GrowthDemandThreshold) return GrowthBlocker.LowDemand;
         return GrowthBlocker.None;
     }
@@ -66,6 +75,7 @@ public sealed class GrowthSystem
             {
                 Vector2Int cell = new Vector2Int(x, y);
                 if (!IsEligible(cell, zone, level)) continue;
+                if (level > 0 && !m_Power.TryReserve(cell, UpgradeDraw(level))) continue;
 
                 m_Changed.Add(cell);
                 budget--;
@@ -81,5 +91,10 @@ public sealed class GrowthSystem
             && !m_Grid.IsRoad(cell)
             && !m_Grid.IsOccupied(cell)
             && m_Roads.HasRoadAccess(cell);
+    }
+
+    private int UpgradeDraw(int level)
+    {
+        return m_Config.CapacityForLevel(level + 1) - m_Config.CapacityForLevel(level);
     }
 }
