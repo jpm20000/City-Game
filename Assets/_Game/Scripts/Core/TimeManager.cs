@@ -37,6 +37,17 @@ public sealed class TimeManager : MonoBehaviour
         SetSpeed(Speed == GameSpeed.Paused ? m_SpeedBeforePause : GameSpeed.Paused);
     }
 
+    // Debug: runs whole days instantly through the same tick + calendar path as Update.
+    public void DebugAdvanceDays(int days)
+    {
+        if (m_Config == null) return;
+        for (int i = 0; i < days; i++)
+        {
+            OnTick?.Invoke();
+            AdvanceDate();
+        }
+    }
+
     private void Update()
     {
         HandleSpeedInput();

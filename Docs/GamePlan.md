@@ -392,6 +392,15 @@ Each milestone is independently verifiable before moving on.
 | 7 | UI | HUD + toolbar + selection panel | Full loop playable from UI alone |
 | 8 | Polish | Placeholder art, feedback, balance, save/load | Vertical slice complete |
 
+**Status (2026-10-02):** M0–M7 implemented. M7 shipped as UGUI + TextMeshPro
+prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
+generated from the database), selection panel, taxes panel, notifications (toast +
+debt banner) and an F1 debug panel. The zone-painting tool landed early (after M6),
+and `HUDController`/`SelectionPanel` names match §6 but the toolbar is
+`ToolbarController` and the selection panel is driven by `PlacementController`
+selection rather than `Show(BuildingInstance)`. Known M8 balance items: happiness
+sits at ~0.8 with no pressure, and commercial/industrial taxes have no downside.
+
 **Placeholder art:** flat colored isometric diamonds for ground and simple
 colored blocks for buildings — no external art dependency for the prototype.
 

@@ -95,6 +95,15 @@
                     "interactions": "",
                     "initialStateCheck": true,
                     "priority": 0
+                },
+                {
+                    "name": "DebugToggle",
+                    "type": "Button",
+                    "id": "a13e9a21-f9a0-4629-98c7-15bc57f7e7c0",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -337,6 +346,17 @@
                     "processors": "Scale(factor=4)",
                     "groups": "",
                     "action": "SpeedDelta",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e741d993-6d99-4fad-a052-a9e28ed386dd",
+                    "path": "<Keyboard>/f1",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "DebugToggle",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

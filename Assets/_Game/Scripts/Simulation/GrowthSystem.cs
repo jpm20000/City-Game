@@ -46,6 +46,18 @@ public sealed class GrowthSystem
         return m_Changed;
     }
 
+    // Same rules as Apply, for explaining a cell to the player. None still depends on the daily budget.
+    public GrowthBlocker GetBlocker(Vector2Int cell, DemandSnapshot demand)
+    {
+        ZoneType zone = m_Grid.GetZone(cell);
+        if (zone == ZoneType.None || m_Grid.IsRoad(cell)) return GrowthBlocker.NotZoned;
+        if (m_Grid.IsOccupied(cell)) return GrowthBlocker.Occupied;
+        if (m_Grid.GetBuildingLevel(cell) >= m_Config.MaxLevel) return GrowthBlocker.MaxLevel;
+        if (!m_Roads.HasRoadAccess(cell)) return GrowthBlocker.NoRoadAccess;
+        if (demand.Get(zone) <= m_Config.GrowthDemandThreshold) return GrowthBlocker.LowDemand;
+        return GrowthBlocker.None;
+    }
+
     private int CollectAtLevel(ZoneType zone, int level, int budget)
     {
         for (int y = 0; y < m_Grid.Height && budget > 0; y++)

@@ -91,5 +91,7 @@ public sealed class GameManager : MonoBehaviour
         PopulationSystem population = Simulation.Population;
         GameEvents.RaisePopulationChanged(population.Population, population.Jobs);
         GameEvents.RaiseDemandChanged(Simulation.Demand.Snapshot);
+        GameEvents.RaiseHappinessChanged(population.AverageHappiness);
+        GameEvents.RaiseCashFlowChanged(Simulation.Economy.IncomePerDay, Simulation.Economy.ExpensePerDay);
     }
 }

@@ -264,6 +264,48 @@ public sealed class SimulationTests
     }
 
     [Test]
+    public void GetBlocker_ReportsEachReason()
+    {
+        LayRoadRow0(5);
+        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        DemandSnapshot high = new DemandSnapshot(1f, 1f, 1f);
+
+        Assert.AreEqual(GrowthBlocker.NotZoned, growth.GetBlocker(new Vector2Int(2, 1), high));
+        Assert.AreEqual(GrowthBlocker.NotZoned, growth.GetBlocker(new Vector2Int(2, 0), high)); // road
+
+        Vector2Int far = new Vector2Int(10, 10);
+        m_Grid.SetZone(far, ZoneType.Residential);
+        Assert.AreEqual(GrowthBlocker.NoRoadAccess, growth.GetBlocker(far, high));
+
+        Vector2Int near = new Vector2Int(2, 1);
+        m_Grid.SetZone(near, ZoneType.Commercial);
+        Assert.AreEqual(GrowthBlocker.LowDemand, growth.GetBlocker(near, new DemandSnapshot(1f, 0.1f, 1f)));
+        Assert.AreEqual(GrowthBlocker.None, growth.GetBlocker(near, high));
+
+        m_Grid.SetBuildingLevel(near, (byte)m_Config.MaxLevel);
+        Assert.AreEqual(GrowthBlocker.MaxLevel, growth.GetBlocker(near, high));
+
+        Vector2Int occupied = new Vector2Int(3, 1);
+        m_Grid.SetZone(occupied, ZoneType.Industrial);
+        m_Grid.Occupy(occupied, Vector2Int.one, 0, 42);
+        Assert.AreEqual(GrowthBlocker.Occupied, growth.GetBlocker(occupied, high));
+    }
+
+    [Test]
+    public void GetBlocker_None_MatchesApply()
+    {
+        LayRoadRow0(5);
+        Vector2Int cell = new Vector2Int(2, 1);
+        m_Grid.SetZone(cell, ZoneType.Residential);
+        GrowthSystem growth = new GrowthSystem(m_Grid, m_Roads, m_Config);
+        DemandSnapshot demand = new DemandSnapshot(0.5f, 0f, 0f);
+
+        Assert.AreEqual(GrowthBlocker.None, growth.GetBlocker(cell, demand));
+        growth.Apply(demand);
+        Assert.AreEqual(1, m_Grid.GetBuildingLevel(cell));
+    }
+
+    [Test]
     public void GrownCell_BlocksPlacement()
     {
         Vector2Int cell = new Vector2Int(4, 4);

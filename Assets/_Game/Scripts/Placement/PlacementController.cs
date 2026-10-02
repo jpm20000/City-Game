@@ -1,10 +1,16 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Tilemaps;
 
 public sealed class PlacementController : MonoBehaviour
 {
     public enum Mode { None, Road, Building, Demolish, Zone }
+
+    private const int k_BuildingsMask = 1 << 9;
+    private const float k_RaycastHeight = 50f;
+    private const float k_HighlightLift = 0.02f;
 
     [SerializeField] private InputReader m_InputReader;
     [SerializeField] private GridSystem m_GridSystem;
@@ -12,6 +18,7 @@ public sealed class PlacementController : MonoBehaviour
     [SerializeField] private Tilemap m_RoadTilemap;
     [SerializeField] private TileBase m_RoadTile;
     [SerializeField] private GhostRenderer m_Ghost;
+    [SerializeField] private GhostRenderer m_SelectionHighlight;
     [SerializeField] private Transform m_BuildingsContainer;
 
     private GridData m_GridData;
@@ -20,12 +27,20 @@ public sealed class PlacementController : MonoBehaviour
     private BuildingDefinition m_Selected;
     private int m_Rotation;
     private ZoneType m_ZoneBrush;
+    private Vector2Int? m_SelectedCell;
     private readonly Dictionary<int, BuildingInstance> m_Buildings = new();
 
-    // Set by UI each frame while the pointer is over it, so UI clicks don't reach the map.
-    public bool PointerOverUI { get; set; }
     public Mode CurrentMode => m_Mode;
     public ZoneType ZoneBrush => m_ZoneBrush;
+    public BuildingDefinition SelectedBuilding => m_Selected;
+
+    // Raised on every tool change, including switching zone brush or building; read CurrentMode/ZoneBrush/SelectedBuilding.
+    public event Action ModeChanged;
+
+    // Inspection with no tool active. Raised when the selected cell changes or is cleared.
+    public event Action SelectionChanged;
+    public bool HasSelection => m_SelectedCell.HasValue;
+    public Vector2Int SelectedCell => m_SelectedCell.GetValueOrDefault();
 
     private void Awake()
     {
@@ -48,6 +63,7 @@ public sealed class PlacementController : MonoBehaviour
         HandleRotation();
         HandleConfirm();
         UpdateGhost();
+        UpdateSelection();
     }
 
     public void SelectBuilding(BuildingDefinition definition)
@@ -125,6 +141,7 @@ public sealed class PlacementController : MonoBehaviour
         else if (m_InputReader.CancelPressed)
         {
             SetMode(Mode.None);
+            ClearSelection();
         }
     }
 
@@ -139,22 +156,31 @@ public sealed class PlacementController : MonoBehaviour
     private void SetMode(Mode mode)
     {
         m_Mode = mode;
+        if (mode != Mode.None) ClearSelection();
         if (mode == Mode.None)
         {
             m_Selected = null;
             if (m_Ghost != null) m_Ghost.Hide();
         }
+        ModeChanged?.Invoke();
     }
 
     private void HandleConfirm()
     {
-        if (PointerOverUI) return;
+        if (IsPointerOverUI()) return;
 
         // Zoning paints while the button is held; other tools act once per click.
         bool active = m_Mode == Mode.Zone ? m_InputReader.ConfirmHeld : m_InputReader.ConfirmPressed;
         if (!active) return;
 
         Vector2Int cell = GetMouseCell();
+
+        if (m_Mode == Mode.None)
+        {
+            SelectCell(cell);
+            return;
+        }
+
         if (!m_GridData.InBounds(cell)) return;
 
         switch (m_Mode)
@@ -166,12 +192,25 @@ public sealed class PlacementController : MonoBehaviour
                 TryPlaceBuilding(cell);
                 break;
             case Mode.Demolish:
-                TryDemolish(cell);
+                DemolishAt(cell);
                 break;
             case Mode.Zone:
                 TryZone(cell);
                 break;
         }
+    }
+
+    private bool TrySpend(float cost)
+    {
+        if (m_GameManager.Economy.Spend(cost)) return true;
+        GameEvents.RaiseInsufficientFunds(cost);
+        return false;
+    }
+
+    private static bool IsPointerOverUI()
+    {
+        EventSystem eventSystem = EventSystem.current;
+        return eventSystem != null && eventSystem.IsPointerOverGameObject();
     }
 
     private bool CanZone(Vector2Int cell)
@@ -191,7 +230,7 @@ public sealed class PlacementController : MonoBehaviour
     private void TryPlaceRoad(Vector2Int cell)
     {
         if (!m_GridData.CanPlace(cell, Vector2Int.one, 0)) return;
-        if (!m_GameManager.Economy.Spend(m_GameManager.Balance.RoadCost)) return;
+        if (!TrySpend(m_GameManager.Balance.RoadCost)) return;
 
         PlaceRoad(cell);
     }
@@ -210,7 +249,11 @@ public sealed class PlacementController : MonoBehaviour
     {
         if (m_Selected == null || m_Selected.Prefab == null) return;
         if (!m_GridData.CanPlace(cell, m_Selected.Size, m_Rotation)) return;
-        if (!m_GameManager.Economy.CanAfford(m_Selected.Cost)) return;
+        if (!m_GameManager.Economy.CanAfford(m_Selected.Cost))
+        {
+            GameEvents.RaiseInsufficientFunds(m_Selected.Cost);
+            return;
+        }
 
         Transform parent = m_BuildingsContainer != null ? m_BuildingsContainer : transform;
         GameObject go = Instantiate(m_Selected.Prefab, parent);
@@ -236,8 +279,95 @@ public sealed class PlacementController : MonoBehaviour
         m_GameManager.RegisterBuilding(instance);
     }
 
-    private void TryDemolish(Vector2Int cell)
+    public BuildingInstance GetBuildingAt(Vector2Int cell)
     {
+        if (!m_GridData.InBounds(cell) || !m_GridData.IsOccupied(cell)) return null;
+        m_Buildings.TryGetValue(m_GridData.GetOccupant(cell), out BuildingInstance instance);
+        return instance;
+    }
+
+    public void Unzone(Vector2Int cell)
+    {
+        if (!m_GridData.InBounds(cell)) return;
+        m_GridData.SetBuildingLevel(cell, 0);
+        m_GridData.SetZone(cell, ZoneType.None);
+    }
+
+    // Selects whatever is at the cell; empty, unzoned land (or off-map) clears the selection.
+    public void SelectCell(Vector2Int cell)
+    {
+        if (!IsSelectable(cell))
+        {
+            ClearSelection();
+            return;
+        }
+        if (m_SelectedCell == cell) return;
+
+        m_SelectedCell = cell;
+        SelectionChanged?.Invoke();
+    }
+
+    public void ClearSelection()
+    {
+        if (!m_SelectedCell.HasValue) return;
+
+        m_SelectedCell = null;
+        if (m_SelectionHighlight != null) m_SelectionHighlight.Hide();
+        SelectionChanged?.Invoke();
+    }
+
+    private bool IsSelectable(Vector2Int cell)
+    {
+        return m_GridData.InBounds(cell)
+            && (m_GridData.IsRoad(cell)
+                || m_GridData.IsOccupied(cell)
+                || m_GridData.GetBuildingLevel(cell) > 0
+                || m_GridData.GetZone(cell) != ZoneType.None);
+    }
+
+    private void UpdateSelection()
+    {
+        if (!m_SelectedCell.HasValue) return;
+
+        Vector2Int cell = m_SelectedCell.Value;
+        if (!IsSelectable(cell))
+        {
+            ClearSelection();
+            return;
+        }
+        if (m_SelectionHighlight == null) return;
+
+        BuildingInstance building = GetBuildingAt(cell);
+        Vector3 center;
+        Vector2Int size;
+        if (building != null)
+        {
+            center = FootprintCenter(building.Origin, building.Definition.Size, building.Rotation);
+            size = EffectiveSize(building.Definition.Size, building.Rotation);
+        }
+        else
+        {
+            center = m_GridSystem.CellToWorld(cell);
+            size = Vector2Int.one;
+        }
+
+        // Sit on top of whatever stands there, else the flat highlight is hidden under the building.
+        center.y = SurfaceHeight(center) + k_HighlightLift;
+        m_SelectionHighlight.Show(center, size, true);
+    }
+
+    private static float SurfaceHeight(Vector3 groundPoint)
+    {
+        Vector3 origin = new Vector3(groundPoint.x, k_RaycastHeight, groundPoint.z);
+        return Physics.Raycast(origin, Vector3.down, out RaycastHit hit, k_RaycastHeight * 2f, k_BuildingsMask)
+            ? hit.point.y
+            : 0f;
+    }
+
+    public void DemolishAt(Vector2Int cell)
+    {
+        if (!m_GridData.InBounds(cell)) return;
+
         if (m_GridData.IsRoad(cell))
         {
             m_GridData.SetRoad(cell, false);
