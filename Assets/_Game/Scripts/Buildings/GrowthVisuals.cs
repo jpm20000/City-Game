@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -45,6 +46,7 @@ public sealed class GrowthVisuals : MonoBehaviour
     private readonly List<Vector2Int> m_Popping = new();
     private GridData m_Grid;
     private MaterialPropertyBlock m_Block;
+    private Func<Vector2Int, Color?> m_ColorOverride;
 
     public void Init(GridData grid)
     {
@@ -56,6 +58,22 @@ public sealed class GrowthVisuals : MonoBehaviour
     private void OnDestroy()
     {
         if (m_Grid != null) m_Grid.OnCellChanged -= SyncCell;
+    }
+
+    // Info views recolour grown buildings (the ground overlay is mostly hidden under them). Return
+    // null from the function to keep a cell's zone colour; pass null to restore all zone colours.
+    public void SetColorOverride(Func<Vector2Int, Color?> colorOverride)
+    {
+        m_ColorOverride = colorOverride;
+        RefreshColors();
+    }
+
+    public void RefreshColors()
+    {
+        foreach (KeyValuePair<Vector2Int, Grown> pair in m_Cells)
+        {
+            ApplyColors(pair.Key, pair.Value);
+        }
     }
 
     private void Update()
@@ -122,9 +140,14 @@ public sealed class GrowthVisuals : MonoBehaviour
             ApplyTransform(cell, grown, 1f);
         }
 
-        Color color = ZonePalette.Get(zone);
+        ApplyColors(cell, grown);
+    }
+
+    private void ApplyColors(Vector2Int cell, Grown grown)
+    {
+        Color color = m_ColorOverride?.Invoke(cell) ?? ZonePalette.Get(grown.Zone);
         SetColor(grown.Body, color);
-        SetColor(grown.Roof, zone == ZoneType.Industrial ? m_ChimneyColor : color * m_RoofShade);
+        SetColor(grown.Roof, grown.Zone == ZoneType.Industrial ? m_ChimneyColor : color * m_RoofShade);
     }
 
     // Everything scales around the cell's ground point so buildings grow up out of the ground.

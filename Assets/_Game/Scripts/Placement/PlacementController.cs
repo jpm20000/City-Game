@@ -43,6 +43,13 @@ public sealed class PlacementController : MonoBehaviour
     // Inspection with no tool active. Raised when the selected cell changes or is cleared.
     public event Action SelectionChanged;
     public bool HasSelection => m_SelectedCell.HasValue;
+
+    // Where the selected building would stand (Building mode, pointer on the map, footprint fits; cost
+    // is ignored). Drives the info overlay's what-if preview. PreviewChanged fires when any of it changes.
+    public event Action PreviewChanged;
+    public bool HasBuildingPreview { get; private set; }
+    public Vector2Int PreviewOrigin { get; private set; }
+    public int PreviewRotation { get; private set; }
     public Vector2Int SelectedCell => m_SelectedCell.GetValueOrDefault();
 
     private void Awake()
@@ -431,6 +438,7 @@ public sealed class PlacementController : MonoBehaviour
     private void UpdateGhost()
     {
         SetHint(string.Empty, true);
+        UpdatePreview();
         if (m_Ghost == null) return;
 
         if (m_Mode == Mode.None || IsPointerOverUI())
@@ -464,6 +472,23 @@ public sealed class PlacementController : MonoBehaviour
         {
             m_Ghost.Show(m_GridSystem.CellToWorld(cell), Vector2Int.one, CursorHintValid);
         }
+    }
+
+    private void UpdatePreview()
+    {
+        bool has = false;
+        Vector2Int origin = default;
+        if (m_Mode == Mode.Building && m_Selected != null && !IsPointerOverUI())
+        {
+            origin = GetMouseCell();
+            has = m_GridData.InBounds(origin) && FootprintProblem(origin, m_Selected.Size, m_Rotation) == null;
+        }
+
+        if (has == HasBuildingPreview && (!has || (origin == PreviewOrigin && m_Rotation == PreviewRotation))) return;
+        HasBuildingPreview = has;
+        PreviewOrigin = origin;
+        PreviewRotation = m_Rotation;
+        PreviewChanged?.Invoke();
     }
 
     private void SetHint(string text, bool valid)

@@ -97,6 +97,15 @@
                     "priority": 0
                 },
                 {
+                    "name": "CycleOverlay",
+                    "type": "Button",
+                    "id": "77fd21b0-a4c4-4976-a340-b331dda1ec86",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
                     "name": "DebugToggle",
                     "type": "Button",
                     "id": "a13e9a21-f9a0-4629-98c7-15bc57f7e7c0",
@@ -364,6 +373,17 @@
                     "processors": "Scale(factor=4)",
                     "groups": "",
                     "action": "SpeedDelta",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d1d65f42-9eda-43d2-a88d-87d34ddfc3d6",
+                    "path": "<Keyboard>/v",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "CycleOverlay",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

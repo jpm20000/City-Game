@@ -19,6 +19,7 @@ public sealed class InputReader : MonoBehaviour
     private InputAction m_DebugToggleAction;
     private InputAction m_QuickSaveAction;
     private InputAction m_QuickLoadAction;
+    private InputAction m_CycleOverlayAction;
 
     public Vector2 Pan => m_PanAction.ReadValue<Vector2>();
     public float Zoom => m_ZoomAction.ReadValue<float>();
@@ -32,6 +33,7 @@ public sealed class InputReader : MonoBehaviour
     public bool DebugTogglePressed => m_DebugToggleAction.WasPressedThisFrame();
     public bool QuickSavePressed => m_QuickSaveAction.WasPressedThisFrame();
     public bool QuickLoadPressed => m_QuickLoadAction.WasPressedThisFrame();
+    public bool CycleOverlayPressed => m_CycleOverlayAction.WasPressedThisFrame();
     public int SpeedDelta => Mathf.RoundToInt(m_SpeedDeltaAction.ReadValue<float>());
 
     private void Awake()
@@ -57,6 +59,7 @@ public sealed class InputReader : MonoBehaviour
         m_DebugToggleAction = m_Map.FindAction("DebugToggle", throwIfNotFound: true);
         m_QuickSaveAction = m_Map.FindAction("QuickSave", throwIfNotFound: true);
         m_QuickLoadAction = m_Map.FindAction("QuickLoad", throwIfNotFound: true);
+        m_CycleOverlayAction = m_Map.FindAction("CycleOverlay", throwIfNotFound: true);
 
         m_Map.Enable();
     }

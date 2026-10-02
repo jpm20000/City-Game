@@ -17,6 +17,11 @@ public sealed class ToolbarController : MonoBehaviour
     [SerializeField] private ToolButton m_UnzoneButton;
     [SerializeField] private ToolButton m_DemolishButton;
 
+    [Header("Views")]
+    [SerializeField] private InfoOverlay m_InfoOverlay;
+    [SerializeField] private ToolButton m_PowerViewButton;
+    [SerializeField] private ToolButton m_CoverageViewButton;
+
     [Header("Buildings")]
     [SerializeField] private ToolButton m_ButtonTemplate;
     [SerializeField] private Transform m_BuildingsContainer;
@@ -43,9 +48,14 @@ public sealed class ToolbarController : MonoBehaviour
             "Demolish  [Del]\nRemove a road, building or grown cell. No refund.",
             () => Toggle(PlacementController.Mode.Demolish, m_Placement.SelectDemolish));
 
+        BindView(m_PowerViewButton, "Power", InfoOverlay.View.Power,
+            "Power view  [V]\n<color=#FFD133>Yellow</color> roads carry power from a plant. Buildings: <color=#59D966>powered</color> / <color=#F2554A>no power</color> (can't upgrade). Faint tints show zoned land that would / wouldn't get power.");
+        BindView(m_CoverageViewButton, "Parks", InfoOverlay.View.Coverage,
+            "Park coverage view  [V]\nGreener homes get more happiness from nearby parks (up to 4 parks count). Light grey homes have none; dark grey buildings are jobs, which parks don't affect.");
         CreateBuildingButtons();
 
         m_Placement.ModeChanged += RefreshActive;
+        if (m_InfoOverlay != null) m_InfoOverlay.ViewChanged += RefreshActive;
         GameEvents.MoneyChanged += RefreshAffordable;
         HideTooltip(null);
         RefreshActive();
@@ -55,6 +65,7 @@ public sealed class ToolbarController : MonoBehaviour
     private void OnDestroy()
     {
         if (m_Placement != null) m_Placement.ModeChanged -= RefreshActive;
+        if (m_InfoOverlay != null) m_InfoOverlay.ViewChanged -= RefreshActive;
         GameEvents.MoneyChanged -= RefreshAffordable;
     }
 
@@ -79,7 +90,9 @@ public sealed class ToolbarController : MonoBehaviour
     private static string BuildingTooltip(BuildingDefinition def)
     {
         string text = $"{def.DisplayName}  ({def.Size.x}x{def.Size.y})\n${def.Cost:N0} to build, ${def.UpkeepPerDay:N0}/day upkeep.";
-        if (def.Category == BuildingCategory.Service) text += "\nRaises happiness. [R] rotates.";
+        if (def.PowerSupply > 0) text += $"\nPowers {def.PowerSupply} units along the roads it touches (L1/L2/L3 buildings use 4/8/16). Upgrades past level 1 need power.";
+        if (def.CoverageRadius > 0) text += $"\nRaises happiness of homes within {def.CoverageRadius} cells.";
+        text += "\n[R] rotates.";
         return text;
     }
 
@@ -100,6 +113,14 @@ public sealed class ToolbarController : MonoBehaviour
             if (active) m_Placement.ClearMode();
             else m_Placement.SelectZone(zone);
         });
+    }
+
+    // Clicking the active view again turns the overlay off. Views don't clear the current tool.
+    private void BindView(ToolButton button, string label, InfoOverlay.View view, string tooltip)
+    {
+        if (m_InfoOverlay == null) return;
+        Bind(button, label, string.Empty, Color.clear, tooltip,
+            () => m_InfoOverlay.SetView(m_InfoOverlay.Chosen == view ? InfoOverlay.View.Off : view));
     }
 
     // Clicking the active tool again turns it off.
@@ -133,6 +154,9 @@ public sealed class ToolbarController : MonoBehaviour
         SetActive(m_IndustrialButton, zoning && brush == ZoneType.Industrial);
         SetActive(m_UnzoneButton, zoning && brush == ZoneType.None);
         SetActive(m_DemolishButton, mode == PlacementController.Mode.Demolish);
+        InfoOverlay.View view = m_InfoOverlay != null ? m_InfoOverlay.Shown : InfoOverlay.View.Off;
+        SetActive(m_PowerViewButton, view == InfoOverlay.View.Power);
+        SetActive(m_CoverageViewButton, view == InfoOverlay.View.Coverage);
 
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {

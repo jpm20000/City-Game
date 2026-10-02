@@ -516,7 +516,7 @@ same state; all EditMode tests pass.
   `BoxCollider`, layer 9). Park gets `CoverageRadius = 4`. The plant appears on the toolbar
   automatically (it's a Utility). `DebugSeedCity` also places a free plant so the debug flow
   still reaches L3.
-- **9c Overlays & feedback.**
+- **9c Overlays & feedback — done (2026-10-02).** Verified in Play mode with virtual input (V, plant/park tool hover previews, pointer-over-UI, tool clear); zone tints are hidden while a view is shown and grown buildings are recoloured. Toolbar buttons are `Power` / `Parks` under `VIEW`.
   - New `InfoOverlay` (`GridTilemapView`) with modes **Off / Power / Coverage**, a new input
     action `CycleOverlay` (key `V`) and toolbar "View" buttons.
   - Power mode: powered, unpowered and energised-road tints.
