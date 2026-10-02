@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 
-// Pure daily tick in the fixed order Demand -> Growth -> Population -> Economy. Power and coverage
-// are derived views (power recomputes lazily after any grid change), so they need no tick step.
+// Pure daily tick in the fixed order Demand -> Growth -> Population -> Economy -> Research. Power and
+// coverage are derived views (power recomputes lazily after any grid change), so they need no tick
+// step. Built without age/tech databases, the sim plays by AgeRules.Legacy and has no research.
 public sealed class SimulationSystem
 {
     private readonly GridData m_Grid;
@@ -15,6 +16,12 @@ public sealed class SimulationSystem
     public GrowthSystem Growth { get; }
     public PowerSystem Power { get; }
     public CoverageSystem Coverage { get; }
+
+    // Research and the current age; null when the sim was built without age/tech databases.
+    public TechSystem Tech { get; }
+
+    // The current age's growth rules (Legacy without ages).
+    public AgeRules Rules => Tech != null ? Tech.Rules : AgeRules.Legacy;
 
     // Set by the runtime layer whenever player-placed buildings change.
     public CityModifiers Modifiers { get; set; }
@@ -32,8 +39,12 @@ public sealed class SimulationSystem
         }
     }
 
-    public SimulationSystem(GridData grid, RoadNetwork roads, BalanceConfig config)
+    public SimulationSystem(GridData grid, RoadNetwork roads, BalanceConfig config,
+        AgeDatabase ages = null, TechDatabase techs = null)
     {
+        if ((ages == null) != (techs == null))
+            throw new ArgumentException("Pass both the age and tech databases, or neither.");
+
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
 
@@ -43,6 +54,7 @@ public sealed class SimulationSystem
         Power = new PowerSystem(grid, config);
         Coverage = new CoverageSystem(grid.Width, grid.Height);
         Growth = new GrowthSystem(grid, roads, Power, config);
+        if (ages != null) Tech = new TechSystem(ages, techs, config);
         grid.OnResized += () =>
         {
             Coverage.Resize(grid.Width, grid.Height);
@@ -53,6 +65,17 @@ public sealed class SimulationSystem
     public ServiceStats MeasureServices()
     {
         return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power);
+    }
+
+    // Research points earned per day at the current population: filled commercial jobs plus
+    // research buildings, times the researched techs' multiplier. 0 without ages.
+    public float ResearchIncome()
+    {
+        if (Tech == null) return 0f;
+        int jobs = Population.Jobs;
+        float filledCommercial = jobs > 0 ? (float)Population.CommercialJobs * Population.Employed / jobs : 0f;
+        return (filledCommercial * m_Config.ResearchPerCommercialJob + Modifiers.ResearchPerDay)
+            * Tech.Modifiers.ResearchMultiplier;
     }
 
     // Load / new game: sets persisted state and recomputes derived stats (capacity, employment,
@@ -85,5 +108,7 @@ public sealed class SimulationSystem
             + Population.IndustrialJobs * m_Config.IncomePerIndustrialJob * Economy.TaxIndustrial;
         float expense = modifiers.UpkeepPerDay + m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay;
         Economy.ApplyDay(income, expense);
+
+        Tech?.Step(ResearchIncome());
     }
 }

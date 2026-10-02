@@ -7,4 +7,5 @@ public struct CityModifiers
     public int CommercialJobs;
     public int IndustrialJobs;
     public float UpkeepPerDay;
+    public float ResearchPerDay;     // research buildings (M11)
 }

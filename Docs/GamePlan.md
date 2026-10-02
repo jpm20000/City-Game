@@ -754,7 +754,13 @@ two materials per prefab.
 
 #### Steps (each one fits a session and is committed on its own)
 
-- **11a Tech core (pure, no gameplay change).** `AgeDefinition`, `AgeDatabase`, `TechDefinition`,
+- **11a Tech core (pure, no gameplay change) — done (2026-10-03).** Notes from implementing: the RP
+  `Progress` is a pool held toward the active project (switching projects is free); a replaced
+  active project returns to the front of the queue; removing a planned tech drops queued techs that
+  needed it; `TechModifiers` is a class (identity default) folded in database order; the sim has no
+  calendar, so advancing raises `AgeAdvanced` and the runtime applies `AgeDefinition.YearOnEntering`
+  (11d/11f). 104 EditMode tests green (22 new in `TechSystemTests`).
+  Original plan: `AgeDefinition`, `AgeDatabase`, `TechDefinition`,
   `TechEffect`, `TechDatabase` + validation, `TechModifiers`, `TechSystem`, `AgeRules`.
   `SimulationSystem` gets the optional databases and the Research tick step, but nothing reads
   the age yet. Tests: validation (cycle, prerequisite from a later age, duplicate Id, too few
@@ -895,4 +901,4 @@ cosmetic carts/cars on busy roads (visual only).
 thumbnails, a tutorial for the first age, and a Windows player build.
 
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). M11 is planned in full above
-(steps 11a–11g); implementation starts with 11a.
+(steps 11a–11g); 11a (tech core) is done, next is 11b (ages in the sim).

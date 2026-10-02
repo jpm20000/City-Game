@@ -70,6 +70,16 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_IncomePerCommercialJob = 12f;
     [SerializeField] private float m_IncomePerIndustrialJob = 12f;
 
+    [Header("Research & ages")]
+    [Tooltip("(M11) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs).")]
+    [SerializeField] private float m_ResearchPerCommercialJob = 0.05f;
+    [Tooltip("(M11) Outdated grown cells rebuilt in the current age's style per day (separate from MaxGrowthPerDay).")]
+    [SerializeField] private int m_RedevelopPerDay = 3;
+    [Tooltip("(M11) Research projects that can wait behind the active one.")]
+    [SerializeField] private int m_ResearchQueueMax = 5;
+    [Tooltip("(M11) With nothing being researched, RP bank up to this many days of the current income.")]
+    [SerializeField] private float m_ResearchBankDays = 30f;
+
     public float SecondsPerDay => m_SecondsPerDay;
     public int DaysPerMonth => m_DaysPerMonth;
     public int MonthsPerYear => m_MonthsPerYear;
@@ -115,6 +125,11 @@ public sealed class BalanceConfig : ScriptableObject
     public float IncomePerWorker => m_IncomePerWorker;
     public float IncomePerCommercialJob => m_IncomePerCommercialJob;
     public float IncomePerIndustrialJob => m_IncomePerIndustrialJob;
+
+    public float ResearchPerCommercialJob => m_ResearchPerCommercialJob;
+    public int RedevelopPerDay => m_RedevelopPerDay;
+    public int ResearchQueueMax => m_ResearchQueueMax;
+    public float ResearchBankDays => m_ResearchBankDays;
 
     // Residents (or jobs) for a grown cell at the given level; 0 = undeveloped.
     public int CapacityForLevel(int level)
