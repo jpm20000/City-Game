@@ -58,6 +58,8 @@ public sealed class AgeDatabase : ScriptableObject
                 errors.Add($"Age '{age.Id}' starts in {age.StartYear}, not after '{previous.Id}' ({previous.StartYear}).");
             if (age.CapacityScale < previous.CapacityScale)
                 errors.Add($"Age '{age.Id}' has a lower CapacityScale than '{previous.Id}'.");
+            if (age.MaxLevel < previous.MaxLevel)
+                errors.Add($"Age '{age.Id}' has a lower MaxLevel than '{previous.Id}' (redevelopment keeps a block's level).");
         }
         return errors.Count == before;
     }

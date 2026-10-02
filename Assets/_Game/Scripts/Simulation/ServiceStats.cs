@@ -13,8 +13,11 @@ public readonly struct ServiceStats
         UnpoweredHousingShare = unpoweredHousingShare;
     }
 
-    public static ServiceStats Measure(GridData grid, BalanceConfig config, CoverageSystem coverage, PowerSystem power)
+    // countPower false (ages whose upgrades don't need power) leaves UnpoweredHousingShare at 0.
+    public static ServiceStats Measure(GridData grid, BalanceConfig config, CoverageSystem coverage, PowerSystem power,
+        CapacityModel capacityModel = null, bool countPower = true)
     {
+        capacityModel ??= new CapacityModel(config);
         float bonus = 0f;
         int housing = 0;
         int unpowered = 0;
@@ -25,12 +28,12 @@ public readonly struct ServiceStats
             {
                 Vector2Int cell = new Vector2Int(x, y);
                 if (grid.GetZone(cell) != ZoneType.Residential) continue;
-                int capacity = config.CapacityForLevel(grid.GetBuildingLevel(cell));
+                int capacity = capacityModel.CapacityOf(grid, cell);
                 if (capacity == 0) continue;
 
                 housing += capacity;
                 bonus += capacity * Mathf.Min(coverage.GetCoverage(cell) * config.ServiceBonusEach, config.ServiceBonusCap);
-                if (!power.IsPowered(cell)) unpowered += capacity;
+                if (countPower && !power.IsPowered(cell)) unpowered += capacity;
             }
         }
 

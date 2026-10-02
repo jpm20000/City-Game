@@ -127,7 +127,7 @@ public sealed class InfoOverlay : GridTilemapView
 
     protected override void CreateTiles()
     {
-        m_PreviewPower = new PowerSystem(Grid, GameManager.Balance);
+        m_PreviewPower = new PowerSystem(Grid, GameManager.Balance, GameManager.Simulation?.Capacity);
         m_PreviewCoverage = new CoverageSystem(Grid.Width, Grid.Height);
         m_BuildingColor = BuildingColor;
 

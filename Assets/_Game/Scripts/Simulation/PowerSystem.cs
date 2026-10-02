@@ -10,7 +10,7 @@ using UnityEngine;
 public sealed class PowerSystem
 {
     private readonly GridData m_Grid;
-    private readonly BalanceConfig m_Config;
+    private readonly CapacityModel m_Capacity;
     private int m_Width;
     private int[] m_RoadNetwork;      // network id per energised road cell, -1 = dark
     private int[] m_CellNetwork;      // network feeding each powered cell, -1 = unpowered
@@ -25,10 +25,11 @@ public sealed class PowerSystem
     private int m_Load;
     private int m_UnpoweredCells;
 
-    public PowerSystem(GridData grid, BalanceConfig config)
+    public PowerSystem(GridData grid, BalanceConfig config, CapacityModel capacity = null)
     {
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
-        m_Config = config ?? throw new ArgumentNullException(nameof(config));
+        if (config == null) throw new ArgumentNullException(nameof(config));
+        m_Capacity = capacity ?? new CapacityModel(config);
         Allocate();
         grid.OnCellChanged += _ => m_Dirty = true;
         grid.OnResized += Allocate;
@@ -244,11 +245,11 @@ public sealed class PowerSystem
         return demand;
     }
 
-    // A grown zone cell draws its level's capacity; everything else draws nothing.
+    // A grown zone cell draws its capacity; everything else draws nothing.
     private int Draw(Vector2Int cell)
     {
         if (m_Grid.GetZone(cell) == ZoneType.None || m_Grid.IsRoad(cell)) return 0;
-        return m_Config.CapacityForLevel(m_Grid.GetBuildingLevel(cell));
+        return m_Capacity.CapacityOf(m_Grid, cell);
     }
 
     private int Index(Vector2Int cell) => CellUtils.Index(cell, m_Width);

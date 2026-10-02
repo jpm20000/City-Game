@@ -162,13 +162,16 @@ public sealed class SelectionPanel : MonoBehaviour
     {
         GridData grid = m_GameManager.Grid;
         BalanceConfig balance = m_GameManager.Balance;
+        SimulationSystem sim = m_GameManager.Simulation;
         ZoneType zone = grid.GetZone(cell);
         int level = grid.GetBuildingLevel(cell);
+        int maxLevel = sim.Growth.MaxLevelFor(cell);
+        int builtAge = grid.GetBuiltAge(cell);
         string unit = zone == ZoneType.Residential ? "Homes" : "Jobs";
 
         m_Title.text = $"{ZoneName(zone)} building";
-        Line($"Level {level} / {balance.MaxLevel}");
-        Line($"{unit}  {balance.CapacityForLevel(level)}");
+        Line($"Level {level} / {maxLevel}");
+        Line($"{unit}  {sim.Capacity.CapacityOf(grid, cell)}");
         Line(m_GameManager.Simulation.Power.IsPowered(cell)
             ? "<color=#73D973>Powered</color>"
             : "<color=#F2665A>No power</color>");
@@ -178,10 +181,14 @@ public sealed class SelectionPanel : MonoBehaviour
             float bonus = Mathf.Min(parks * balance.ServiceBonusEach, balance.ServiceBonusCap);
             Line(parks > 0 ? $"Parks nearby  {parks}  (+{bonus:P0} happiness)" : "No park nearby");
         }
-        if (level < balance.MaxLevel)
+        if (level < maxLevel)
         {
-            Line($"Next level: {unit.ToLowerInvariant()} {balance.CapacityForLevel(level + 1)}");
+            Line($"Next level: {unit.ToLowerInvariant()} {sim.Capacity.Capacity(level + 1, builtAge)}");
             Line(BlockerText(cell, zone, "Upgrade"));
+        }
+        else if (sim.Growth.IsOutdated(cell) || level < balance.MaxLevel)
+        {
+            Line(BlockerText(cell, zone, "Rebuild"));
         }
         else
         {
@@ -221,6 +228,12 @@ public sealed class SelectionPanel : MonoBehaviour
                 return $"<color=#F2C14E>{verb} waiting:</color> its power network is at capacity — build another plant.";
             case GrowthBlocker.Occupied:
                 return $"<color=#F2665A>{verb} blocked:</color> a placed building occupies this cell.";
+            case GrowthBlocker.AgeMaxLevel:
+                return "<color=#9AA3B2>Highest level for this age.</color>";
+            case GrowthBlocker.Outdated:
+                return "<color=#F2C14E>Outdated</color> — will be rebuilt in the current age's style.";
+            case GrowthBlocker.KeptHistoric:
+                return "<color=#9AA3B2>Historic (kept) — highest level for its age.</color>";
             default:
                 return string.Empty;
         }

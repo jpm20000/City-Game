@@ -4,6 +4,7 @@ using UnityEngine;
 public sealed class PopulationSystem
 {
     private readonly BalanceConfig m_Config;
+    private readonly CapacityModel m_Capacity;
 
     public int Population { get; private set; }
     public int Workers { get; private set; }
@@ -18,9 +19,10 @@ public sealed class PopulationSystem
     public int MovedOut { get; private set; }   // residents who left in the last Step (unhappiness)
     public HappinessBreakdown Happiness { get; private set; }
 
-    public PopulationSystem(BalanceConfig config)
+    public PopulationSystem(BalanceConfig config, CapacityModel capacity = null)
     {
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
+        m_Capacity = capacity ?? new CapacityModel(config);
         AverageHappiness = config.StartingHappiness;
         Happiness = new HappinessBreakdown(config.StartingHappiness, 0f, 0f, 0f, 0f, 0f, 0f);
     }
@@ -36,7 +38,7 @@ public sealed class PopulationSystem
             for (int x = 0; x < grid.Width; x++)
             {
                 Vector2Int cell = new Vector2Int(x, y);
-                int capacity = m_Config.CapacityForLevel(grid.GetBuildingLevel(cell));
+                int capacity = m_Capacity.CapacityOf(grid, cell);
                 if (capacity == 0) continue;
 
                 switch (grid.GetZone(cell))
@@ -54,7 +56,8 @@ public sealed class PopulationSystem
         Workers = Mathf.FloorToInt(Population * m_Config.WorkerRatio);
     }
 
-    public void Step(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services)
+    // techBonus = researched techs' happiness bonus (TechModifiers.HappinessBonus).
+    public void Step(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services, float techBonus = 0f)
     {
         // Residents above capacity (e.g. after a demolish) are homeless and leave this tick.
         Homeless = Mathf.Max(0, Population - Housing);
@@ -69,14 +72,15 @@ public sealed class PopulationSystem
 
         RecountEmployment();
 
-        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services);
+        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus);
         AverageHappiness = Happiness.Total;
     }
 
     // Load / new game: rebuilds the breakdown for the UI without touching the saved AverageHappiness.
-    public void RefreshHappinessBreakdown(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services)
+    public void RefreshHappinessBreakdown(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services,
+        float techBonus = 0f)
     {
-        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services);
+        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus);
     }
 
     // Happiness lost to taxes above the threshold (positive number). Also used by the tax panel preview.
@@ -87,7 +91,8 @@ public sealed class PopulationSystem
             + m_Config.JobTaxPenalty * (Mathf.Max(0f, taxCommercial - threshold) + Mathf.Max(0f, taxIndustrial - threshold));
     }
 
-    private HappinessBreakdown ComputeHappiness(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services)
+    private HappinessBreakdown ComputeHappiness(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services,
+        float techBonus)
     {
         // Unemployment, pollution and blackouts ramp in with size: new towns are always lopsided
         // and can't afford a power plant yet.
@@ -100,7 +105,8 @@ public sealed class PopulationSystem
             -m_Config.PollutionPenalty * cityWeight * IndustrialJobs / Mathf.Max(Housing + Jobs, 1),
             services.ServiceBonus,
             -m_Config.PowerPenalty * cityWeight * services.UnpoweredHousingShare,
-            -m_Config.HomelessPenalty * Homeless / Mathf.Max(Population + Homeless, 1));
+            -m_Config.HomelessPenalty * Homeless / Mathf.Max(Population + Homeless, 1),
+            techBonus);
     }
 
     // Load / new game. Call RecountCapacity first so the derived worker/job stats are current.

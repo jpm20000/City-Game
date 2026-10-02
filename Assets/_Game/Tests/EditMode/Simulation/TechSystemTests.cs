@@ -410,8 +410,8 @@ public sealed class TechSystemTests
         Assert.AreEqual(0f, sim.ResearchIncome());
     }
 
-    // A small city run with and without ages: research accrues, nothing else changes, and two
-    // runs with ages are identical.
+    // A small city run without ages and started in the Industrial age (today's rules): research
+    // accrues, nothing else changes, and two runs with ages are identical.
     [Test]
     public void Simulation_ResearchStep_IsDeterministic_AndChangesNothingElse()
     {
@@ -445,9 +445,8 @@ public sealed class TechSystemTests
             : new SimulationSystem(grid, roads, m_Config);
         if (withAges)
         {
-            sim.Tech.StartNew(0);
-            sim.Tech.Enqueue(m_MedA);
-            sim.Tech.Enqueue(m_MedB);
+            sim.Tech.StartNew(2);
+            sim.Tech.Enqueue(m_Steam);
         }
         for (int day = 0; day < days; day++) sim.Tick();
         return sim;

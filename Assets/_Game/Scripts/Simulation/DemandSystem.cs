@@ -15,8 +15,11 @@ public sealed class DemandSystem
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
     }
 
-    public void Compute(PopulationSystem population, float taxResidential, float taxCommercial, float taxIndustrial)
+    // tech = researched techs' per-zone demand multipliers (null = none).
+    public void Compute(PopulationSystem population, float taxResidential, float taxCommercial, float taxIndustrial,
+        TechModifiers tech = null)
     {
+        tech ??= TechModifiers.None;
         int jobs = population.Jobs;
         int unfilledJobs = Mathf.Max(0, jobs - population.Workers);
         int vacantHomes = Mathf.Max(0, population.Housing - population.Population);
@@ -31,9 +34,11 @@ public sealed class DemandSystem
             residential *= m_Config.LowHappinessDemandScale;
         }
 
-        ResidentialDemand = residential;
-        CommercialDemand = JobDemand(population.Population * m_Config.CommercialJobsPerResident, population.CommercialJobs, taxCommercial);
-        IndustrialDemand = JobDemand(population.Population * m_Config.IndustrialJobsPerResident, population.IndustrialJobs, taxIndustrial);
+        ResidentialDemand = Mathf.Clamp01(residential * tech.DemandMultiplier(ZoneType.Residential));
+        CommercialDemand = Mathf.Clamp01(tech.DemandMultiplier(ZoneType.Commercial)
+            * JobDemand(population.Population * m_Config.CommercialJobsPerResident, population.CommercialJobs, taxCommercial));
+        IndustrialDemand = Mathf.Clamp01(tech.DemandMultiplier(ZoneType.Industrial)
+            * JobDemand(population.Population * m_Config.IndustrialJobsPerResident, population.IndustrialJobs, taxIndustrial));
     }
 
     // Residents and businesses weigh their zone's tax: above the threshold demand shrinks, below it grows.

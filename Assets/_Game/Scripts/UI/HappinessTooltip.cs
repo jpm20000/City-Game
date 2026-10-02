@@ -66,6 +66,7 @@ public sealed class HappinessTooltip : MonoBehaviour, IPointerEnterHandler, IPoi
         Line("Parks & services", h.Services, good, bad);
         Line("Power outages", h.Power, good, bad);
         Line("Homelessness", h.Homeless, good, bad);
+        Line("Technology", h.Technology, good, bad);
         m_Builder.Append($"<b>Total  {h.Total:P0}</b>");
 
         if (population.Population > 0 && population.Population < balance.SmallTownGracePopulation)

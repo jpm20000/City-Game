@@ -11,6 +11,8 @@ public sealed class GridData
     private bool[] m_Roads;
     private int[] m_Occupancy;
     private byte[] m_BuildingLevel;
+    private byte[] m_BuiltAge;      // age index a grown cell was (re)built in (M11)
+    private bool[] m_Historic;      // "Keep historical building" (M11)
 
     public event Action<Vector2Int> OnCellChanged;
 
@@ -41,6 +43,8 @@ public sealed class GridData
         m_Roads = new bool[width * height];
         m_Occupancy = new int[width * height];
         m_BuildingLevel = new byte[width * height];
+        m_BuiltAge = new byte[width * height];
+        m_Historic = new bool[width * height];
     }
 
     public bool InBounds(Vector2Int cell)
@@ -79,12 +83,46 @@ public sealed class GridData
         return m_BuildingLevel[Index(cell)];
     }
 
+    // Level 0 (demolish, rezone) also clears the built age and the historic flag.
     public void SetBuildingLevel(Vector2Int cell, byte level)
     {
         if (level > 3) level = 3;
         int i = Index(cell);
         if (m_BuildingLevel[i] == level) return;
         m_BuildingLevel[i] = level;
+        if (level == 0)
+        {
+            m_BuiltAge[i] = 0;
+            m_Historic[i] = false;
+        }
+        OnCellChanged?.Invoke(cell);
+    }
+
+    public byte GetBuiltAge(Vector2Int cell)
+    {
+        return m_BuiltAge[Index(cell)];
+    }
+
+    public void SetBuiltAge(Vector2Int cell, byte age)
+    {
+        int i = Index(cell);
+        if (m_BuiltAge[i] == age) return;
+        m_BuiltAge[i] = age;
+        OnCellChanged?.Invoke(cell);
+    }
+
+    public bool IsHistoric(Vector2Int cell)
+    {
+        return m_Historic[Index(cell)];
+    }
+
+    // Only grown cells can be kept; setting it on an undeveloped cell is ignored.
+    public void SetHistoric(Vector2Int cell, bool historic)
+    {
+        int i = Index(cell);
+        if (historic && m_BuildingLevel[i] == 0) return;
+        if (m_Historic[i] == historic) return;
+        m_Historic[i] = historic;
         OnCellChanged?.Invoke(cell);
     }
 
@@ -169,25 +207,45 @@ public sealed class GridData
         return (byte[])m_BuildingLevel.Clone();
     }
 
-    // Replaces zones / roads / levels and clears occupancy (release buildings first). Raises
-    // OnCellChanged for every cell whose state changed so views resync.
-    public void Import(byte[] zones, byte[] roads, byte[] levels)
+    public byte[] ExportBuiltAges()
+    {
+        return (byte[])m_BuiltAge.Clone();
+    }
+
+    public byte[] ExportHistoric()
+    {
+        byte[] data = new byte[m_Historic.Length];
+        for (int i = 0; i < data.Length; i++) data[i] = m_Historic[i] ? (byte)1 : (byte)0;
+        return data;
+    }
+
+    // Replaces zones / roads / levels (and built ages / historic flags; null = all 0) and clears
+    // occupancy (release buildings first). Raises OnCellChanged for every cell whose state changed
+    // so views resync. Undeveloped cells never keep a built age or historic flag.
+    public void Import(byte[] zones, byte[] roads, byte[] levels, byte[] builtAges = null, byte[] historic = null)
     {
         int count = Width * Height;
         if (zones == null || zones.Length != count) throw new ArgumentException("Zone data size mismatch.", nameof(zones));
         if (roads == null || roads.Length != count) throw new ArgumentException("Road data size mismatch.", nameof(roads));
         if (levels == null || levels.Length != count) throw new ArgumentException("Level data size mismatch.", nameof(levels));
+        if (builtAges != null && builtAges.Length != count) throw new ArgumentException("Built age data size mismatch.", nameof(builtAges));
+        if (historic != null && historic.Length != count) throw new ArgumentException("Historic data size mismatch.", nameof(historic));
 
         for (int i = 0; i < count; i++)
         {
             ZoneType zone = (ZoneType)zones[i];
             bool road = roads[i] != 0;
             byte level = (byte)Mathf.Min(levels[i], (byte)3);
-            if (m_Zones[i] == zone && m_Roads[i] == road && m_BuildingLevel[i] == level && m_Occupancy[i] == 0) continue;
+            byte builtAge = level > 0 && builtAges != null ? builtAges[i] : (byte)0;
+            bool kept = level > 0 && historic != null && historic[i] != 0;
+            if (m_Zones[i] == zone && m_Roads[i] == road && m_BuildingLevel[i] == level && m_Occupancy[i] == 0
+                && m_BuiltAge[i] == builtAge && m_Historic[i] == kept) continue;
 
             m_Zones[i] = zone;
             m_Roads[i] = road;
             m_BuildingLevel[i] = level;
+            m_BuiltAge[i] = builtAge;
+            m_Historic[i] = kept;
             m_Occupancy[i] = 0;
             OnCellChanged?.Invoke(new Vector2Int(i % Width, i / Width));
         }

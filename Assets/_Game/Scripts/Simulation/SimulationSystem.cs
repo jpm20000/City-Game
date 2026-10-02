@@ -23,6 +23,12 @@ public sealed class SimulationSystem
     // The current age's growth rules (Legacy without ages).
     public AgeRules Rules => Tech != null ? Tech.Rules : AgeRules.Legacy;
 
+    // Researched techs' effects (identity without ages).
+    public TechModifiers TechModifiers => Tech != null ? Tech.Modifiers : TechModifiers.None;
+
+    // Scaled capacity per grown cell (by the age it was built in).
+    public CapacityModel Capacity { get; }
+
     // Set by the runtime layer whenever player-placed buildings change.
     public CityModifiers Modifiers { get; set; }
 
@@ -48,13 +54,14 @@ public sealed class SimulationSystem
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
 
-        Economy = new EconomySystem(config);
-        Population = new PopulationSystem(config);
-        Demand = new DemandSystem(config);
-        Power = new PowerSystem(grid, config);
-        Coverage = new CoverageSystem(grid.Width, grid.Height);
-        Growth = new GrowthSystem(grid, roads, Power, config);
         if (ages != null) Tech = new TechSystem(ages, techs, config);
+        Capacity = new CapacityModel(config, ages);
+        Economy = new EconomySystem(config);
+        Population = new PopulationSystem(config, Capacity);
+        Demand = new DemandSystem(config);
+        Power = new PowerSystem(grid, config, Capacity);
+        Coverage = new CoverageSystem(grid.Width, grid.Height);
+        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech);
         grid.OnResized += () =>
         {
             Coverage.Resize(grid.Width, grid.Height);
@@ -62,9 +69,10 @@ public sealed class SimulationSystem
         };
     }
 
+    // The Power term only counts in ages whose upgrades need power.
     public ServiceStats MeasureServices()
     {
-        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power);
+        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower);
     }
 
     // Research points earned per day at the current population: filled commercial jobs plus
@@ -87,26 +95,29 @@ public sealed class SimulationSystem
         Economy.Restore(money, incomePerDay, expensePerDay, taxResidential, taxCommercial, taxIndustrial);
         Population.RecountCapacity(m_Grid, Modifiers);
         Population.Restore(population, happiness);
-        Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, MeasureServices());
-        Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial);
+        Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, MeasureServices(),
+            TechModifiers.HappinessBonus);
+        Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial, TechModifiers);
     }
 
     public void Tick()
     {
         CityModifiers modifiers = Modifiers;
+        TechModifiers tech = TechModifiers;
 
         Population.RecountCapacity(m_Grid, modifiers);
-        Demand.Compute(Population, Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial);
+        Demand.Compute(Population, Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, tech);
 
         Growth.Apply(Demand.Snapshot);
 
         Population.RecountCapacity(m_Grid, modifiers);
-        Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, MeasureServices());
+        Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, MeasureServices(),
+            tech.HappinessBonus);
 
         float income = Population.Employed * m_Config.IncomePerWorker * Economy.TaxResidential
             + Population.CommercialJobs * m_Config.IncomePerCommercialJob * Economy.TaxCommercial
             + Population.IndustrialJobs * m_Config.IncomePerIndustrialJob * Economy.TaxIndustrial;
-        float expense = modifiers.UpkeepPerDay + m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay;
+        float expense = (modifiers.UpkeepPerDay + m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay) * tech.UpkeepMultiplier;
         Economy.ApplyDay(income, expense);
 
         Tech?.Step(ResearchIncome());

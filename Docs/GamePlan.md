@@ -767,7 +767,15 @@ two materials per prefab.
   techs for an age), `CanResearch`, queue order and cap, RP carry-over and bank cap, advancement
   checklist (each condition alone blocks it), advancing raises `AgeAdvanced` and sets the year,
   modifiers fold correctly, determinism.
-- **11b Ages in the sim.** `CapacityModel` (replace the 5 call sites), `GridData` built age /
+- **11b Ages in the sim — done (2026-10-03).** Notes from implementing: `SetBuildingLevel(0)` clears
+  the built age and historic flag (every demolish / rezone path goes through it); an outdated cell
+  may still upgrade up to the current age's cap at its old capacity scale, and a cell that upgraded
+  this tick waits a day before it can be redeveloped; redevelopment in a powered age needs power
+  even when the extra draw is 0; `AgeDatabase` validation rejects a falling `MaxLevel`; the tech
+  happiness bonus is its own `HappinessBreakdown.Technology` term. Industrial start reproduces the
+  no-age seeded city exactly (levels, population, money, power) with and without a plant/parks; the
+  in-game seeded 64² city is still 212 pop at day 60. 117 EditMode tests green.
+  Original plan: `CapacityModel` (replace the 5 call sites), `GridData` built age /
   historic, growth level cap per age, power gate per age, Power happiness term per age, the
   redevelop pass, the new blockers, `TechModifiers` applied (demand, happiness, upkeep, research).
   Tests: no-age path reproduces `RunSeededCity` numbers exactly; Medieval seeded city
@@ -901,4 +909,4 @@ cosmetic carts/cars on busy roads (visual only).
 thumbnails, a tutorial for the first age, and a Windows player build.
 
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). M11 is planned in full above
-(steps 11a–11g); 11a (tech core) is done, next is 11b (ages in the sim).
+(steps 11a–11g); 11a (tech core) and 11b (ages in the sim) are done, next is 11c (save v2 + migration).

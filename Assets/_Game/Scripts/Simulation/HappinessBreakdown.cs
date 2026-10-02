@@ -9,8 +9,10 @@ public readonly struct HappinessBreakdown
     public readonly float Services;
     public readonly float Power;
     public readonly float Homeless;
+    public readonly float Technology;       // researched techs' bonus (M11)
 
-    public HappinessBreakdown(float baseValue, float unemployment, float taxes, float pollution, float services, float power, float homeless)
+    public HappinessBreakdown(float baseValue, float unemployment, float taxes, float pollution, float services, float power, float homeless,
+        float technology = 0f)
     {
         Base = baseValue;
         Unemployment = unemployment;
@@ -19,7 +21,8 @@ public readonly struct HappinessBreakdown
         Services = services;
         Power = power;
         Homeless = homeless;
+        Technology = technology;
     }
 
-    public float Total => UnityEngine.Mathf.Clamp01(Base + Unemployment + Taxes + Pollution + Services + Power + Homeless);
+    public float Total => UnityEngine.Mathf.Clamp01(Base + Unemployment + Taxes + Pollution + Services + Power + Homeless + Technology);
 }

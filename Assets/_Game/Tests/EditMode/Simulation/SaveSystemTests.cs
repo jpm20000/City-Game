@@ -21,30 +21,6 @@ public sealed class SaveSystemTests
         if (Directory.Exists(m_TempDir)) Directory.Delete(m_TempDir, true);
     }
 
-    // Mirrors PlacementController.DebugSeedCity (same layout as SimulationTests).
-    private static void SeedCity(GridData grid)
-    {
-        int mid = grid.Width / 2;
-        for (int i = 0; i < grid.Width; i++)
-        {
-            grid.SetRoad(new Vector2Int(i, mid), true);
-            grid.SetRoad(new Vector2Int(mid, i), true);
-        }
-        for (int i = 0; i < grid.Width; i++)
-        {
-            SeedZone(grid, new Vector2Int(i, mid + 1), ZoneType.Residential);
-            SeedZone(grid, new Vector2Int(i, mid - 1), i < mid ? ZoneType.Commercial : ZoneType.Industrial);
-            SeedZone(grid, new Vector2Int(mid - 1, i), i > mid ? ZoneType.Residential : ZoneType.Commercial);
-            SeedZone(grid, new Vector2Int(mid + 1, i), i > mid ? ZoneType.Residential : ZoneType.Industrial);
-        }
-    }
-
-    private static void SeedZone(GridData grid, Vector2Int cell, ZoneType zone)
-    {
-        if (!grid.InBounds(cell) || grid.IsRoad(cell) || grid.GetZone(cell) != ZoneType.None) return;
-        grid.SetZone(cell, zone);
-    }
-
     private static void Run(SimulationSystem sim, int days)
     {
         for (int day = 0; day < days; day++) sim.Tick();
@@ -124,7 +100,7 @@ public sealed class SaveSystemTests
     public void Capture_RoundTripsEconomyPopulationAndGrid()
     {
         GridData grid = new GridData(24, 24);
-        SeedCity(grid);
+        SeededCity.Seed(grid);
         SimulationSystem sim = new SimulationSystem(grid, new RoadNetwork(grid), m_Config);
         Run(sim, 30);
         sim.Economy.TaxResidential = 0.13f;
@@ -154,7 +130,7 @@ public sealed class SaveSystemTests
     public void SaveMidGame_ThenContinue_MatchesUninterruptedRun()
     {
         GridData gridA = new GridData(24, 24);
-        SeedCity(gridA);
+        SeededCity.Seed(gridA);
         SimulationSystem a = new SimulationSystem(gridA, new RoadNetwork(gridA), m_Config);
         Run(a, 30);
 
@@ -177,7 +153,7 @@ public sealed class SaveSystemTests
         ServiceSource plant = new ServiceSource(new Vector2Int(0, 9), new Vector2Int(3, 3), 0, 400);
         ServiceSource park = new ServiceSource(new Vector2Int(14, 14), new Vector2Int(2, 2), 4, 0);
         GridData gridA = new GridData(24, 24);
-        SeedCity(gridA);
+        SeededCity.Seed(gridA);
         SimulationSystem a = new SimulationSystem(gridA, new RoadNetwork(gridA), m_Config);
         a.Sources = new[] { plant, park };
         Run(a, 40);
@@ -206,7 +182,7 @@ public sealed class SaveSystemTests
     public void CreateNew_UsesStartingValuesOnEmptyMap()
     {
         GridData grid = new GridData(24, 24);
-        SeedCity(grid);
+        SeededCity.Seed(grid);
         SimulationSystem sim = new SimulationSystem(grid, new RoadNetwork(grid), m_Config);
         Run(sim, 20);
 
@@ -245,7 +221,7 @@ public sealed class SaveSystemTests
         ServiceSource plant = new ServiceSource(new Vector2Int(0, 9), new Vector2Int(3, 3), 0, 400);
         ServiceSource park = new ServiceSource(new Vector2Int(14, 14), new Vector2Int(2, 2), 4, 0);
         GridData gridA = new GridData(24, 24);
-        SeedCity(gridA);
+        SeededCity.Seed(gridA);
         SimulationSystem a = new SimulationSystem(gridA, new RoadNetwork(gridA), m_Config);
         a.Sources = new[] { plant, park };
         Run(a, 40);
@@ -253,7 +229,7 @@ public sealed class SaveSystemTests
 
         // A bigger city with its own buildings, running before the load.
         GridData gridB = new GridData(40, 40);
-        SeedCity(gridB);
+        SeededCity.Seed(gridB);
         SimulationSystem b = new SimulationSystem(gridB, new RoadNetwork(gridB), m_Config);
         b.Sources = new[] { new ServiceSource(new Vector2Int(0, 17), new Vector2Int(3, 3), 0, 600) };
         Run(b, 25);
