@@ -32,20 +32,18 @@ public static class CellUtils
         return new Vector2Int(Mathf.FloorToInt(local.x), Mathf.FloorToInt(local.z));
     }
 
+    // Footprint dimensions on the grid: odd quarter-turns swap width and depth.
+    public static Vector2Int EffectiveSize(Vector2Int size, int rotation)
+    {
+        return (rotation & 1) == 0 ? size : new Vector2Int(size.y, size.x);
+    }
+
     public static IEnumerable<Vector2Int> GetFootprint(Vector2Int origin, Vector2Int size, int rotation)
     {
-        int width = size.x;
-        int height = size.y;
-        if ((rotation & 1) == 1)
+        Vector2Int effective = EffectiveSize(size, rotation);
+        for (int y = 0; y < effective.y; y++)
         {
-            int swapped = width;
-            width = height;
-            height = swapped;
-        }
-
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
+            for (int x = 0; x < effective.x; x++)
             {
                 yield return new Vector2Int(origin.x + x, origin.y + y);
             }

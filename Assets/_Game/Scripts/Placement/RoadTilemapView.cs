@@ -1,11 +1,11 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-// Mirrors GridData roads onto the Roads Tilemap, auto-tiled from the 4 neighbours: asphalt, curbs on
-// unconnected sides and a dashed centre line towards each connection. Roads at the map edge connect
-// "off-map" (that's the entry). Roads not connected to the edge are tinted red. Sprites are
-// generated at runtime, so there is no art dependency.
-public sealed class RoadTilemapView : MonoBehaviour
+// Mirrors GridData roads onto the Roads Tilemap (see GridTilemapView), auto-tiled from the 4
+// neighbours: asphalt, curbs on unconnected sides and a dashed centre line towards each connection.
+// Roads at the map edge connect "off-map" (that's the entry). Roads not connected to the edge are
+// tinted red. Sprites are generated at runtime, so there is no art dependency.
+public sealed class RoadTilemapView : GridTilemapView
 {
     // Connection bits in logical directions.
     private const int k_North = 1;  // +y
@@ -18,30 +18,18 @@ public sealed class RoadTilemapView : MonoBehaviour
     private const int k_LineHalfWidth = 1;  // centre line is 2 px wide
     private const int k_Dash = 8;           // dash on/off length in px (divides k_Size so dashes tile)
 
-    [SerializeField] private GameManager m_GameManager;
-    [SerializeField] private GridSystem m_GridSystem;
-    [SerializeField] private Tilemap m_Tilemap;
     [SerializeField] private Color m_AsphaltColor = new Color(0.30f, 0.32f, 0.35f);
     [SerializeField] private Color m_CurbColor = new Color(0.58f, 0.59f, 0.60f);
     [SerializeField] private Color m_LineColor = new Color(0.95f, 0.85f, 0.40f);
     [SerializeField] private Color m_DisconnectedTint = new Color(1.00f, 0.62f, 0.58f);
 
-    private GridData m_Grid;
-    private RoadNetwork m_Roads;
     private readonly Texture2D[] m_Textures = new Texture2D[16];
     private readonly Sprite[] m_Sprites = new Sprite[16];
     private readonly Tile[] m_ConnectedTiles = new Tile[16];
     private readonly Tile[] m_DisconnectedTiles = new Tile[16];
-    private Tile[] m_Painted;
-    private bool m_Dirty;
 
-    // Start, not Awake: GameManager.Awake creates the GridData.
-    private void Start()
+    protected override void CreateTiles()
     {
-        if (m_GameManager == null || m_GameManager.Grid == null || m_Tilemap == null || m_GridSystem == null) return;
-
-        m_Grid = m_GameManager.Grid;
-        m_Roads = m_GameManager.Roads;
         for (int mask = 0; mask < 16; mask++)
         {
             m_Textures[mask] = DrawRoad(mask);
@@ -49,16 +37,11 @@ public sealed class RoadTilemapView : MonoBehaviour
             m_ConnectedTiles[mask] = CreateTile(m_Sprites[mask], Color.white);
             m_DisconnectedTiles[mask] = CreateTile(m_Sprites[mask], m_DisconnectedTint);
         }
-
-        m_Tilemap.ClearAllTiles();
-        m_Painted = new Tile[m_Grid.Width * m_Grid.Height];
-        m_Grid.OnCellChanged += OnCellChanged;
-        m_Dirty = true;
     }
 
-    private void OnDestroy()
+    protected override void OnDestroy()
     {
-        if (m_Grid != null) m_Grid.OnCellChanged -= OnCellChanged;
+        base.OnDestroy();
         for (int i = 0; i < 16; i++)
         {
             Destroy(m_ConnectedTiles[i]);
@@ -68,35 +51,9 @@ public sealed class RoadTilemapView : MonoBehaviour
         }
     }
 
-    // A road edit changes neighbours' shapes and connectivity anywhere, so re-diff once per frame.
-    private void OnCellChanged(Vector2Int cell)
+    protected override Tile TileFor(Vector2Int cell)
     {
-        m_Dirty = true;
-    }
-
-    private void LateUpdate()
-    {
-        if (!m_Dirty || m_Grid == null) return;
-        m_Dirty = false;
-
-        for (int y = 0; y < m_Grid.Height; y++)
-        {
-            for (int x = 0; x < m_Grid.Width; x++)
-            {
-                Vector2Int cell = new Vector2Int(x, y);
-                Tile tile = TileFor(cell);
-                int i = y * m_Grid.Width + x;
-                if (m_Painted[i] == tile) continue;
-
-                m_Painted[i] = tile;
-                m_Tilemap.SetTile(m_GridSystem.LogicalToTileCell(cell), tile);
-            }
-        }
-    }
-
-    private Tile TileFor(Vector2Int cell)
-    {
-        if (!m_Grid.IsRoad(cell)) return null;
+        if (!Grid.IsRoad(cell)) return null;
 
         int mask = 0;
         if (Connects(cell, Vector2Int.up)) mask |= k_North;
@@ -104,7 +61,7 @@ public sealed class RoadTilemapView : MonoBehaviour
         if (Connects(cell, Vector2Int.down)) mask |= k_South;
         if (Connects(cell, Vector2Int.left)) mask |= k_West;
 
-        bool connected = m_Roads == null || m_Roads.IsConnectedToEntry(cell);
+        bool connected = Roads == null || Roads.IsConnectedToEntry(cell);
         return connected ? m_ConnectedTiles[mask] : m_DisconnectedTiles[mask];
     }
 
@@ -113,7 +70,7 @@ public sealed class RoadTilemapView : MonoBehaviour
     private bool Connects(Vector2Int cell, Vector2Int direction)
     {
         Vector2Int neighbor = cell + direction;
-        if (m_Grid.InBounds(neighbor)) return m_Grid.IsRoad(neighbor);
+        if (Grid.InBounds(neighbor)) return Grid.IsRoad(neighbor);
 
         Vector2Int side = new Vector2Int(direction.y, direction.x);
         return !IsRoadInBounds(cell + side) && !IsRoadInBounds(cell - side);
@@ -121,15 +78,7 @@ public sealed class RoadTilemapView : MonoBehaviour
 
     private bool IsRoadInBounds(Vector2Int cell)
     {
-        return m_Grid.InBounds(cell) && m_Grid.IsRoad(cell);
-    }
-
-    private static Tile CreateTile(Sprite sprite, Color color)
-    {
-        Tile tile = ScriptableObject.CreateInstance<Tile>();
-        tile.sprite = sprite;
-        tile.color = color;
-        return tile;
+        return Grid.InBounds(cell) && Grid.IsRoad(cell);
     }
 
     // Texture pixel x = logical +x. Tile rows run opposite to logical y (see

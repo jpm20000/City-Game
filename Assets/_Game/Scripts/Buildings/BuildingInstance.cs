@@ -42,14 +42,13 @@ public sealed class BuildingInstance : MonoBehaviour
     private void ApplyTransform()
     {
         Vector2Int size = Definition.Size;
-        int effectiveWidth = (Rotation & 1) == 0 ? size.x : size.y;
-        int effectiveDepth = (Rotation & 1) == 0 ? size.y : size.x;
+        Vector2Int effective = CellUtils.EffectiveSize(size, Rotation);
         float height = Definition.Height;
 
         transform.position = new Vector3(
-            Origin.x + effectiveWidth * 0.5f,
+            Origin.x + effective.x * 0.5f,
             height * 0.5f,
-            Origin.y + effectiveDepth * 0.5f);
+            Origin.y + effective.y * 0.5f);
         // Rotation swaps the effective dims back into local X/Z, so scale by the unrotated size.
         transform.localScale = new Vector3(size.x, height, size.y);
         transform.rotation = Quaternion.Euler(0f, Rotation * 90f, 0f);

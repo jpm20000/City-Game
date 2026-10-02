@@ -96,11 +96,8 @@ public sealed class TaxPanel : MonoBehaviour
     {
         if (m_Hint == null || m_Economy == null) return;
 
-        // Mirrors PopulationSystem.Step's tax terms and DemandSystem.TaxMultiplier.
-        BalanceConfig balance = m_GameManager.Balance;
-        float threshold = balance.TaxPenaltyThreshold;
-        float penalty = balance.TaxPenalty * Mathf.Max(0f, m_Economy.TaxResidential - threshold)
-            + balance.JobTaxPenalty * (Mathf.Max(0f, m_Economy.TaxCommercial - threshold) + Mathf.Max(0f, m_Economy.TaxIndustrial - threshold));
+        float threshold = m_GameManager.Balance.TaxPenaltyThreshold;
+        float penalty = m_GameManager.Population.TaxHappinessPenalty(m_Economy.TaxResidential, m_Economy.TaxCommercial, m_Economy.TaxIndustrial);
         string happiness = penalty > 0f
             ? $"<color=#F2C14E>Taxes above {threshold:P0} cost {penalty:P0} happiness and slow growth in those zones.</color>"
             : $"Taxes above {threshold:P0} lower happiness and slow growth; below it, zones grow faster.";

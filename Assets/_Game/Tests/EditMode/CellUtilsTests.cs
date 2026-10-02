@@ -26,6 +26,16 @@ public sealed class CellUtilsTests
     }
 
     [Test]
+    public void EffectiveSize_OddRotationsSwapDims()
+    {
+        Vector2Int size = new Vector2Int(3, 1);
+        Assert.AreEqual(size, CellUtils.EffectiveSize(size, 0));
+        Assert.AreEqual(new Vector2Int(1, 3), CellUtils.EffectiveSize(size, 1));
+        Assert.AreEqual(size, CellUtils.EffectiveSize(size, 2));
+        Assert.AreEqual(new Vector2Int(1, 3), CellUtils.EffectiveSize(size, 3));
+    }
+
+    [Test]
     public void CellToWorld_MapsToCellCenters()
     {
         Vector3 origin = Vector3.zero;

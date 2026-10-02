@@ -370,7 +370,7 @@ public sealed class PlacementController : MonoBehaviour
         if (building != null)
         {
             center = FootprintCenter(building.Origin, building.Definition.Size, building.Rotation);
-            size = EffectiveSize(building.Definition.Size, building.Rotation);
+            size = CellUtils.EffectiveSize(building.Definition.Size, building.Rotation);
         }
         else
         {
@@ -435,42 +435,24 @@ public sealed class PlacementController : MonoBehaviour
             m_Ghost.Hide();
             return;
         }
-        UpdateHint(cell);
-
-        switch (m_Mode)
+        if (m_Mode == Mode.Building && m_Selected == null)
         {
-            case Mode.Road:
-                m_Ghost.Show(
-                    m_GridSystem.CellToWorld(cell),
-                    Vector2Int.one,
-                    m_GridData.CanPlace(cell, Vector2Int.one, 0)
-                        && m_GameManager.Economy.CanAfford(m_GameManager.Balance.RoadCost));
-                break;
+            m_Ghost.Hide();
+            return;
+        }
 
-            case Mode.Building:
-                if (m_Selected == null)
-                {
-                    m_Ghost.Hide();
-                    break;
-                }
-                m_Ghost.Show(
-                    FootprintCenter(cell, m_Selected.Size, m_Rotation),
-                    EffectiveSize(m_Selected.Size, m_Rotation),
-                    m_GridData.CanPlace(cell, m_Selected.Size, m_Rotation)
-                        && m_GameManager.Economy.CanAfford(m_Selected.Cost));
-                break;
-
-            case Mode.Demolish:
-                m_Ghost.Show(
-                    m_GridSystem.CellToWorld(cell),
-                    Vector2Int.one,
-                    m_GridData.IsRoad(cell) || m_GridData.IsOccupied(cell)
-                        || m_GridData.GetBuildingLevel(cell) > 0);
-                break;
-
-            case Mode.Zone:
-                m_Ghost.Show(m_GridSystem.CellToWorld(cell), Vector2Int.one, CanZone(cell));
-                break;
+        // The hint decides validity; the ghost just mirrors it.
+        UpdateHint(cell);
+        if (m_Mode == Mode.Building)
+        {
+            m_Ghost.Show(
+                FootprintCenter(cell, m_Selected.Size, m_Rotation),
+                CellUtils.EffectiveSize(m_Selected.Size, m_Rotation),
+                CursorHintValid);
+        }
+        else
+        {
+            m_Ghost.Show(m_GridSystem.CellToWorld(cell), Vector2Int.one, CursorHintValid);
         }
     }
 
@@ -480,6 +462,7 @@ public sealed class PlacementController : MonoBehaviour
         CursorHintValid = valid;
     }
 
+    // Sets CursorHint/CursorHintValid for the active tool. Validity mirrors what Confirm would do.
     private void UpdateHint(Vector2Int cell)
     {
         EconomySystem economy = m_GameManager.Economy;
@@ -511,6 +494,7 @@ public sealed class PlacementController : MonoBehaviour
                 if (m_GridData.IsRoad(cell)) SetHint("Demolish road", true);
                 else if (building != null) SetHint($"Demolish {building.Definition.DisplayName} (no refund)", true);
                 else if (m_GridData.GetBuildingLevel(cell) > 0) SetHint("Demolish grown building", true);
+                else SetHint(string.Empty, false);   // nothing here: red ghost, no label
                 break;
             }
 
@@ -534,14 +518,9 @@ public sealed class PlacementController : MonoBehaviour
         return null;
     }
 
-    private static Vector2Int EffectiveSize(Vector2Int size, int rotation)
-    {
-        return (rotation & 1) == 0 ? size : new Vector2Int(size.y, size.x);
-    }
-
     private static Vector3 FootprintCenter(Vector2Int origin, Vector2Int size, int rotation)
     {
-        Vector2Int effective = EffectiveSize(size, rotation);
+        Vector2Int effective = CellUtils.EffectiveSize(size, rotation);
         return new Vector3(origin.x + effective.x * 0.5f, 0f, origin.y + effective.y * 0.5f);
     }
 

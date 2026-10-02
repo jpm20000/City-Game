@@ -25,11 +25,6 @@ public sealed class ToolbarController : MonoBehaviour
     [SerializeField] private GameObject m_TooltipRoot;
     [SerializeField] private TMP_Text m_TooltipText;
 
-    [Header("Zone colours")]
-    [SerializeField] private Color m_ResidentialColor = new Color(0.40f, 0.85f, 0.35f);
-    [SerializeField] private Color m_CommercialColor = new Color(0.30f, 0.55f, 0.95f);
-    [SerializeField] private Color m_IndustrialColor = new Color(0.95f, 0.80f, 0.25f);
-
     private readonly Dictionary<BuildingDefinition, ToolButton> m_BuildingButtons = new();
 
     private void Start()
@@ -40,9 +35,9 @@ public sealed class ToolbarController : MonoBehaviour
         Bind(m_RoadButton, "Road", $"${roadCost}", Color.clear,
             $"Road  [B]\nLay road from the map edge. ${roadCost} each, $1/day upkeep.",
             () => Toggle(PlacementController.Mode.Road, m_Placement.SelectRoad));
-        BindZone(m_ResidentialButton, "Residential", ZoneType.Residential, m_ResidentialColor, "Homes grow here when residential demand is high.");
-        BindZone(m_CommercialButton, "Commercial", ZoneType.Commercial, m_CommercialColor, "Shops grow here, providing jobs.");
-        BindZone(m_IndustrialButton, "Industrial", ZoneType.Industrial, m_IndustrialColor, "Factories grow here, providing jobs.");
+        BindZone(m_ResidentialButton, "Residential", ZoneType.Residential, ZonePalette.Residential, "Homes grow here when residential demand is high.");
+        BindZone(m_CommercialButton, "Commercial", ZoneType.Commercial, ZonePalette.Commercial, "Shops grow here, providing jobs.");
+        BindZone(m_IndustrialButton, "Industrial", ZoneType.Industrial, ZonePalette.Industrial, "Factories grow here, providing jobs.");
         BindZone(m_UnzoneButton, "Unzone", ZoneType.None, Color.clear, "Remove zoning (and anything grown on it).");
         Bind(m_DemolishButton, "Demolish", string.Empty, Color.clear,
             "Demolish  [Del]\nRemove a road, building or grown cell. No refund.",

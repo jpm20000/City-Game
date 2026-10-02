@@ -11,9 +11,6 @@ public sealed class GrowthVisuals : MonoBehaviour
     private static readonly int s_BaseColorId = Shader.PropertyToID("_BaseColor");
 
     [SerializeField] private Material m_Material;
-    [SerializeField] private Color m_ResidentialColor = new Color(0.40f, 0.75f, 0.35f);
-    [SerializeField] private Color m_CommercialColor = new Color(0.30f, 0.55f, 0.90f);
-    [SerializeField] private Color m_IndustrialColor = new Color(0.90f, 0.75f, 0.25f);
     [SerializeField] private Color m_ChimneyColor = new Color(0.36f, 0.36f, 0.40f);
     [SerializeField, Range(0f, 1f)] private float m_RoofShade = 0.62f;
     [SerializeField, Range(0f, 0.5f)] private float m_HeightJitter = 0.15f;
@@ -125,7 +122,7 @@ public sealed class GrowthVisuals : MonoBehaviour
             ApplyTransform(cell, grown, 1f);
         }
 
-        Color color = ZoneColor(zone);
+        Color color = ZonePalette.Get(zone);
         SetColor(grown.Body, color);
         SetColor(grown.Roof, zone == ZoneType.Industrial ? m_ChimneyColor : color * m_RoofShade);
     }
@@ -213,16 +210,5 @@ public sealed class GrowthVisuals : MonoBehaviour
     {
         if (grown.Roof != null) Destroy(grown.Roof.gameObject);
         Destroy(grown.Body.gameObject);
-    }
-
-    private Color ZoneColor(ZoneType zone)
-    {
-        switch (zone)
-        {
-            case ZoneType.Residential: return m_ResidentialColor;
-            case ZoneType.Commercial: return m_CommercialColor;
-            case ZoneType.Industrial: return m_IndustrialColor;
-            default: return Color.gray;
-        }
     }
 }

@@ -4,7 +4,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // Shows what's on the selected cell (placed building, road, grown cell, or zoned land) and why it
-// isn't growing. Refreshes on selection, cell and day changes.
+// isn't growing. Refreshes immediately on selection; cell and day changes (a growth tick can change
+// dozens of cells) are batched into at most one refresh per frame.
 public sealed class SelectionPanel : MonoBehaviour
 {
     private enum Action { None, Demolish, Unzone }
@@ -20,6 +21,7 @@ public sealed class SelectionPanel : MonoBehaviour
 
     private readonly StringBuilder m_Text = new();
     private Action m_Action;
+    private bool m_Dirty;
 
     private void Start()
     {
@@ -42,11 +44,18 @@ public sealed class SelectionPanel : MonoBehaviour
 
     private void OnCellChanged(Vector2Int cell)
     {
-        if (m_Placement.HasSelection) Refresh();
+        m_Dirty = true;
     }
 
     private void OnDateChanged(int day, int month, int year)
     {
+        m_Dirty = true;
+    }
+
+    private void LateUpdate()
+    {
+        if (!m_Dirty) return;
+        m_Dirty = false;
         if (m_Placement.HasSelection) Refresh();
     }
 
