@@ -483,7 +483,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 07070d2128e7a58489e0cc223233939b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: CityBuilder.Grid::GridSystem
-  m_Grid: {fileID: 470304453}
   m_GroundTilemap: {fileID: 489108004}
   m_GridOrigin: {x: 0, y: 0, z: 0}
   m_GridSize: {x: 24, y: 24}

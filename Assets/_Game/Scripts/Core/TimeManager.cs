@@ -10,7 +10,6 @@ public sealed class TimeManager : MonoBehaviour
 
     private BalanceConfig m_Config;
     private float m_Accumulator;
-    private GameSpeed m_SpeedBeforePause = GameSpeed.x1;
 
     public GameSpeed Speed { get; private set; } = GameSpeed.x1;
     public int Day { get; private set; } = 1;
@@ -27,14 +26,8 @@ public sealed class TimeManager : MonoBehaviour
     public void SetSpeed(GameSpeed speed)
     {
         if (Speed == speed) return;
-        if (speed == GameSpeed.Paused) m_SpeedBeforePause = Speed;
         Speed = speed;
         GameEvents.RaiseSpeedChanged(speed);
-    }
-
-    public void TogglePause()
-    {
-        SetSpeed(Speed == GameSpeed.Paused ? m_SpeedBeforePause : GameSpeed.Paused);
     }
 
     // Load / new game. Drops any partial day so the first tick is a full day away.

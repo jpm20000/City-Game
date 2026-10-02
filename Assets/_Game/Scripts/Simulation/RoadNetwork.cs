@@ -104,6 +104,6 @@ public sealed class RoadNetwork
 
     private int Index(Vector2Int cell)
     {
-        return cell.y * m_Width + cell.x;
+        return CellUtils.Index(cell, m_Width);
     }
 }

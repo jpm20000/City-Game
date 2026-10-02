@@ -11,7 +11,6 @@ public sealed class BuildingInstance : MonoBehaviour
     public BuildingDefinition Definition { get; private set; }
     public Vector2Int Origin { get; private set; }
     public int Rotation { get; private set; }
-    public int Level { get; private set; } = 1;
     public int OccupantId { get; private set; }
 
     private GridData m_Grid;
@@ -45,7 +44,7 @@ public sealed class BuildingInstance : MonoBehaviour
         Vector2Int size = Definition.Size;
         int effectiveWidth = (Rotation & 1) == 0 ? size.x : size.y;
         int effectiveDepth = (Rotation & 1) == 0 ? size.y : size.x;
-        float height = Definition.Height * Level;
+        float height = Definition.Height;
 
         transform.position = new Vector3(
             Origin.x + effectiveWidth * 0.5f,

@@ -43,7 +43,7 @@ public sealed class TaxPanel : MonoBehaviour
         GameEvents.CityLoaded -= OnCityLoaded;
     }
 
-    public void SetOpen(bool open)
+    private void SetOpen(bool open)
     {
         m_Root.SetActive(open);
         if (open) RefreshHint();

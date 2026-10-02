@@ -58,13 +58,11 @@ public sealed class GameManager : MonoBehaviour
     public void RegisterBuilding(BuildingInstance building)
     {
         ApplyModifiers(building.Definition, 1);
-        GameEvents.RaiseBuildingPlaced(building);
     }
 
     public void UnregisterBuilding(BuildingInstance building)
     {
         ApplyModifiers(building.Definition, -1);
-        GameEvents.RaiseBuildingRemoved(building);
     }
 
     private void ApplyModifiers(BuildingDefinition def, int sign)

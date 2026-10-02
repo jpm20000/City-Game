@@ -60,7 +60,7 @@ public sealed class NotificationController : MonoBehaviour
         SetToastAlpha(Mathf.Clamp01(m_ToastTimer / m_FadeDuration));
     }
 
-    public void ShowToast(string message)
+    private void ShowToast(string message)
     {
         if (m_ToastText != null) m_ToastText.text = message;
         m_ToastTimer = m_ToastDuration;
