@@ -523,7 +523,7 @@ same state; all EditMode tests pass.
   - Coverage mode: shade by the per-cell bonus.
   - With the Park or Plant tool selected, switch to the matching overlay automatically and
     preview the new building's radius / energised roads under the ghost before you place it.
-- **9d UI wiring.**
+- **9d UI wiring — done (2026-10-02).** Verified in Play mode: HUD readout states, online / shortage / no-power nudge toasts (nudge at 40 pop), selection text for plant, powered / unpowered buildings and roads, no repeat toasts after save + load. Balance note for 9e: a city with no power sits exactly at 0.50 happiness (base 0.70 − pollution 0.10 − power 0.10) and keeps crossing the threshold.
   - HUD power readout `used / supply` (red when short), from a new `GameEvents.PowerChanged`.
   - `SelectionPanel`: Powered / Unpowered status, coverage count, and plant supply and load.
   - `HappinessTooltip`: a "Power" line.

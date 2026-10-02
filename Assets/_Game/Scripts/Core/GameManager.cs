@@ -12,6 +12,7 @@ public sealed class GameManager : MonoBehaviour
     private CityModifiers m_Modifiers;
     private readonly List<BuildingInstance> m_SourceBuildings = new();
     private readonly List<ServiceSource> m_Sources = new();
+    private bool m_PowerDirty = true;
 
     public GridData Grid { get; private set; }
     public RoadNetwork Roads { get; private set; }
@@ -30,6 +31,7 @@ public sealed class GameManager : MonoBehaviour
         Grid = new GridData(m_GridSystem.GridSize.x, m_GridSystem.GridSize.y);
         Roads = new RoadNetwork(Grid);
         Grid.OnCellChanged += GameEvents.RaiseCellChanged;
+        Grid.OnCellChanged += MarkPowerDirty;
 
         if (m_Balance == null)
         {
@@ -89,6 +91,27 @@ public sealed class GameManager : MonoBehaviour
                 def.CoverageRadius, def.PowerSupply));
         }
         Simulation.Sources = m_Sources;
+        m_PowerDirty = true;
+    }
+
+    private void MarkPowerDirty(Vector2Int cell)
+    {
+        m_PowerDirty = true;
+    }
+
+    // Power can change on any road, zone, level or plant change (also while paused), so it's pushed
+    // at most once a frame rather than per tick.
+    private void LateUpdate()
+    {
+        if (!m_PowerDirty || Simulation == null) return;
+        m_PowerDirty = false;
+        RaisePowerChanged();
+    }
+
+    private void RaisePowerChanged()
+    {
+        PowerSystem power = Simulation.Power;
+        GameEvents.RaisePowerChanged(power.Supply, power.Demand, power.UnpoweredCells);
     }
 
     private void ApplyModifiers(BuildingDefinition def, int sign)
@@ -121,5 +144,8 @@ public sealed class GameManager : MonoBehaviour
         GameEvents.RaiseDemandChanged(Simulation.Demand.Snapshot);
         GameEvents.RaiseHappinessChanged(population.AverageHappiness);
         GameEvents.RaiseCashFlowChanged(Simulation.Economy.IncomePerDay, Simulation.Economy.ExpensePerDay);
+        // Deferred to LateUpdate: after a load this lands after GameEvents.CityLoaded, so listeners
+        // that re-sync on load don't treat the loaded power state as news.
+        m_PowerDirty = true;
     }
 }

@@ -58,6 +58,7 @@ public sealed class ServicesTests
         Assert.AreEqual(100, m_Power.Supply);
         Assert.AreEqual(4 + 8, m_Power.Load);
         Assert.AreEqual(4 + 8 + 4, m_Power.Demand);
+        Assert.AreEqual(1, m_Power.UnpoweredCells);
     }
 
     [Test]
@@ -98,6 +99,7 @@ public sealed class ServicesTests
         Assert.IsFalse(m_Power.IsPowered(new Vector2Int(8, 6)));
         Assert.IsFalse(m_Power.IsPowered(new Vector2Int(12, 6)));
         Assert.AreEqual(12, m_Power.Load);
+        Assert.AreEqual(3, m_Power.UnpoweredCells);
     }
 
     [Test]

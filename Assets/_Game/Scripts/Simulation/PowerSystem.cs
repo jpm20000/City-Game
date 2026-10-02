@@ -23,6 +23,7 @@ public sealed class PowerSystem
     private int m_Supply;
     private int m_Demand;
     private int m_Load;
+    private int m_UnpoweredCells;
 
     public PowerSystem(GridData grid, BalanceConfig config)
     {
@@ -42,6 +43,8 @@ public sealed class PowerSystem
     public int Demand { get { EnsureFresh(); return m_Demand; } }
     // What powered cells draw, including upgrades reserved this tick.
     public int Load { get { EnsureFresh(); return m_Load; } }
+    // Grown cells left without power (no plant on their road, or their network ran out).
+    public int UnpoweredCells { get { EnsureFresh(); return m_UnpoweredCells; } }
 
     public void SetSources(IReadOnlyList<ServiceSource> sources)
     {
@@ -94,6 +97,7 @@ public sealed class PowerSystem
         m_Remaining.Clear();
         m_Supply = 0;
         m_Load = 0;
+        m_UnpoweredCells = 0;
         m_Demand = CountDemand();
 
         // Seeds: road cells touching a plant.
@@ -175,6 +179,7 @@ public sealed class PowerSystem
             m_Remaining[network] -= draw;
             m_Load += draw;
             m_CellNetwork[i] = network;
+            m_UnpoweredCells--;
         }
     }
 
@@ -224,7 +229,9 @@ public sealed class PowerSystem
         {
             for (int x = 0; x < m_Width; x++)
             {
-                demand += Draw(new Vector2Int(x, y));
+                int draw = Draw(new Vector2Int(x, y));
+                demand += draw;
+                if (draw > 0) m_UnpoweredCells++;   // counted down as cells get power
             }
         }
         return demand;

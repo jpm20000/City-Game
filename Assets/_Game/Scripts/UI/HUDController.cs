@@ -28,6 +28,9 @@ public sealed class HUDController : MonoBehaviour
     [SerializeField] private UIMeter m_ResidentialDemand;
     [SerializeField] private UIMeter m_CommercialDemand;
     [SerializeField] private UIMeter m_IndustrialDemand;
+    [Tooltip("Power demand / supply; red while any grown building is unpowered.")]
+    [SerializeField] private TMP_Text m_PowerText;
+    [SerializeField] private Color m_IdleColor = new Color(0.60f, 0.64f, 0.70f);
 
     private void OnEnable()
     {
@@ -38,6 +41,7 @@ public sealed class HUDController : MonoBehaviour
         GameEvents.PopulationChanged += OnPopulationChanged;
         GameEvents.HappinessChanged += OnHappinessChanged;
         GameEvents.DemandChanged += OnDemandChanged;
+        GameEvents.PowerChanged += OnPowerChanged;
     }
 
     private void OnDisable()
@@ -49,6 +53,7 @@ public sealed class HUDController : MonoBehaviour
         GameEvents.PopulationChanged -= OnPopulationChanged;
         GameEvents.HappinessChanged -= OnHappinessChanged;
         GameEvents.DemandChanged -= OnDemandChanged;
+        GameEvents.PowerChanged -= OnPowerChanged;
     }
 
     private void Start()
@@ -75,6 +80,9 @@ public sealed class HUDController : MonoBehaviour
         OnPopulationChanged(population.Population, population.Jobs);
         OnHappinessChanged(population.AverageHappiness);
         OnDemandChanged(m_GameManager.Demand.Snapshot);
+
+        PowerSystem power = m_GameManager.Simulation.Power;
+        OnPowerChanged(power.Supply, power.Demand, power.UnpoweredCells);
     }
 
     private void BindSpeedButton(Button button, GameSpeed speed)
@@ -138,6 +146,27 @@ public sealed class HUDController : MonoBehaviour
             m_HappinessText.color = low ? m_NegativeColor : Color.white;
         }
         if (m_HappinessMeter != null) m_HappinessMeter.SetValue(happiness);
+    }
+
+    private void OnPowerChanged(int supply, int demand, int unpoweredCells)
+    {
+        if (m_PowerText == null) return;
+
+        if (supply == 0 && demand == 0)
+        {
+            m_PowerText.text = "Power  —";
+            m_PowerText.color = m_IdleColor;
+        }
+        else if (supply == 0)
+        {
+            m_PowerText.text = "No power";
+            m_PowerText.color = m_NegativeColor;
+        }
+        else
+        {
+            m_PowerText.text = $"Power {demand:N0} / {supply:N0}";
+            m_PowerText.color = unpoweredCells > 0 ? m_NegativeColor : Color.white;
+        }
     }
 
     private void OnDemandChanged(DemandSnapshot demand)

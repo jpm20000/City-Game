@@ -101,11 +101,49 @@ public sealed class SelectionPanel : MonoBehaviour
         Line($"Upkeep  ${def.UpkeepPerDay:N0} / day");
         if (def.HousingCapacity > 0) Line($"Housing  {def.HousingCapacity}");
         if (def.JobsProvided > 0) Line($"Jobs  {def.JobsProvided}");
-        if (def.Category == BuildingCategory.Service)
+        if (def.CoverageRadius > 0)
         {
-            Line($"Happiness  +{balance.ServiceBonusEach:P0} (services cap at +{balance.ServiceBonusCap:P0})");
+            Line($"Homes within {def.CoverageRadius} cells: +{balance.ServiceBonusEach:P0} happiness each (up to +{balance.ServiceBonusCap:P0} per home). [V] shows coverage.");
         }
+        if (def.PowerSupply > 0) DescribePlant(building);
         m_Action = Action.Demolish;
+    }
+
+    private void DescribePlant(BuildingInstance building)
+    {
+        BuildingDefinition def = building.Definition;
+        PowerSystem power = m_GameManager.Simulation.Power;
+        if (!TouchesEnergisedRoad(building))
+        {
+            Line("<color=#F2665A>Not beside a road</color> — supplies no power. Lay a road along one side.");
+            return;
+        }
+
+        Line($"Supplies {def.PowerSupply:N0} units along the roads it touches.");
+        Line($"City power  {power.Demand:N0} needed / {power.Supply:N0} supplied");
+        if (power.UnpoweredCells > 0)
+        {
+            Line($"<color=#F2665A>{power.UnpoweredCells} building{(power.UnpoweredCells == 1 ? "" : "s")} without power</color> — build another plant or connect their roads.");
+        }
+    }
+
+    private bool TouchesEnergisedRoad(BuildingInstance building)
+    {
+        foreach (Vector2Int cell in CellUtils.GetFootprint(building.Origin, building.Definition.Size, building.Rotation))
+        {
+            if (BesideEnergisedRoad(cell)) return true;
+        }
+        return false;
+    }
+
+    private bool BesideEnergisedRoad(Vector2Int cell)
+    {
+        PowerSystem power = m_GameManager.Simulation.Power;
+        foreach (Vector2Int offset in CellUtils.Neighbors4)
+        {
+            if (power.IsEnergisedRoad(cell + offset)) return true;
+        }
+        return false;
     }
 
     private void DescribeRoad(Vector2Int cell)
@@ -115,6 +153,7 @@ public sealed class SelectionPanel : MonoBehaviour
         Line(connected
             ? "Connected to the map edge."
             : "<color=#F2665A>Not connected to the map edge</color> — nothing along it can grow.");
+        if (m_GameManager.Simulation.Power.IsEnergisedRoad(cell)) Line("<color=#FFD133>Carries power</color> from a plant.");
         Line($"Upkeep  ${m_GameManager.Balance.RoadUpkeepPerDay:N0} / day");
         m_Action = Action.Demolish;
     }
@@ -130,6 +169,15 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Title.text = $"{ZoneName(zone)} building";
         Line($"Level {level} / {balance.MaxLevel}");
         Line($"{unit}  {balance.CapacityForLevel(level)}");
+        Line(m_GameManager.Simulation.Power.IsPowered(cell)
+            ? "<color=#73D973>Powered</color>"
+            : "<color=#F2665A>No power</color>");
+        if (zone == ZoneType.Residential)
+        {
+            int parks = m_GameManager.Simulation.Coverage.GetCoverage(cell);
+            float bonus = Mathf.Min(parks * balance.ServiceBonusEach, balance.ServiceBonusCap);
+            Line(parks > 0 ? $"Parks nearby  {parks}  (+{bonus:P0} happiness)" : "No park nearby");
+        }
         if (level < balance.MaxLevel)
         {
             Line($"Next level: {unit.ToLowerInvariant()} {balance.CapacityForLevel(level + 1)}");
@@ -149,6 +197,9 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Title.text = $"{ZoneName(zone)} zone";
         Line("Undeveloped.");
         Line(BlockerText(cell, zone, "Growth"));
+        Line(BesideEnergisedRoad(cell)
+            ? "Power available on its road."
+            : "<color=#9AA3B2>No powered road yet — it can grow to level 1 but needs power to upgrade.</color>");
         m_Action = Action.Unzone;
     }
 

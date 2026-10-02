@@ -16,6 +16,7 @@ public static class GameEvents
     public static event Action<Vector2Int> CellChanged;
     public static event Action CityLoaded;                         // after a load or new game replaced all state
     public static event Action<string> Notification;               // short player-facing message (toast)
+    public static event Action<int, int, int> PowerChanged;        // supply, demand, unpowered grown cells
 
     public static void RaiseMoneyChanged(float money) => MoneyChanged?.Invoke(money);
     public static void RaisePopulationChanged(int population, int jobs) => PopulationChanged?.Invoke(population, jobs);
@@ -29,6 +30,7 @@ public static class GameEvents
     public static void RaiseCellChanged(Vector2Int cell) => CellChanged?.Invoke(cell);
     public static void RaiseCityLoaded() => CityLoaded?.Invoke();
     public static void RaiseNotification(string message) => Notification?.Invoke(message);
+    public static void RaisePowerChanged(int supply, int demand, int unpoweredCells) => PowerChanged?.Invoke(supply, demand, unpoweredCells);
 
     // Static events survive play sessions when domain reload is disabled; drop stale subscribers.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -46,5 +48,6 @@ public static class GameEvents
         CellChanged = null;
         CityLoaded = null;
         Notification = null;
+        PowerChanged = null;
     }
 }

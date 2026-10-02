@@ -23,6 +23,9 @@ public sealed class NotificationController : MonoBehaviour
     private float m_ToastTimer;
     private int m_MilestoneIndex;     // next milestone to announce
     private bool m_WasUnhappy;
+    private bool m_HadPower;          // a connected plant was supplying power
+    private bool m_WasShort;          // some grown buildings were unpowered despite a plant
+    private bool m_NudgedNoPower;     // "build a power plant" hint already shown
 
     private void OnEnable()
     {
@@ -32,6 +35,7 @@ public sealed class NotificationController : MonoBehaviour
         GameEvents.PopulationChanged += OnPopulationChanged;
         GameEvents.HappinessChanged += OnHappinessChanged;
         GameEvents.CityLoaded += SyncCityState;
+        GameEvents.PowerChanged += OnPowerChanged;
     }
 
     private void OnDisable()
@@ -42,6 +46,7 @@ public sealed class NotificationController : MonoBehaviour
         GameEvents.PopulationChanged -= OnPopulationChanged;
         GameEvents.HappinessChanged -= OnHappinessChanged;
         GameEvents.CityLoaded -= SyncCityState;
+        GameEvents.PowerChanged -= OnPowerChanged;
     }
 
     private void Start()
@@ -85,6 +90,41 @@ public sealed class NotificationController : MonoBehaviour
             m_MilestoneIndex++;
         }
         m_WasUnhappy = population.AverageHappiness < m_GameManager.Balance.LowHappinessThreshold;
+
+        PowerSystem power = m_GameManager.Simulation.Power;
+        m_HadPower = power.Supply > 0;
+        m_WasShort = power.Supply > 0 && power.UnpoweredCells > 0;
+        m_NudgedNoPower = false;   // a loaded city without power still gets the hint
+    }
+
+    // Each fires once per change of state, not on every grid change.
+    private void OnPowerChanged(int supply, int demand, int unpoweredCells)
+    {
+        if (m_GameManager == null || m_GameManager.Population == null) return;
+
+        if (supply > 0 && !m_HadPower)
+        {
+            ShowToast("<color=#FFD133>Power plant online</color> — buildings along its roads can now grow past level 1. [V] shows the power grid.");
+        }
+        else if (supply == 0 && m_HadPower && demand > 0)
+        {
+            ShowToast("<color=#F26659>Power lost</color> — no plant is connected to a road. Buildings can't upgrade and residents are unhappy.");
+        }
+        m_HadPower = supply > 0;
+
+        bool shortage = supply > 0 && unpoweredCells > 0;
+        if (shortage && !m_WasShort)
+        {
+            ShowToast($"<color=#F26659>Power shortage</color> — {unpoweredCells} building{(unpoweredCells == 1 ? "" : "s")} without power. Build another plant or connect their roads. [V] shows the power grid.");
+        }
+        m_WasShort = shortage;
+
+        int grace = m_GameManager.Balance.SmallTownGracePopulation;
+        if (supply == 0 && !m_NudgedNoPower && m_GameManager.Population.Population >= grace)
+        {
+            ShowToast("Buildings can't grow past level 1 without power — build a <color=#FFD133>Power Plant</color> beside a road.");
+            m_NudgedNoPower = true;
+        }
     }
 
     private void OnPopulationChanged(int population, int jobs)
