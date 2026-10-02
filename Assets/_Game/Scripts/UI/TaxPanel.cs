@@ -32,6 +32,7 @@ public sealed class TaxPanel : MonoBehaviour
         if (m_ToggleButton != null) m_ToggleButton.onClick.AddListener(() => SetOpen(!m_Root.activeSelf));
         if (m_CloseButton != null) m_CloseButton.onClick.AddListener(() => SetOpen(false));
         GameEvents.CashFlowChanged += OnCashFlowChanged;
+        GameEvents.CityLoaded += OnCityLoaded;
 
         SetOpen(false);
     }
@@ -39,6 +40,7 @@ public sealed class TaxPanel : MonoBehaviour
     private void OnDestroy()
     {
         GameEvents.CashFlowChanged -= OnCashFlowChanged;
+        GameEvents.CityLoaded -= OnCityLoaded;
     }
 
     public void SetOpen(bool open)
@@ -64,6 +66,22 @@ public sealed class TaxPanel : MonoBehaviour
         });
     }
 
+    // A load or new game replaced the rates; show them without re-applying.
+    private void OnCityLoaded()
+    {
+        Sync(m_ResidentialSlider, m_ResidentialValue, m_Economy.TaxResidential);
+        Sync(m_CommercialSlider, m_CommercialValue, m_Economy.TaxCommercial);
+        Sync(m_IndustrialSlider, m_IndustrialValue, m_Economy.TaxIndustrial);
+        if (m_Root.activeSelf) RefreshHint();
+    }
+
+    private static void Sync(Slider slider, TMP_Text label, float rate)
+    {
+        if (slider == null) return;
+        slider.SetValueWithoutNotify(Mathf.Round(rate * 100f));
+        SetLabel(label, slider.value);
+    }
+
     private static void SetLabel(TMP_Text label, float percent)
     {
         if (label != null) label.text = $"{percent:0}%";
@@ -78,11 +96,14 @@ public sealed class TaxPanel : MonoBehaviour
     {
         if (m_Hint == null || m_Economy == null) return;
 
+        // Mirrors PopulationSystem.Step's tax terms and DemandSystem.TaxMultiplier.
         BalanceConfig balance = m_GameManager.Balance;
-        float penalty = balance.TaxPenalty * Mathf.Max(0f, m_Economy.TaxResidential - balance.TaxPenaltyThreshold);
+        float threshold = balance.TaxPenaltyThreshold;
+        float penalty = balance.TaxPenalty * Mathf.Max(0f, m_Economy.TaxResidential - threshold)
+            + balance.JobTaxPenalty * (Mathf.Max(0f, m_Economy.TaxCommercial - threshold) + Mathf.Max(0f, m_Economy.TaxIndustrial - threshold));
         string happiness = penalty > 0f
-            ? $"<color=#F2C14E>Residential tax costs {penalty:P0} happiness.</color>"
-            : $"Residential tax above {balance.TaxPenaltyThreshold:P0} lowers happiness.";
+            ? $"<color=#F2C14E>Taxes above {threshold:P0} cost {penalty:P0} happiness and slow growth in those zones.</color>"
+            : $"Taxes above {threshold:P0} lower happiness and slow growth; below it, zones grow faster.";
         m_Hint.text = $"{happiness}\nYesterday: +${m_Economy.IncomePerDay:N0} income, -${m_Economy.ExpensePerDay:N0} costs.\n" +
                       "<size=85%><color=#9AA3B2>New rates apply from the next day.</color></size>";
     }

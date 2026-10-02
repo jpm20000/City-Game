@@ -37,6 +37,16 @@ public sealed class TimeManager : MonoBehaviour
         SetSpeed(Speed == GameSpeed.Paused ? m_SpeedBeforePause : GameSpeed.Paused);
     }
 
+    // Load / new game. Drops any partial day so the first tick is a full day away.
+    public void SetDate(int day, int month, int year)
+    {
+        Day = Mathf.Max(1, day);
+        Month = Mathf.Max(1, month);
+        Year = Mathf.Max(1, year);
+        m_Accumulator = 0f;
+        GameEvents.RaiseDateChanged(Day, Month, Year);
+    }
+
     // Debug: runs whole days instantly through the same tick + calendar path as Update.
     public void DebugAdvanceDays(int days)
     {

@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-// Short fading toasts (e.g. "Not enough money") plus a persistent banner while money is negative.
+// Short fading toasts (e.g. "Not enough money", GameEvents.Notification) plus a persistent banner while money is negative.
 // Uses unscaled time so toasts still fade while the game is paused.
 public sealed class NotificationController : MonoBehaviour
 {
@@ -13,22 +13,35 @@ public sealed class NotificationController : MonoBehaviour
     [SerializeField] private float m_ToastDuration = 2.5f;
     [SerializeField] private float m_FadeDuration = 0.4f;
 
+    [Header("City events")]
+    [SerializeField] private int[] m_PopulationMilestones = { 50, 100, 250, 500, 1000, 2000 };
+
     [Header("Debt banner")]
     [SerializeField] private GameObject m_Banner;
     [SerializeField] private TMP_Text m_BannerText;
 
     private float m_ToastTimer;
+    private int m_MilestoneIndex;     // next milestone to announce
+    private bool m_WasUnhappy;
 
     private void OnEnable()
     {
         GameEvents.InsufficientFunds += OnInsufficientFunds;
         GameEvents.MoneyChanged += OnMoneyChanged;
+        GameEvents.Notification += ShowToast;
+        GameEvents.PopulationChanged += OnPopulationChanged;
+        GameEvents.HappinessChanged += OnHappinessChanged;
+        GameEvents.CityLoaded += SyncCityState;
     }
 
     private void OnDisable()
     {
         GameEvents.InsufficientFunds -= OnInsufficientFunds;
         GameEvents.MoneyChanged -= OnMoneyChanged;
+        GameEvents.Notification -= ShowToast;
+        GameEvents.PopulationChanged -= OnPopulationChanged;
+        GameEvents.HappinessChanged -= OnHappinessChanged;
+        GameEvents.CityLoaded -= SyncCityState;
     }
 
     private void Start()
@@ -36,6 +49,7 @@ public sealed class NotificationController : MonoBehaviour
         SetToastAlpha(0f);
         float money = m_GameManager != null && m_GameManager.Economy != null ? m_GameManager.Economy.Money : 0f;
         OnMoneyChanged(money);
+        SyncCityState();
     }
 
     private void Update()
@@ -56,7 +70,44 @@ public sealed class NotificationController : MonoBehaviour
     private void OnInsufficientFunds(float cost)
     {
         float money = m_GameManager != null ? m_GameManager.Economy.Money : 0f;
-        ShowToast($"Not enough money — costs ${cost:N0}, you have ${Mathf.Max(0f, money):N0}");
+        ShowToast($"<color=#F26659>Not enough money</color> — costs ${cost:N0}, you have ${Mathf.Max(0f, money):N0}");
+    }
+
+    // After a load or new game, treat the current state as already announced.
+    private void SyncCityState()
+    {
+        if (m_GameManager == null || m_GameManager.Population == null) return;
+
+        PopulationSystem population = m_GameManager.Population;
+        m_MilestoneIndex = 0;
+        while (m_MilestoneIndex < m_PopulationMilestones.Length && population.Population >= m_PopulationMilestones[m_MilestoneIndex])
+        {
+            m_MilestoneIndex++;
+        }
+        m_WasUnhappy = population.AverageHappiness < m_GameManager.Balance.LowHappinessThreshold;
+    }
+
+    private void OnPopulationChanged(int population, int jobs)
+    {
+        int reached = -1;
+        while (m_MilestoneIndex < m_PopulationMilestones.Length && population >= m_PopulationMilestones[m_MilestoneIndex])
+        {
+            reached = m_PopulationMilestones[m_MilestoneIndex++];
+        }
+        if (reached > 0) ShowToast($"Population milestone: {reached:N0} residents!");
+    }
+
+    // Fires once per drop below the threshold, not every unhappy day.
+    private void OnHappinessChanged(float happiness)
+    {
+        if (m_GameManager == null || m_GameManager.Balance == null) return;
+
+        bool unhappy = happiness < m_GameManager.Balance.LowHappinessThreshold;
+        if (unhappy && !m_WasUnhappy)
+        {
+            ShowToast($"Happiness below {m_GameManager.Balance.LowHappinessThreshold:P0} — residents are leaving. Hover Happiness to see why.");
+        }
+        m_WasUnhappy = unhappy;
     }
 
     private void OnMoneyChanged(float money)

@@ -371,6 +371,13 @@ Money  += Income - Expense                    // negative => bankruptcy warning 
 > `Unemployed = Workers - Employed`**. Result: ~212 pop, +$234/day at day 60 on the debug
 > seed city.
 
+> **M8 balance note:** happiness base **0.70**; every zone's demand is scaled by
+> `1 - 4*(tax - 0.10)`; C and I taxes cost happiness like residential
+> (`0.5 * (tax - 0.10)` each); pollution `-0.5 * IndustrialJobs / (Housing + Jobs)`;
+> unemployment and pollution ramp in over the first 40 residents; below 0.5 happiness,
+> 5% of residents leave per day. High taxes are now a growth-vs-income trade-off, and
+> parks are what keep a taxed or industrial city above 0.5.
+
 > These are **starting numbers**, not final. The 60-day playtest should settle at
 > roughly 200–400 population with positive cash flow at 10% tax.
 
@@ -392,14 +399,28 @@ Each milestone is independently verifiable before moving on.
 | 7 | UI | HUD + toolbar + selection panel | Full loop playable from UI alone |
 | 8 | Polish | Placeholder art, feedback, balance, save/load | Vertical slice complete |
 
-**Status (2026-10-02):** M0–M7 implemented. M7 shipped as UGUI + TextMeshPro
+**Status (2026-10-02):** M0–M8 implemented — the vertical slice is complete. M7 shipped as UGUI + TextMeshPro
 prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
 generated from the database), selection panel, taxes panel, notifications (toast +
 debt banner) and an F1 debug panel. The zone-painting tool landed early (after M6),
 and `HUDController`/`SelectionPanel` names match §6 but the toolbar is
 `ToolbarController` and the selection panel is driven by `PlacementController`
-selection rather than `Show(BuildingInstance)`. Known M8 balance items: happiness
-sits at ~0.8 with no pressure, and commercial/industrial taxes have no downside.
+selection rather than `Show(BuildingInstance)`. M8 balance items (both
+addressed in 8b): happiness sat at ~0.8 with no pressure, and commercial/industrial
+taxes had no downside.
+
+**M8 breakdown:** 8a save/load → 8b balance → 8c feedback & readability → 8d
+placeholder art pass → 8e full UI-only play-through + docs. **8a done (2026-10-02):**
+single-slot JSON save (F5/F9 + HUD Save/Load/New); `SaveSystem` is static and
+`SaveData` matches §6 plus speed, population, happiness and last-day cash flow
+(see `AGENTS.md` → Save / load). **8b done:** C/I taxes and pollution now cost happiness and
+growth, unhappy cities shrink (see the §7 M8 balance note). **8c done:** happiness
+breakdown tooltip on the HUD, striped zones without road access, cursor cost/blocker
+hints, floating "-$" text, level-up pop, milestone and residents-leaving toasts. **8d done:**
+lit placeholder blocks with per-zone/per-level silhouettes, roofs and chimneys; auto-tiled
+roads (curbs, dashed lines, junctions, off-map entries, red when disconnected); park trees. **8e done:**
+UI-only play-through (roads → zones → park → 60 days → taxes → save/new/load → demolish
+→ select) driven with virtual input in Play mode; 61 EditMode tests green.
 
 **Placeholder art:** flat colored isometric diamonds for ground and simple
 colored blocks for buildings — no external art dependency for the prototype.

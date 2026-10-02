@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.Tilemaps;
 
 public sealed class PlacementController : MonoBehaviour
 {
@@ -15,8 +14,6 @@ public sealed class PlacementController : MonoBehaviour
     [SerializeField] private InputReader m_InputReader;
     [SerializeField] private GridSystem m_GridSystem;
     [SerializeField] private GameManager m_GameManager;
-    [SerializeField] private Tilemap m_RoadTilemap;
-    [SerializeField] private TileBase m_RoadTile;
     [SerializeField] private GhostRenderer m_Ghost;
     [SerializeField] private GhostRenderer m_SelectionHighlight;
     [SerializeField] private Transform m_BuildingsContainer;
@@ -33,6 +30,11 @@ public sealed class PlacementController : MonoBehaviour
     public Mode CurrentMode => m_Mode;
     public ZoneType ZoneBrush => m_ZoneBrush;
     public BuildingDefinition SelectedBuilding => m_Selected;
+
+    // Short text for the cursor while a tool is active: the cost, or why the action can't happen.
+    // Empty when there's nothing to say. Valid tells the hint how to colour it.
+    public string CursorHint { get; private set; } = string.Empty;
+    public bool CursorHintValid { get; private set; }
 
     // Raised on every tool change, including switching zone brush or building; read CurrentMode/ZoneBrush/SelectedBuilding.
     public event Action ModeChanged;
@@ -233,16 +235,13 @@ public sealed class PlacementController : MonoBehaviour
         if (!TrySpend(m_GameManager.Balance.RoadCost)) return;
 
         PlaceRoad(cell);
+        GameEvents.RaiseMoneySpent(m_GameManager.Balance.RoadCost, m_GridSystem.CellToWorld(cell));
     }
 
     private void PlaceRoad(Vector2Int cell)
     {
         m_GridData.SetZone(cell, ZoneType.None);
         m_GridData.SetRoad(cell, true);
-        if (m_RoadTilemap != null && m_RoadTile != null)
-        {
-            m_RoadTilemap.SetTile(m_GridSystem.LogicalToTileCell(cell), m_RoadTile);
-        }
     }
 
     private void TryPlaceBuilding(Vector2Int cell)
@@ -255,28 +254,56 @@ public sealed class PlacementController : MonoBehaviour
             return;
         }
 
-        Transform parent = m_BuildingsContainer != null ? m_BuildingsContainer : transform;
-        GameObject go = Instantiate(m_Selected.Prefab, parent);
-        BuildingInstance instance = go.GetComponent<BuildingInstance>();
-        if (instance == null)
-        {
-            Destroy(go);
-            return;
-        }
-
-        if (!instance.Init(m_GridData, m_Selected, cell, m_Rotation))
-        {
-            Destroy(go);
-            return;
-        }
-
+        if (CreateBuilding(m_Selected, cell, m_Rotation) == null) return;
         m_GameManager.Economy.Spend(m_Selected.Cost);
-        foreach (Vector2Int footprintCell in m_GridData.GetFootprint(cell, m_Selected.Size, m_Rotation))
+        GameEvents.RaiseMoneySpent(m_Selected.Cost, FootprintCenter(cell, m_Selected.Size, m_Rotation));
+    }
+
+    // Instantiates, occupies and registers a building; clears zoning under it. No cost check.
+    private BuildingInstance CreateBuilding(BuildingDefinition definition, Vector2Int origin, int rotation)
+    {
+        Transform parent = m_BuildingsContainer != null ? m_BuildingsContainer : transform;
+        GameObject go = Instantiate(definition.Prefab, parent);
+        BuildingInstance instance = go.GetComponent<BuildingInstance>();
+        if (instance == null || !instance.Init(m_GridData, definition, origin, rotation))
+        {
+            Destroy(go);
+            return null;
+        }
+
+        foreach (Vector2Int footprintCell in m_GridData.GetFootprint(origin, definition.Size, rotation))
         {
             m_GridData.SetZone(footprintCell, ZoneType.None);
         }
         m_Buildings[instance.OccupantId] = instance;
         m_GameManager.RegisterBuilding(instance);
+        return instance;
+    }
+
+    // --- Save / load ---
+
+    public IEnumerable<BuildingInstance> PlacedBuildings => m_Buildings.Values;
+
+    // Removes every placed building (no refund) and resets tool + selection. Used before a load.
+    public void ClearAllBuildings()
+    {
+        SetMode(Mode.None);
+        ClearSelection();
+        foreach (BuildingInstance instance in m_Buildings.Values)
+        {
+            m_GameManager.UnregisterBuilding(instance);
+            instance.Demolish();
+            Destroy(instance.gameObject);
+        }
+        m_Buildings.Clear();
+    }
+
+    // Re-places a saved building for free. Returns false if the definition can't be placed.
+    public bool RestoreBuilding(BuildingDefinition definition, Vector2Int origin, int rotation)
+    {
+        if (m_GridData == null || definition == null || definition.Prefab == null) return false;
+        if (!m_GridData.CanPlace(origin, definition.Size, rotation)) return false;
+        return CreateBuilding(definition, origin, rotation) != null;
     }
 
     public BuildingInstance GetBuildingAt(Vector2Int cell)
@@ -371,10 +398,6 @@ public sealed class PlacementController : MonoBehaviour
         if (m_GridData.IsRoad(cell))
         {
             m_GridData.SetRoad(cell, false);
-            if (m_RoadTilemap != null)
-            {
-                m_RoadTilemap.SetTile(m_GridSystem.LogicalToTileCell(cell), null);
-            }
             return;
         }
 
@@ -397,9 +420,10 @@ public sealed class PlacementController : MonoBehaviour
 
     private void UpdateGhost()
     {
+        SetHint(string.Empty, true);
         if (m_Ghost == null) return;
 
-        if (m_Mode == Mode.None)
+        if (m_Mode == Mode.None || IsPointerOverUI())
         {
             m_Ghost.Hide();
             return;
@@ -411,6 +435,7 @@ public sealed class PlacementController : MonoBehaviour
             m_Ghost.Hide();
             return;
         }
+        UpdateHint(cell);
 
         switch (m_Mode)
         {
@@ -447,6 +472,66 @@ public sealed class PlacementController : MonoBehaviour
                 m_Ghost.Show(m_GridSystem.CellToWorld(cell), Vector2Int.one, CanZone(cell));
                 break;
         }
+    }
+
+    private void SetHint(string text, bool valid)
+    {
+        CursorHint = text;
+        CursorHintValid = valid;
+    }
+
+    private void UpdateHint(Vector2Int cell)
+    {
+        EconomySystem economy = m_GameManager.Economy;
+        switch (m_Mode)
+        {
+            case Mode.Road:
+            {
+                int cost = m_GameManager.Balance.RoadCost;
+                string problem = m_GridData.IsRoad(cell) ? "Already a road" : FootprintProblem(cell, Vector2Int.one, 0);
+                if (problem != null) SetHint(problem, false);
+                else if (!economy.CanAfford(cost)) SetHint($"Need ${cost:N0}", false);
+                else SetHint($"${cost:N0}", true);
+                break;
+            }
+
+            case Mode.Building:
+            {
+                if (m_Selected == null) break;
+                string problem = FootprintProblem(cell, m_Selected.Size, m_Rotation);
+                if (problem != null) SetHint(problem, false);
+                else if (!economy.CanAfford(m_Selected.Cost)) SetHint($"Need ${m_Selected.Cost:N0}", false);
+                else SetHint($"{m_Selected.DisplayName}  ${m_Selected.Cost:N0}   [R] rotate", true);
+                break;
+            }
+
+            case Mode.Demolish:
+            {
+                BuildingInstance building = GetBuildingAt(cell);
+                if (m_GridData.IsRoad(cell)) SetHint("Demolish road", true);
+                else if (building != null) SetHint($"Demolish {building.Definition.DisplayName} (no refund)", true);
+                else if (m_GridData.GetBuildingLevel(cell) > 0) SetHint("Demolish grown building", true);
+                break;
+            }
+
+            case Mode.Zone:
+                if (m_GridData.IsRoad(cell)) SetHint("Can't zone a road", false);
+                else if (m_GridData.IsOccupied(cell)) SetHint("Can't zone under a building", false);
+                break;
+        }
+    }
+
+    // Why a footprint can't be placed (mirrors GridData.CanPlace), or null if it can.
+    private string FootprintProblem(Vector2Int origin, Vector2Int size, int rotation)
+    {
+        foreach (Vector2Int cell in m_GridData.GetFootprint(origin, size, rotation))
+        {
+            if (!m_GridData.InBounds(cell)) return "Doesn't fit on the map";
+            if (m_GridData.IsRoad(cell)) return "Blocked by a road";
+            if (m_GridData.IsOccupied(cell)) return "Blocked by a building";
+            if (m_GridData.GetBuildingLevel(cell) > 0) return "Blocked — demolish what grew here first";
+        }
+        return null;
     }
 
     private static Vector2Int EffectiveSize(Vector2Int size, int rotation)

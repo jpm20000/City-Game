@@ -109,7 +109,7 @@ public sealed class SimulationTests
         population.RecountCapacity(m_Grid, default);
         DemandSystem demand = new DemandSystem(m_Config);
 
-        demand.Compute(population);
+        demand.Compute(population, 0.10f, 0.10f, 0.10f);
 
         Assert.AreEqual(m_Config.ResidentialBaseDemand, demand.ResidentialDemand, 1e-5f);
         Assert.AreEqual(0f, demand.CommercialDemand);
@@ -123,11 +123,36 @@ public sealed class SimulationTests
         population.RecountCapacity(m_Grid, new CityModifiers { CommercialJobs = 500, IndustrialJobs = 500 });
         DemandSystem demand = new DemandSystem(m_Config);
 
-        demand.Compute(population);
+        demand.Compute(population, 0.10f, 0.10f, 0.10f);
 
         Assert.That(demand.ResidentialDemand, Is.InRange(0f, 1f));
         Assert.That(demand.CommercialDemand, Is.InRange(0f, 1f));
         Assert.That(demand.IndustrialDemand, Is.InRange(0f, 1f));
+    }
+
+    [Test]
+    public void Demand_TaxAboveThresholdLowersDemand_BelowRaisesIt()
+    {
+        // Small town so no demand is clamped at 1 and the multiplier stays visible.
+        PopulationSystem population = new PopulationSystem(m_Config);
+        population.RecountCapacity(m_Grid, new CityModifiers { Housing = 10 });
+        for (int i = 0; i < 30; i++) population.Step(0.10f, 0.10f, 0.10f, 0);
+        population.RecountCapacity(m_Grid, new CityModifiers { Housing = 10 });
+        DemandSystem demand = new DemandSystem(m_Config);
+
+        demand.Compute(population, 0.10f, 0.10f, 0.10f);
+        DemandSnapshot neutral = demand.Snapshot;
+        demand.Compute(population, 0.20f, 0.20f, 0.20f);
+        DemandSnapshot high = demand.Snapshot;
+        demand.Compute(population, 0.05f, 0.05f, 0.05f);
+        DemandSnapshot low = demand.Snapshot;
+
+        Assert.Greater(neutral.Commercial, 0f);
+        Assert.Less(high.Residential, neutral.Residential);
+        Assert.Less(high.Commercial, neutral.Commercial);
+        Assert.Less(high.Industrial, neutral.Industrial);
+        Assert.GreaterOrEqual(low.Commercial, neutral.Commercial);
+        Assert.AreEqual(1f, demand.TaxMultiplier(m_Config.TaxPenaltyThreshold), 1e-5f);
     }
 
     // --- Population ---
@@ -158,7 +183,7 @@ public sealed class SimulationTests
         for (int i = 0; i < 50; i++)
         {
             population.RecountCapacity(m_Grid, modifiers);
-            population.Step(0.10f, 0);
+            population.Step(0.10f, 0.10f, 0.10f, 0);
         }
 
         Assert.AreEqual(10, population.Population);
@@ -171,18 +196,102 @@ public sealed class SimulationTests
     [Test]
     public void Population_LosingHousing_CapsPopulationAndReportsHomeless()
     {
+        // Jobs keep the city content; with none, unemployment would drive residents out first.
         PopulationSystem population = new PopulationSystem(m_Config);
         for (int i = 0; i < 50; i++)
         {
-            population.RecountCapacity(m_Grid, new CityModifiers { Housing = 10 });
-            population.Step(0.10f, 0);
+            population.RecountCapacity(m_Grid, new CityModifiers { Housing = 10, CommercialJobs = 100 });
+            population.Step(0.10f, 0.10f, 0.10f, 0);
         }
 
-        population.RecountCapacity(m_Grid, new CityModifiers { Housing = 4 });
-        population.Step(0.10f, 0);
+        population.RecountCapacity(m_Grid, new CityModifiers { Housing = 4, CommercialJobs = 100 });
+        population.Step(0.10f, 0.10f, 0.10f, 0);
 
         Assert.AreEqual(4, population.Population);
         Assert.AreEqual(6, population.Homeless);
+    }
+
+    // Fills the given housing over 60 steps with fixed capacity and taxes.
+    private PopulationSystem StepCity(CityModifiers modifiers, float taxR = 0.10f, float taxC = 0.10f, float taxI = 0.10f)
+    {
+        PopulationSystem population = new PopulationSystem(m_Config);
+        for (int i = 0; i < 60; i++)
+        {
+            population.RecountCapacity(m_Grid, modifiers);
+            population.Step(taxR, taxC, taxI, modifiers.ServiceCount);
+        }
+        return population;
+    }
+
+    [Test]
+    public void Population_UnhappyCity_LosesResidents()
+    {
+        // 100 homes, no jobs: once past the small-town grace, unemployment sinks happiness.
+        PopulationSystem population = StepCity(new CityModifiers { Housing = 100 });
+
+        Assert.Less(population.AverageHappiness, m_Config.LowHappinessThreshold);
+        Assert.Greater(population.MovedOut, 0);
+        Assert.Less(population.Population, population.Housing);
+    }
+
+    [Test]
+    public void Population_ContentCity_KeepsResidents()
+    {
+        PopulationSystem population = StepCity(new CityModifiers { Housing = 100, CommercialJobs = 100 });
+
+        Assert.AreEqual(0, population.MovedOut);
+        Assert.AreEqual(100, population.Population);
+    }
+
+    [Test]
+    public void Happiness_SmallTown_IgnoresUnemploymentAndPollution()
+    {
+        // 10 residents, no jobs at all: well inside the grace population.
+        PopulationSystem population = StepCity(new CityModifiers { Housing = 10 });
+        Assert.Less(population.Population, m_Config.SmallTownGracePopulation);
+
+        float weight = (float)population.Population / m_Config.SmallTownGracePopulation;
+        Assert.AreEqual(m_Config.HappinessBase - m_Config.UnemploymentPenalty * weight, population.AverageHappiness, 1e-4f);
+        Assert.GreaterOrEqual(population.AverageHappiness, m_Config.LowHappinessThreshold);
+    }
+
+    [Test]
+    public void Happiness_Pollution_IndustryHurtsMoreThanCommerce()
+    {
+        // Same jobs and homes; industry's share of development is 40 / 200 in the mixed city.
+        PopulationSystem commerce = StepCity(new CityModifiers { Housing = 100, CommercialJobs = 100 });
+        PopulationSystem mixed = StepCity(new CityModifiers { Housing = 100, CommercialJobs = 60, IndustrialJobs = 40 });
+
+        Assert.AreEqual(commerce.Employed, mixed.Employed);
+        Assert.AreEqual(m_Config.PollutionPenalty * 0.2f, commerce.AverageHappiness - mixed.AverageHappiness, 1e-4f);
+    }
+
+    [Test]
+    public void Happiness_TaxesCostAndParksHelp()
+    {
+        CityModifiers city = new CityModifiers { Housing = 100, CommercialJobs = 100 };
+        float neutral = StepCity(city).AverageHappiness;
+        float jobTaxes = StepCity(city, 0.10f, 0.20f, 0.20f).AverageHappiness;
+        city.ServiceCount = 2;
+        float parks = StepCity(city).AverageHappiness;
+
+        Assert.AreEqual(m_Config.JobTaxPenalty * 0.20f, neutral - jobTaxes, 1e-4f);
+        Assert.AreEqual(2 * m_Config.ServiceBonusEach, parks - neutral, 1e-4f);
+    }
+
+    [Test]
+    public void Happiness_BreakdownExplainsTotal()
+    {
+        CityModifiers city = new CityModifiers { Housing = 100, CommercialJobs = 30, IndustrialJobs = 20, ServiceCount = 1 };
+        PopulationSystem population = StepCity(city, 0.12f, 0.15f, 0.10f);
+        HappinessBreakdown h = population.Happiness;
+
+        Assert.AreEqual(population.AverageHappiness, h.Total, 1e-5f);
+        Assert.AreEqual(m_Config.HappinessBase, h.Base, 1e-5f);
+        Assert.Less(h.Unemployment, 0f);    // 60 workers, 50 jobs
+        Assert.AreEqual(-(m_Config.TaxPenalty * 0.02f + m_Config.JobTaxPenalty * 0.05f), h.Taxes, 1e-4f);
+        Assert.AreEqual(-m_Config.PollutionPenalty * 20f / 150f, h.Pollution, 1e-4f);
+        Assert.AreEqual(m_Config.ServiceBonusEach, h.Services, 1e-5f);
     }
 
     // --- Growth ---
@@ -339,6 +448,23 @@ public sealed class SimulationTests
         Assert.Greater(sim.Population.Jobs, 0);
         Assert.Greater(sim.Economy.IncomePerDay, sim.Economy.ExpensePerDay);
         Assert.GreaterOrEqual(sim.Population.AverageHappiness, 0.5f);
+    }
+
+    [Test]
+    public void Tick_SeededCity_HighJobTaxesStallGrowth()
+    {
+        SimulationSystem normal = RunSeededCity(m_Grid, 60);
+
+        GridData taxedGrid = new GridData(24, 24);
+        SeedCity(taxedGrid);
+        SimulationSystem taxed = new SimulationSystem(taxedGrid, new RoadNetwork(taxedGrid), m_Config);
+        taxed.Economy.TaxCommercial = 0.20f;
+        taxed.Economy.TaxIndustrial = 0.20f;
+        for (int day = 0; day < 60; day++) taxed.Tick();
+
+        // Without parks, 20% C/I taxes leave the city unhappy and far smaller.
+        Assert.Less(taxed.Population.Jobs, normal.Population.Jobs);
+        Assert.Less(taxed.Population.Population, normal.Population.Population / 2);
     }
 
     [Test]

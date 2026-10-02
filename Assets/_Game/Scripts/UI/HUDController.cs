@@ -130,7 +130,13 @@ public sealed class HUDController : MonoBehaviour
 
     private void OnHappinessChanged(float happiness)
     {
-        if (m_HappinessText != null) m_HappinessText.text = $"Happiness {happiness:P0}";
+        if (m_HappinessText != null)
+        {
+            // Below the threshold residents leave; flag it so the player hovers for the reasons.
+            bool low = m_GameManager != null && m_GameManager.Balance != null && happiness < m_GameManager.Balance.LowHappinessThreshold;
+            m_HappinessText.text = $"Happiness {happiness:P0}";
+            m_HappinessText.color = low ? m_NegativeColor : Color.white;
+        }
         if (m_HappinessMeter != null) m_HappinessMeter.SetValue(happiness);
     }
 

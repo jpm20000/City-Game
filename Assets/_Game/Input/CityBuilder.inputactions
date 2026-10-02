@@ -104,6 +104,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "QuickSave",
+                    "type": "Button",
+                    "id": "ce2e8ada-5214-4e82-acd1-c75c361a3e23",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "QuickLoad",
+                    "type": "Button",
+                    "id": "411fa8cb-c20b-451c-8458-6d316d92e191",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -357,6 +375,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "DebugToggle",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "15184a4f-8021-4d90-8564-aa86f5341a51",
+                    "path": "<Keyboard>/f5",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "QuickSave",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f0cb5da0-c439-4165-a3c2-8924f201b8be",
+                    "path": "<Keyboard>/f9",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "QuickLoad",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

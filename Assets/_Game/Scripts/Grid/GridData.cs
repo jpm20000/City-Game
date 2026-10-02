@@ -129,6 +129,51 @@ public sealed class GridData
         return CellUtils.GetFootprint(origin, size, rotation);
     }
 
+    // Row-major copies of zones / roads / grown levels, for saving. Occupancy is not exported:
+    // placed buildings are saved as records and re-placed on load.
+    public byte[] ExportZones()
+    {
+        byte[] data = new byte[m_Zones.Length];
+        for (int i = 0; i < data.Length; i++) data[i] = (byte)m_Zones[i];
+        return data;
+    }
+
+    public byte[] ExportRoads()
+    {
+        byte[] data = new byte[m_Roads.Length];
+        for (int i = 0; i < data.Length; i++) data[i] = m_Roads[i] ? (byte)1 : (byte)0;
+        return data;
+    }
+
+    public byte[] ExportLevels()
+    {
+        return (byte[])m_BuildingLevel.Clone();
+    }
+
+    // Replaces zones / roads / levels and clears occupancy (release buildings first). Raises
+    // OnCellChanged for every cell whose state changed so views resync.
+    public void Import(byte[] zones, byte[] roads, byte[] levels)
+    {
+        int count = Width * Height;
+        if (zones == null || zones.Length != count) throw new ArgumentException("Zone data size mismatch.", nameof(zones));
+        if (roads == null || roads.Length != count) throw new ArgumentException("Road data size mismatch.", nameof(roads));
+        if (levels == null || levels.Length != count) throw new ArgumentException("Level data size mismatch.", nameof(levels));
+
+        for (int i = 0; i < count; i++)
+        {
+            ZoneType zone = (ZoneType)zones[i];
+            bool road = roads[i] != 0;
+            byte level = (byte)Mathf.Min(levels[i], (byte)3);
+            if (m_Zones[i] == zone && m_Roads[i] == road && m_BuildingLevel[i] == level && m_Occupancy[i] == 0) continue;
+
+            m_Zones[i] = zone;
+            m_Roads[i] = road;
+            m_BuildingLevel[i] = level;
+            m_Occupancy[i] = 0;
+            OnCellChanged?.Invoke(new Vector2Int(i % Width, i / Width));
+        }
+    }
+
     private int Index(Vector2Int cell)
     {
         return CellUtils.Index(cell, Width);

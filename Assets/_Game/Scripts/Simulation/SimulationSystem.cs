@@ -25,17 +25,30 @@ public sealed class SimulationSystem
         Growth = new GrowthSystem(grid, roads, config);
     }
 
+    // Load / new game: sets persisted state and recomputes derived stats (capacity, employment,
+    // demand) so the UI is correct before the next tick. Grid and Modifiers must already be restored.
+    public void Restore(float money, float incomePerDay, float expensePerDay,
+        float taxResidential, float taxCommercial, float taxIndustrial,
+        int population, float happiness)
+    {
+        Economy.Restore(money, incomePerDay, expensePerDay, taxResidential, taxCommercial, taxIndustrial);
+        Population.RecountCapacity(m_Grid, Modifiers);
+        Population.Restore(population, happiness);
+        Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, Modifiers.ServiceCount);
+        Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial);
+    }
+
     public void Tick()
     {
         CityModifiers modifiers = Modifiers;
 
         Population.RecountCapacity(m_Grid, modifiers);
-        Demand.Compute(Population);
+        Demand.Compute(Population, Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial);
 
         Growth.Apply(Demand.Snapshot);
 
         Population.RecountCapacity(m_Grid, modifiers);
-        Population.Step(Economy.TaxResidential, modifiers.ServiceCount);
+        Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, modifiers.ServiceCount);
 
         float income = Population.Employed * m_Config.IncomePerWorker * Economy.TaxResidential
             + Population.CommercialJobs * m_Config.IncomePerCommercialJob * Economy.TaxCommercial

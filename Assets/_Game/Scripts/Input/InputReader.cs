@@ -17,6 +17,8 @@ public sealed class InputReader : MonoBehaviour
     private InputAction m_RoadToolAction;
     private InputAction m_SpeedDeltaAction;
     private InputAction m_DebugToggleAction;
+    private InputAction m_QuickSaveAction;
+    private InputAction m_QuickLoadAction;
 
     public Vector2 Pan => m_PanAction.ReadValue<Vector2>();
     public float Zoom => m_ZoomAction.ReadValue<float>();
@@ -28,6 +30,8 @@ public sealed class InputReader : MonoBehaviour
     public bool DemolishPressed => m_DemolishAction.WasPressedThisFrame();
     public bool RoadToolPressed => m_RoadToolAction.WasPressedThisFrame();
     public bool DebugTogglePressed => m_DebugToggleAction.WasPressedThisFrame();
+    public bool QuickSavePressed => m_QuickSaveAction.WasPressedThisFrame();
+    public bool QuickLoadPressed => m_QuickLoadAction.WasPressedThisFrame();
     public int SpeedDelta => Mathf.RoundToInt(m_SpeedDeltaAction.ReadValue<float>());
 
     private void Awake()
@@ -51,6 +55,8 @@ public sealed class InputReader : MonoBehaviour
         m_RoadToolAction = m_Map.FindAction("RoadTool", throwIfNotFound: true);
         m_SpeedDeltaAction = m_Map.FindAction("SpeedDelta", throwIfNotFound: true);
         m_DebugToggleAction = m_Map.FindAction("DebugToggle", throwIfNotFound: true);
+        m_QuickSaveAction = m_Map.FindAction("QuickSave", throwIfNotFound: true);
+        m_QuickLoadAction = m_Map.FindAction("QuickLoad", throwIfNotFound: true);
 
         m_Map.Enable();
     }

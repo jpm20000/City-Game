@@ -24,18 +24,23 @@ MonoBehaviour:
   m_RoadUpkeepPerDay: 1
   m_MaxGrowthPerDay: 3
   m_GrowthDemandThreshold: 0.15
-  m_LevelCapacity: 040000000800000010000000
+  m_LevelCapacity: 040000000800000010000000i
   m_WorkerRatio: 0.6
   m_MoveInRate: 0.2
+  m_MoveOutRate: 0.05
   m_ResidentialBaseDemand: 0.4
   m_ResidentialJobsFloor: 10
   m_CommercialJobsPerResident: 0.3
   m_IndustrialJobsPerResident: 0.4
   m_JobsDemandFloor: 5
-  m_HappinessBase: 0.8
+  m_TaxDemandScale: 4
+  m_HappinessBase: 0.7
   m_UnemploymentPenalty: 0.6
+  m_SmallTownGracePopulation: 40
   m_TaxPenalty: 0.5
   m_TaxPenaltyThreshold: 0.1
+  m_JobTaxPenalty: 0.5
+  m_PollutionPenalty: 0.5
   m_ServiceBonusEach: 0.05
   m_ServiceBonusCap: 0.2
   m_HomelessPenalty: 0.3

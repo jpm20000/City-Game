@@ -11,10 +11,13 @@ public static class GameEvents
     public static event Action<float> HappinessChanged;            // 0..1
     public static event Action<float, float> CashFlowChanged;      // income, expense per day
     public static event Action<float> InsufficientFunds;          // cost that couldn't be paid
+    public static event Action<float, Vector3> MoneySpent;        // amount, world position (floating text)
     public static event Action<GameSpeed> SpeedChanged;
     public static event Action<BuildingInstance> BuildingPlaced;
     public static event Action<BuildingInstance> BuildingRemoved;
     public static event Action<Vector2Int> CellChanged;
+    public static event Action CityLoaded;                         // after a load or new game replaced all state
+    public static event Action<string> Notification;               // short player-facing message (toast)
 
     public static void RaiseMoneyChanged(float money) => MoneyChanged?.Invoke(money);
     public static void RaisePopulationChanged(int population, int jobs) => PopulationChanged?.Invoke(population, jobs);
@@ -23,10 +26,13 @@ public static class GameEvents
     public static void RaiseHappinessChanged(float happiness) => HappinessChanged?.Invoke(happiness);
     public static void RaiseCashFlowChanged(float income, float expense) => CashFlowChanged?.Invoke(income, expense);
     public static void RaiseInsufficientFunds(float cost) => InsufficientFunds?.Invoke(cost);
+    public static void RaiseMoneySpent(float amount, Vector3 worldPosition) => MoneySpent?.Invoke(amount, worldPosition);
     public static void RaiseSpeedChanged(GameSpeed speed) => SpeedChanged?.Invoke(speed);
     public static void RaiseBuildingPlaced(BuildingInstance building) => BuildingPlaced?.Invoke(building);
     public static void RaiseBuildingRemoved(BuildingInstance building) => BuildingRemoved?.Invoke(building);
     public static void RaiseCellChanged(Vector2Int cell) => CellChanged?.Invoke(cell);
+    public static void RaiseCityLoaded() => CityLoaded?.Invoke();
+    public static void RaiseNotification(string message) => Notification?.Invoke(message);
 
     // Static events survive play sessions when domain reload is disabled; drop stale subscribers.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -39,9 +45,12 @@ public static class GameEvents
         HappinessChanged = null;
         CashFlowChanged = null;
         InsufficientFunds = null;
+        MoneySpent = null;
         SpeedChanged = null;
         BuildingPlaced = null;
         BuildingRemoved = null;
         CellChanged = null;
+        CityLoaded = null;
+        Notification = null;
     }
 }

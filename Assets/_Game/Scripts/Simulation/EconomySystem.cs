@@ -46,6 +46,17 @@ public sealed class EconomySystem
         SetMoney(Money + income - expense);
     }
 
+    // Load / new game. Raises OnMoneyChanged.
+    public void Restore(float money, float incomePerDay, float expensePerDay, float taxResidential, float taxCommercial, float taxIndustrial)
+    {
+        IncomePerDay = incomePerDay;
+        ExpensePerDay = expensePerDay;
+        TaxResidential = taxResidential;
+        TaxCommercial = taxCommercial;
+        TaxIndustrial = taxIndustrial;
+        SetMoney(money);
+    }
+
     private void SetMoney(float value)
     {
         Money = value;

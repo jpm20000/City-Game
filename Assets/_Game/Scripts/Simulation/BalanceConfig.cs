@@ -29,6 +29,8 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_WorkerRatio = 0.6f;
     [Tooltip("(tuned) Fraction of vacant homes filled per day. The doc scales this by residential demand, which deadlocks growth.")]
     [SerializeField] private float m_MoveInRate = 0.20f;
+    [Tooltip("(tuned, M8) Fraction of residents leaving per day while happiness is below LowHappinessThreshold. Move-in continues, so an unhappy city settles at roughly MoveInRate / (MoveInRate + MoveOutRate) occupancy.")]
+    [SerializeField] private float m_MoveOutRate = 0.05f;
 
     [Header("Demand")]
     [Tooltip("(tuned) Constant residential pull. The doc applies 0.30 only at population 0, which deadlocks growth.")]
@@ -38,12 +40,21 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_IndustrialJobsPerResident = 0.40f;
     [Tooltip("(tuned) Denominator floor for C/I demand. The doc's 20 never crosses the growth threshold at low population.")]
     [SerializeField] private int m_JobsDemandFloor = 5;
+    [Tooltip("(tuned, M8) Each zone's demand is scaled by 1 - this * (its tax - TaxPenaltyThreshold): taxes above the threshold slow growth, below it speed it up.")]
+    [SerializeField] private float m_TaxDemandScale = 4f;
 
     [Header("Happiness")]
-    [SerializeField] private float m_HappinessBase = 0.80f;
+    [Tooltip("(tuned, M8) Doc: 0.80. Lowered so pollution and taxes bite and services are needed to keep a city content.")]
+    [SerializeField] private float m_HappinessBase = 0.70f;
     [SerializeField] private float m_UnemploymentPenalty = 0.60f;
+    [Tooltip("(tuned, M8) Unemployment and pollution penalties ramp in linearly up to this population. New towns are lopsided (homes or factories grow first); without the grace they never get happy enough to grow.")]
+    [SerializeField] private int m_SmallTownGracePopulation = 40;
     [SerializeField] private float m_TaxPenalty = 0.50f;
     [SerializeField] private float m_TaxPenaltyThreshold = 0.10f;
+    [Tooltip("(tuned, M8) Happiness lost per point of commercial and of industrial tax above the threshold (cost of living).")]
+    [SerializeField] private float m_JobTaxPenalty = 0.50f;
+    [Tooltip("(tuned, M8) Pollution: happiness lost scales with industry's share of all development, IndustrialJobs / (Housing + Jobs).")]
+    [SerializeField] private float m_PollutionPenalty = 0.50f;
     [SerializeField] private float m_ServiceBonusEach = 0.05f;
     [SerializeField] private float m_ServiceBonusCap = 0.20f;
     [SerializeField] private float m_HomelessPenalty = 0.30f;
@@ -74,17 +85,22 @@ public sealed class BalanceConfig : ScriptableObject
 
     public float WorkerRatio => m_WorkerRatio;
     public float MoveInRate => m_MoveInRate;
+    public float MoveOutRate => m_MoveOutRate;
 
     public float ResidentialBaseDemand => m_ResidentialBaseDemand;
     public int ResidentialJobsFloor => m_ResidentialJobsFloor;
     public float CommercialJobsPerResident => m_CommercialJobsPerResident;
     public float IndustrialJobsPerResident => m_IndustrialJobsPerResident;
     public int JobsDemandFloor => m_JobsDemandFloor;
+    public float TaxDemandScale => m_TaxDemandScale;
 
     public float HappinessBase => m_HappinessBase;
     public float UnemploymentPenalty => m_UnemploymentPenalty;
+    public int SmallTownGracePopulation => m_SmallTownGracePopulation;
     public float TaxPenalty => m_TaxPenalty;
     public float TaxPenaltyThreshold => m_TaxPenaltyThreshold;
+    public float JobTaxPenalty => m_JobTaxPenalty;
+    public float PollutionPenalty => m_PollutionPenalty;
     public float ServiceBonusEach => m_ServiceBonusEach;
     public float ServiceBonusCap => m_ServiceBonusCap;
     public float HomelessPenalty => m_HomelessPenalty;

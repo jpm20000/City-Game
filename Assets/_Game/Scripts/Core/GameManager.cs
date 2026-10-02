@@ -87,7 +87,12 @@ public sealed class GameManager : MonoBehaviour
     private void HandleTick()
     {
         Simulation.Tick();
+        RaiseStateEvents();
+    }
 
+    // Pushes current population / demand / happiness / cash flow to the UI. Called per tick and after a load.
+    public void RaiseStateEvents()
+    {
         PopulationSystem population = Simulation.Population;
         GameEvents.RaisePopulationChanged(population.Population, population.Jobs);
         GameEvents.RaiseDemandChanged(Simulation.Demand.Snapshot);
