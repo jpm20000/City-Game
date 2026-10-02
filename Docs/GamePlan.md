@@ -511,7 +511,8 @@ same state; all EditMode tests pass.
   brownout drops the furthest cells first; deterministic tie-break; coverage radius around a
   rotated footprint; per-cell cap; growth stops at L1 without power; a save/load round trip
   gives the same powered set.
-- **9b Content.** `PowerPlant` def + prefab (grey 3×3 block with two chimney stacks, Simple Lit,
+- **9b Content — done (2026-10-02).** Play-mode check: seeded city (with its free plant) reaches 212 pop / 13 L2 cells / 352 of 600 units at day 60, $147/day costs incl. the plant.
+   `PowerPlant` def + prefab (grey 3×3 block with two chimney stacks, Simple Lit,
   `BoxCollider`, layer 9). Park gets `CoverageRadius = 4`. The plant appears on the toolbar
   automatically (it's a Utility). `DebugSeedCity` also places a free plant so the debug flow
   still reaches L3.

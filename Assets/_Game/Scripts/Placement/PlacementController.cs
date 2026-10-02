@@ -10,6 +10,7 @@ public sealed class PlacementController : MonoBehaviour
     private const int k_BuildingsMask = 1 << 9;
     private const float k_RaycastHeight = 50f;
     private const float k_HighlightLift = 0.02f;
+    private const string k_DebugPlantId = "power_plant";
 
     [SerializeField] private InputReader m_InputReader;
     [SerializeField] private GridSystem m_GridSystem;
@@ -107,6 +108,15 @@ public sealed class PlacementController : MonoBehaviour
         {
             SeedRoad(new Vector2Int(i, mid));
             SeedRoad(new Vector2Int(mid, i));
+        }
+
+        // A free power plant in the west commercial strip (same spot as the seeded-city tests), so the
+        // debug city can grow past level 1. Placed before zoning, which skips occupied cells.
+        BuildingDefinition plant = m_GameManager.Buildings != null ? m_GameManager.Buildings.GetById(k_DebugPlantId) : null;
+        Vector2Int plantOrigin = new Vector2Int(0, mid - 3);
+        if (plant != null && plant.Prefab != null && m_GridData.CanPlace(plantOrigin, plant.Size, 0))
+        {
+            CreateBuilding(plant, plantOrigin, 0);
         }
 
         for (int i = 0; i < m_GridData.Width; i++)
