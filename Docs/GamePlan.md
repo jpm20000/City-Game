@@ -814,6 +814,28 @@ two materials per prefab.
 | 3 Industrial | 1760 | 4 Renaissance techs, pop 900, 2,500 RP | **Electricity** (first, cheap ~150 RP, no prerequisites; unlock Power Plant), Steam Power (I demand ×1.2), Factories, Railways, Public Sanitation (happiness +0.03), Telegraph (research ×1.2), Steel Frames, Electric Trams |
 | 4 Modern | 1945 | 5 Industrial techs, pop 2,500, 8,000 RP | Automobiles, Computing (research ×1.3), Suburbs (R demand ×1.15), Mass Media, Internet (research ×1.3), Renewables, Green Building (upkeep ×0.9), Smart Grid |
 
+**Tech tree (first pass; `A → B` = A is a prerequisite of B).** Every age has at least one tech
+with no prerequisites, so a city that has just arrived is never stuck; prerequisites may come from
+earlier ages, which gives a few chains through the whole game (building: Masonry → Architecture →
+Steel Frames → Green Building; knowledge: Monasticism → Printing Press → Telegraph → Computing →
+Internet; power: Electricity → Renewables). No exclusive choices.
+
+| Age | Prerequisites |
+|---|---|
+| Medieval | Commons, Masonry, Crop Rotation, Smithing: none. Masonry → Monasticism. Crop Rotation → Markets. Masonry + Markets + Smithing → Guilds. Markets → Charters. |
+| Renaissance | Monasticism → Printing Press → Academies. Guilds → Banking. Masonry → Architecture → Civic Planning. Smithing → Watermills. |
+| Industrial | Electricity: none. Watermills → Steam Power → Factories, Railways. Factories → Steel Frames. Civic Planning → Public Sanitation. Electricity + Printing Press → Telegraph. Electricity → Electric Trams. |
+| Modern | Railways → Automobiles → Suburbs. Telegraph → Computing → Internet. Telegraph → Mass Media. Electricity → Renewables. Computing + Renewables → Smart Grid. Steel Frames → Green Building. |
+
+**Built to be extended.** The tree is pure data: one `TechDefinition` asset per tech (prerequisites
+are asset references, effects a typed list), collected in `TechDatabase`. Adding a tech, a branch or
+a new effect target needs no code; a new *kind* of effect is one `TechEffectType` value plus where
+`TechModifiers` applies it. `TechDatabase` validation (unique Ids, no cycles, prerequisites in the
+same or an earlier age, enough techs per age to advance) runs in an EditMode test, so a broken edit
+fails the tests rather than the game. The tech panel lays out from the data (columns by age, rows by
+prerequisite depth), so it grows with the tree. M12–M17 will add their buildings and road tiers as
+new techs on these branches.
+
 Research income (starting point): `0.05 × commercial jobs filled` + research buildings, ×
 research multipliers. Starting money: $20k (Medieval), $30k (Renaissance), $50k (Industrial, the
 current value), $80k (Modern). Most techs are modifiers in M11; M12–M17 hang their buildings and
