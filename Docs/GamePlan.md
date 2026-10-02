@@ -378,6 +378,14 @@ Money  += Income - Expense                    // negative => bankruptcy warning 
 > 5% of residents leave per day. High taxes are now a growth-vs-income trade-off, and
 > parks are what keep a taxed or industrial city above 0.5.
 
+> **M9 balance note:** a park adds **+0.10** happiness to each home within its radius
+> (4 cells), capped at **+0.20** per home; the Services term is the housing-weighted average.
+> Unpowered homes cost up to **−0.05** (scaled by the unpowered share, ramped like
+> unemployment), and grown buildings can't pass level 1 without power. Seeded city: no plant
+> → 172 pop, all level 1, happiness 0.54; one plant → 212 pop at day 60 and 332 at day 90,
+> with its 600 units full by ~day 120; two well-placed parks → 0.68. With 20% C/I taxes the
+> city stalls at ~60 without parks and grows normally with them.
+
 > These are **starting numbers**, not final. The 60-day playtest should settle at
 > roughly 200–400 population with positive cash flow at 10% tax.
 
@@ -400,7 +408,7 @@ Each milestone is independently verifiable before moving on.
 | 8 | Polish | Placeholder art, feedback, balance, save/load | Vertical slice complete |
 | 9 | Services & utilities | Power plant + road-carried power grid, park coverage radius, info overlays | Upgrades need power; park placement matters; see §11 |
 
-**Status (2026-10-02):** M0–M8 implemented — the vertical slice is complete. M7 shipped as UGUI + TextMeshPro
+**Status (2026-10-02):** M0–M9 implemented — the vertical slice is complete, and M9 (§11) added power, park coverage and info views. M7 shipped as UGUI + TextMeshPro
 prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
 generated from the database), selection panel, taxes panel, notifications (toast +
 debt banner) and an F1 debug panel. The zone-painting tool landed early (after M6),
@@ -529,7 +537,13 @@ same state; all EditMode tests pass.
   - `HappinessTooltip`: a "Power" line.
   - Toasts: "Power shortage — N buildings dark" once per shortage, and "First power plant
     online".
-- **9e Balance + play-through + docs.**
+- **9e Balance + play-through + docs — done (2026-10-02).** `ServiceBonusEach` 0.05 → 0.10 (radius parks
+  were worth only +0.04 for two) and `PowerPenalty` 0.10 → 0.05 (a powerless town sat at exactly 0.50
+  and kept tripping the move-out threshold); see the §7 M9 balance note. The no-plant plateau is
+  172 (every zone at L1) rather than ~100: the pressure is being stuck at L1, not an exodus. 3 new
+  seeded-city balance tests (80 EditMode tests green). UI-only virtual-input play-through: New → road +
+  dragged zones → 45 days stalled at L1 (nudge toast, "needs power" blocker) → toolbar plant (online
+  toast) → L2/L3 within 30 days → park (+0.09) → V views → Save / New / Load restores the same city.
   - Re-tune so the 60-day seeded run (with plant and 2 well-placed parks) lands in §7's
     200–400 pop with positive cash flow, and with no plant it plateaus around 100.
   - The plant's $100/day must be payable around 100–150 pop.

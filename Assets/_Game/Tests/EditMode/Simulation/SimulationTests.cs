@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -54,28 +55,48 @@ public sealed class SimulationTests
         grid.SetZone(cell, zone);
     }
 
-    // A 3x3 power plant in the west commercial strip, touching the east-west road.
+    // A 3x3 power plant in the west commercial strip, touching the east-west road (same spot as
+    // PlacementController.DebugSeedCity), and two parks placed to cover most of the homes.
     private static readonly Vector2Int s_SeedPlantOrigin = new Vector2Int(0, 9);
     private const int SeedPlantSupply = 600;
+    private static readonly Vector2Int[] s_SeedParkOrigins = { new Vector2Int(5, 14), new Vector2Int(14, 16) };
 
-    private static void AddSeedPlant(GridData grid, SimulationSystem sim, int supply = SeedPlantSupply)
+    private static void PlaceSource(GridData grid, List<ServiceSource> sources, ref CityModifiers modifiers,
+        Vector2Int origin, Vector2Int size, int radius, int supply, float upkeep)
     {
-        Vector2Int size = new Vector2Int(3, 3);
-        foreach (Vector2Int cell in grid.GetFootprint(s_SeedPlantOrigin, size, 0))
+        foreach (Vector2Int cell in grid.GetFootprint(origin, size, 0))
         {
             grid.SetZone(cell, ZoneType.None);
         }
-        grid.Occupy(s_SeedPlantOrigin, size, 0, 1);
-        sim.Sources = new[] { new ServiceSource(s_SeedPlantOrigin, size, 0, supply) };
-        sim.Modifiers = new CityModifiers { UpkeepPerDay = 100f };   // §7 power plant upkeep
+        Assert.IsTrue(grid.Occupy(origin, size, 0, sources.Count + 1));
+        sources.Add(new ServiceSource(origin, size, radius, supply));
+        modifiers.UpkeepPerDay += upkeep;
     }
 
-    // plantSupply 0 = no power plant.
-    private SimulationSystem RunSeededCity(GridData grid, int days, int plantSupply = SeedPlantSupply)
+    // plantSupply 0 = no power plant. Upkeep follows §7 ($100/day plant, $5/day park).
+    private SimulationSystem RunSeededCity(GridData grid, int days, int plantSupply = SeedPlantSupply,
+        bool parks = false, float jobTax = 0.10f)
     {
         SeedCity(grid);
+        List<ServiceSource> sources = new List<ServiceSource>();
+        CityModifiers modifiers = default;
+        if (plantSupply > 0)
+        {
+            PlaceSource(grid, sources, ref modifiers, s_SeedPlantOrigin, new Vector2Int(3, 3), 0, plantSupply, 100f);
+        }
+        if (parks)
+        {
+            foreach (Vector2Int origin in s_SeedParkOrigins)
+            {
+                PlaceSource(grid, sources, ref modifiers, origin, new Vector2Int(2, 2), 4, 0, 5f);
+            }
+        }
+
         SimulationSystem sim = new SimulationSystem(grid, new RoadNetwork(grid), m_Config);
-        if (plantSupply > 0) AddSeedPlant(grid, sim, plantSupply);
+        sim.Sources = sources;
+        sim.Modifiers = modifiers;
+        sim.Economy.TaxCommercial = jobTax;
+        sim.Economy.TaxIndustrial = jobTax;
         for (int day = 0; day < days; day++)
         {
             sim.Tick();
@@ -500,6 +521,46 @@ public sealed class SimulationTests
     }
 
     [Test]
+    public void Tick_SeededCity_WithoutPower_StaysContent_PlantPaysOff()
+    {
+        // The pressure to build a plant is being stuck at level 1, not residents leaving.
+        GridData poweredGrid = new GridData(24, 24);
+        SimulationSystem unpowered = RunSeededCity(m_Grid, 90, plantSupply: 0);
+        SimulationSystem powered = RunSeededCity(poweredGrid, 90);
+
+        Assert.GreaterOrEqual(unpowered.Population.AverageHappiness, m_Config.LowHappinessThreshold);
+        Assert.AreEqual(0, unpowered.Population.MovedOut);
+        Assert.Greater(powered.Population.Population, unpowered.Population.Population * 3 / 2);
+        Assert.Greater(powered.Economy.IncomePerDay - powered.Economy.ExpensePerDay,
+            unpowered.Economy.IncomePerDay - unpowered.Economy.ExpensePerDay);
+    }
+
+    [Test]
+    public void Tick_SeededCity_ParksRaiseHappinessOnlyWhereTheyReach()
+    {
+        GridData parkGrid = new GridData(24, 24);
+        SimulationSystem plain = RunSeededCity(m_Grid, 60);
+        SimulationSystem parks = RunSeededCity(parkGrid, 60, parks: true);
+
+        float bonus = parks.Population.Happiness.Services;
+        Assert.Greater(bonus, 0.05f);                                  // most homes are covered...
+        Assert.Less(bonus, 2 * m_Config.ServiceBonusEach);              // ...but not all by both parks
+        Assert.AreEqual(bonus, parks.Population.AverageHappiness - plain.Population.AverageHappiness, 0.01f);
+    }
+
+    [Test]
+    public void Tick_SeededCity_ParksRescueHighJobTaxes()
+    {
+        GridData parkGrid = new GridData(24, 24);
+        SimulationSystem taxed = RunSeededCity(m_Grid, 60, jobTax: 0.20f);
+        SimulationSystem taxedWithParks = RunSeededCity(parkGrid, 60, parks: true, jobTax: 0.20f);
+
+        Assert.Less(taxed.Population.AverageHappiness, m_Config.LowHappinessThreshold + 0.005f);
+        Assert.GreaterOrEqual(taxedWithParks.Population.AverageHappiness, m_Config.LowHappinessThreshold);
+        Assert.Greater(taxedWithParks.Population.Population, taxed.Population.Population * 2);
+    }
+
+    [Test]
     public void Tick_SeededCity_LoadNeverExceedsSupply()
     {
         SimulationSystem sim = RunSeededCity(m_Grid, 60, plantSupply: 200);
@@ -512,14 +573,7 @@ public sealed class SimulationTests
     public void Tick_SeededCity_HighJobTaxesStallGrowth()
     {
         SimulationSystem normal = RunSeededCity(m_Grid, 60);
-
-        GridData taxedGrid = new GridData(24, 24);
-        SeedCity(taxedGrid);
-        SimulationSystem taxed = new SimulationSystem(taxedGrid, new RoadNetwork(taxedGrid), m_Config);
-        AddSeedPlant(taxedGrid, taxed);
-        taxed.Economy.TaxCommercial = 0.20f;
-        taxed.Economy.TaxIndustrial = 0.20f;
-        for (int day = 0; day < 60; day++) taxed.Tick();
+        SimulationSystem taxed = RunSeededCity(new GridData(24, 24), 60, jobTax: 0.20f);
 
         // Without parks, 20% C/I taxes leave the city unhappy and far smaller.
         Assert.Less(taxed.Population.Jobs, normal.Population.Jobs);

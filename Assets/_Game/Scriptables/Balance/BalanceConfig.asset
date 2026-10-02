@@ -41,9 +41,9 @@ MonoBehaviour:
   m_TaxPenaltyThreshold: 0.1
   m_JobTaxPenalty: 0.5
   m_PollutionPenalty: 0.5
-  m_ServiceBonusEach: 0.05
+  m_ServiceBonusEach: 0.1
   m_ServiceBonusCap: 0.2
-  m_PowerPenalty: 0.1
+  m_PowerPenalty: 0.05
   m_HomelessPenalty: 0.3
   m_LowHappinessThreshold: 0.5
   m_LowHappinessDemandScale: 0.5
