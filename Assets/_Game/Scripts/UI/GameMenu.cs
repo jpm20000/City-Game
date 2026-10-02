@@ -1,21 +1,17 @@
-using TMPro;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-// HUD Save / Load / New buttons. Load is disabled until a save exists; New needs a second click
-// within m_ConfirmSeconds because it discards the current city.
+// HUD Save / Load / New buttons. Load is disabled until a save exists; New raises NewRequested, which
+// the New City dialog listens to (it discards the current city only when the player confirms there).
 public sealed class GameMenu : MonoBehaviour
 {
     [SerializeField] private SaveGameController m_SaveGame;
     [SerializeField] private Button m_SaveButton;
     [SerializeField] private Button m_LoadButton;
     [SerializeField] private Button m_NewButton;
-    [SerializeField] private TMP_Text m_NewLabel;
-    [SerializeField] private string m_NewText = "New";
-    [SerializeField] private string m_ConfirmText = "Sure?";
-    [SerializeField] private float m_ConfirmSeconds = 3f;
 
-    private float m_ConfirmTimer;
+    public event Action NewRequested;
 
     private void Start()
     {
@@ -30,16 +26,6 @@ public sealed class GameMenu : MonoBehaviour
         if (m_NewButton != null) m_NewButton.onClick.AddListener(OnNewClicked);
 
         RefreshLoadButton();
-        SetConfirming(false);
-    }
-
-    private void Update()
-    {
-        if (m_ConfirmTimer <= 0f) return;
-
-        // Unscaled so the prompt still times out while paused.
-        m_ConfirmTimer -= Time.unscaledDeltaTime;
-        if (m_ConfirmTimer <= 0f) SetConfirming(false);
     }
 
     private void OnEnable()
@@ -60,21 +46,8 @@ public sealed class GameMenu : MonoBehaviour
 
     private void OnNewClicked()
     {
-        if (m_ConfirmTimer > 0f)
-        {
-            SetConfirming(false);
-            m_SaveGame.NewCity();
-        }
-        else
-        {
-            SetConfirming(true);
-        }
-    }
-
-    private void SetConfirming(bool confirming)
-    {
-        m_ConfirmTimer = confirming ? m_ConfirmSeconds : 0f;
-        if (m_NewLabel != null) m_NewLabel.text = confirming ? m_ConfirmText : m_NewText;
+        if (NewRequested != null) NewRequested.Invoke();
+        else Debug.LogWarning("GameMenu: nothing handles New (no NewCityDialog in the scene?).", this);
     }
 
     private void RefreshLoadButton()

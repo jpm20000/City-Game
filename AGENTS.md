@@ -3,7 +3,7 @@
 ## Project
 - Unity **6000.6.3f1**, URP 17.6.0, Linear, PC target, new Input System only (`activeInputHandler: 1`).
 - Isometric 2.5D city-builder with an abstract (statistical) simulation. Design + roadmap: `Docs/GamePlan.md`.
-- **Roadmap M10–M19** (`Docs/GamePlan.md` §12): the city spans history through 7 ages (~750 → today) with research, a tech tree and a selectable starting age. M10 = per-city map size + perf + New City dialog (in progress, 10a done); M11 = save v2 with migration + ages & technology foundation. Rules for that work: age/tech data are ScriptableObjects in the Simulation asmdef referencing buildings by `Id` string; a sim with no age data must behave exactly like today (Electric-age rules), so existing tests stay valid; from v2 on, save format bumps add a migration step instead of rejecting old files. Map size is per city (see Grid → map size).
+- **Roadmap M10–M19** (`Docs/GamePlan.md` §12): the city spans history through 7 ages (~750 → today) with research, a tech tree and a selectable starting age. M10 = per-city map size + perf + New City dialog (**done**); M11 = save v2 with migration + ages & technology foundation (next). Rules for that work: age/tech data are ScriptableObjects in the Simulation asmdef referencing buildings by `Id` string; a sim with no age data must behave exactly like today (Electric-age rules), so existing tests stay valid; from v2 on, save format bumps add a migration step instead of rejecting old files. Map size is per city (see Grid → map size).
 - Game code lives under `Assets/_Game/` (never at `Assets/` root). Default scene: `Assets/_Game/Scenes/Main.unity`.
 
 ## Build / run / test
@@ -26,7 +26,7 @@
 - Layers: `Ground`=8, `Buildings`=9, `Ghost`=10.
 - **Not `IsometricZAsY`** — `Docs/GamePlan.md` §2/§5 is stale on this point.
 
-## Systems (Milestones 0–9)
+## Systems (Milestones 0–10)
 
 ### Camera
 - `Assets/_Game/Scripts/Camera/CameraSortAxis.cs` — applies `transparencySortMode` + `transparencySortAxis` in `Awake` (runtime-only, not serialized).
@@ -93,7 +93,8 @@
 - Pure, in the Simulation asmdef (`Scripts/Simulation/Save/`): `SaveData` (public fields for `JsonUtility`; `Version` = `SaveData.CurrentVersion`, bump it on format changes — older/newer files are rejected, not migrated), `BuildingRecord {Id, X, Y, Rotation}`, static `SaveSystem` (`Capture`, `CreateNew`, `ApplyGrid` (resizes the map to the save's `Width`/`Height`), `ApplySimulation`, `ToJson`/`TryFromJson` with validation (sizes capped at `MaxMapSize` 256), `TryWrite` via temp file / `TryRead`). Sim restore hooks: `SimulationSystem.Restore`, `EconomySystem.Restore`, `PopulationSystem.Restore` (recomputes capacity/employment/demand so the UI is right before the next tick).
 - Saved: calendar + speed, money + last day's income/expense, R/C/I taxes, population, happiness, zones/roads/levels, placed buildings. Not saved: occupant ids (re-minted on load), `TimeManager`'s partial-day accumulator.
 - `Scripts/Save/SaveGameController.cs` (on `GameManager`) rebuilds in a fixed order: `ClearAllBuildings` → `ApplyGrid` → `RestoreBuilding` per record (unknown/blocked ones are skipped with a warning) → `ApplySimulation` (needs building modifiers in place) → `SetDate`/`SetSpeed` → `RaiseStateEvents` + `GameEvents.CityLoaded`. Files are validated before anything is torn down. `NewCity()` applies `SaveSystem.CreateNew` at the current size; `NewCity(size)` at another size.
-- `Scripts/UI/GameMenu.cs` on the HUD prefab root (buttons in `HUD/Game`): Load is disabled until a save exists; New needs a second click within 3 s. `TaxPanel` resyncs its sliders on `CityLoaded`.
+- `Scripts/UI/NewCityDialog.cs` on `Prefabs/UI/NewCityDialog.prefab` (last child of `UI`; script on the container, child `Blocker` = dimmed full-screen raycast blocker + centred `Panel` is what's toggled): map size buttons 32/64/96 (current size preselected; selected = non-interactable, the HUD speed-button convention), Cancel / Esc close, Create → `SaveGameController.NewCity(size)`. It subscribes to `GameMenu.NewRequested` through its own `m_GameMenu` scene ref, so the HUD prefab instance carries no reference to it. M11 adds the starting age here.
+- `Scripts/UI/GameMenu.cs` on the HUD prefab root (buttons in `HUD/Game`): Load is disabled until a save exists; New raises `GameMenu.NewRequested`, which opens the New City dialog. `TaxPanel` resyncs its sliders on `CityLoaded`.
 - Tests: `Tests/EditMode/Simulation/SaveSystemTests.cs`, including save-at-day-30-then-continue = uninterrupted run.
 
 ### UI (M7)

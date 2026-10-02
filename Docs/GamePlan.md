@@ -418,7 +418,7 @@ Each milestone is independently verifiable before moving on.
 | 18 | Art & atmosphere | Hand-made per-age assets through the M11 visual sets, day/night, audio | Every age has its own skyline |
 | 19 | Release | Main menu, settings, save slots, player build | A standalone build plays start to finish |
 
-**Status (2026-10-02):** M0–M9 implemented — the vertical slice is complete, and M9 (§11) added power, park coverage and info views. M7 shipped as UGUI + TextMeshPro
+**Status (2026-10-03):** M0–M10 implemented — the vertical slice is complete, M9 (§11) added power, park coverage and info views, and M10 (§12) made the map size per city (default 64²) with a New City dialog. M7 shipped as UGUI + TextMeshPro
 prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
 generated from the database), selection panel, taxes panel, notifications (toast +
 debt banner) and an F1 debug panel. The zone-painting tool landed early (after M6),
@@ -676,8 +676,11 @@ load as 24² cities; all tests pass.
 - **10c Save versioning — moved to M11.** v1 saves already store `Width`/`Height`, so M10 needs
   no format change. The migration chain is built in M11 with its first real step (v1 → v2).
   `TryFromJson` now rejects sizes above `SaveSystem.MaxMapSize` (256).
-- **10d New City dialog.** Modal UGUI panel (map size now; starting age is added in M11)
-  replaces the double-click "New". Play-through + docs.
+- **10d New City dialog — done (2026-10-03).** `NewCityDialog` prefab: dimmed blocker + panel with
+  32 / 64 / 96 size buttons (current size preselected), Cancel / Esc and Create; replaces the
+  double-click "New" (`GameMenu.NewRequested`). Verified with virtual input in Play mode: New opens
+  it, 96 + Create discards the seeded 64² city and reframes the camera, map clicks under the open
+  dialog place nothing, Cancel / Esc leave the city alone. 82 EditMode tests green.
 
 **Risks:** anything new that caches per-cell state must handle `GridData.OnResized`. Note that
 `MaxGrowthPerDay` doesn't scale with the area, so big maps fill at the same pace as small ones.
@@ -781,4 +784,5 @@ cosmetic carts/cars on busy roads (visual only).
 **M19 — Release.** Main menu, settings (audio, keybinds, UI scale), multiple save slots with
 thumbnails, a tutorial for the first age, and a Windows player build.
 
-**Status (2026-10-03):** M10 in progress (10a, 10b done; 10d next).
+**Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). M11 is next — expand its
+outline above into a full plan before implementing.
