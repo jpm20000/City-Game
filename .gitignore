@@ -112,3 +112,6 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+# Unity AI Assistant relay binaries dropped into Packages/ (not a real embedded package; ~470 MB)
+/[Pp]ackages/com.unity.ai.assistant/

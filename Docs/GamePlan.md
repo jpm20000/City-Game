@@ -239,9 +239,10 @@ class GrowthSystem {
     void RegisterZonedCell(Vector2Int c, ZoneType z);
 }
 
-class RoadNetwork {
-    void Add(Vector2Int c); void Remove(Vector2Int c);
+class RoadNetwork {                           // reads roads from GridData
+    RoadNetwork(GridData grid);
     bool HasRoadAccess(Vector2Int c);         // adjacent road, connected to entry
+    bool IsConnectedToEntry(Vector2Int c);    // road cell on the entry-connected net
 }
 ```
 
@@ -361,6 +362,14 @@ Income  = Employed * 10 * TaxRes              // $/worker/day
 Expense = sum(UpkeepPerDay for placed buildings) + Roads * 1
 Money  += Income - Expense                    // negative => bankruptcy warning (soft)
 ```
+
+> **M6 implementation note:** as written, these formulas deadlock at 1–4 population
+> (residential demand hits 0 once any home is vacant, move-in is scaled by that demand,
+> and C/I demand can't pass 0.15 below ~10 pop). The shipped `BalanceConfig` uses:
+> residential base demand **0.40 always**; move-in **`ceil(VacantHomes * 0.20)`** (not
+> demand-scaled); C/I demand denominator floor **5**; and **`Employed = min(Workers, Jobs)`,
+> `Unemployed = Workers - Employed`**. Result: ~212 pop, +$234/day at day 60 on the debug
+> seed city.
 
 > These are **starting numbers**, not final. The 60-day playtest should settle at
 > roughly 200–400 population with positive cash flow at 10% tax.

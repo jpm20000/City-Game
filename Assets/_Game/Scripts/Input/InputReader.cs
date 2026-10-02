@@ -14,15 +14,18 @@ public sealed class InputReader : MonoBehaviour
     private InputAction m_CancelAction;
     private InputAction m_RotateAction;
     private InputAction m_DemolishAction;
+    private InputAction m_RoadToolAction;
     private InputAction m_SpeedDeltaAction;
 
     public Vector2 Pan => m_PanAction.ReadValue<Vector2>();
     public float Zoom => m_ZoomAction.ReadValue<float>();
     public Vector2 Pointer => m_PointerAction.ReadValue<Vector2>();
     public bool ConfirmPressed => m_ConfirmAction.WasPressedThisFrame();
+    public bool ConfirmHeld => m_ConfirmAction.IsPressed();
     public bool CancelPressed => m_CancelAction.WasPressedThisFrame();
     public bool RotatePressed => m_RotateAction.WasPressedThisFrame();
     public bool DemolishPressed => m_DemolishAction.WasPressedThisFrame();
+    public bool RoadToolPressed => m_RoadToolAction.WasPressedThisFrame();
     public int SpeedDelta => Mathf.RoundToInt(m_SpeedDeltaAction.ReadValue<float>());
 
     private void Awake()
@@ -43,6 +46,7 @@ public sealed class InputReader : MonoBehaviour
         m_CancelAction = m_Map.FindAction("Cancel", throwIfNotFound: true);
         m_RotateAction = m_Map.FindAction("Rotate", throwIfNotFound: true);
         m_DemolishAction = m_Map.FindAction("Demolish", throwIfNotFound: true);
+        m_RoadToolAction = m_Map.FindAction("RoadTool", throwIfNotFound: true);
         m_SpeedDeltaAction = m_Map.FindAction("SpeedDelta", throwIfNotFound: true);
 
         m_Map.Enable();

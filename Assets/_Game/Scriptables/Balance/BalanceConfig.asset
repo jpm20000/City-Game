@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acec56ffff574713abd89383e3e61fa3, type: 3}
+  m_Name: BalanceConfig
+  m_EditorClassIdentifier: CityBuilder.Simulation::BalanceConfig
+  m_SecondsPerDay: 1
+  m_DaysPerMonth: 30
+  m_MonthsPerYear: 12
+  m_StartingMoney: 50000
+  m_StartingHappiness: 0.75
+  m_TaxResidential: 0.1
+  m_TaxCommercial: 0.1
+  m_TaxIndustrial: 0.1
+  m_RoadCost: 50
+  m_RoadUpkeepPerDay: 1
+  m_MaxGrowthPerDay: 3
+  m_GrowthDemandThreshold: 0.15
+  m_LevelCapacity: 040000000800000010000000
+  m_WorkerRatio: 0.6
+  m_MoveInRate: 0.2
+  m_ResidentialBaseDemand: 0.4
+  m_ResidentialJobsFloor: 10
+  m_CommercialJobsPerResident: 0.3
+  m_IndustrialJobsPerResident: 0.4
+  m_JobsDemandFloor: 5
+  m_HappinessBase: 0.8
+  m_UnemploymentPenalty: 0.6
+  m_TaxPenalty: 0.5
+  m_TaxPenaltyThreshold: 0.1
+  m_ServiceBonusEach: 0.05
+  m_ServiceBonusCap: 0.2
+  m_HomelessPenalty: 0.3
+  m_LowHappinessThreshold: 0.5
+  m_LowHappinessDemandScale: 0.5
+  m_IncomePerWorker: 10
+  m_IncomePerCommercialJob: 12
+  m_IncomePerIndustrialJob: 12

@@ -7,6 +7,7 @@ public sealed class IsoCameraController : MonoBehaviour
     [SerializeField] private float m_PanSpeed = 12f;
     [SerializeField] private float m_EdgePanZonePx = 20f;
     [SerializeField] private float m_DiagonalDamping = 0.7f;
+    [SerializeField] private bool m_EnableEdgePan = false;
 
     [Header("Zoom")]
     [SerializeField] private float m_ZoomSpeed = 0.006f;
@@ -59,7 +60,7 @@ public sealed class IsoCameraController : MonoBehaviour
     private void ApplyPan()
     {
         Vector2 inputPan = m_InputReader.Pan;
-        Vector2 edgeDirection = GetEdgePanDirection();
+        Vector2 edgeDirection = m_EnableEdgePan ? GetEdgePanDirection() : Vector2.zero;
         Vector2 totalInput = inputPan + edgeDirection;
 
         if (totalInput.sqrMagnitude < 0.0001f) return;
@@ -102,20 +103,17 @@ public sealed class IsoCameraController : MonoBehaviour
         float halfHeight = m_Camera.orthographicSize;
         float halfWidth = halfHeight * m_Camera.aspect;
 
-        float camMinX = halfWidth;
-        float camMaxX = m_GridWidth - halfWidth;
-        float camMinZ = halfHeight;
-        float camMaxZ = m_GridHeight - halfHeight;
+        Vector3 forward = transform.forward;
+        if (Mathf.Abs(forward.y) < 0.0001f) return;
 
-        Vector3 pos = transform.position;
-        float overflowX = 0f;
-        float overflowZ = 0f;
+        float t = -transform.position.y / forward.y;
+        Vector3 groundHit = transform.position + forward * t;
 
-        if (pos.x < camMinX) overflowX = camMinX - pos.x;
-        else if (pos.x > camMaxX) overflowX = camMaxX - pos.x;
+        float targetGroundX = ClampAxis(groundHit.x, halfWidth, m_GridWidth);
+        float targetGroundZ = ClampAxis(groundHit.z, halfHeight, m_GridHeight);
 
-        if (pos.z < camMinZ) overflowZ = camMinZ - pos.z;
-        else if (pos.z > camMaxZ) overflowZ = camMaxZ - pos.z;
+        float overflowX = targetGroundX - groundHit.x;
+        float overflowZ = targetGroundZ - groundHit.z;
 
         if (Mathf.Approximately(overflowX, 0f) && Mathf.Approximately(overflowZ, 0f))
         {
@@ -128,6 +126,14 @@ public sealed class IsoCameraController : MonoBehaviour
         m_Velocity *= m_SpringDamping;
 
         transform.position += m_Velocity * Time.unscaledDeltaTime;
+    }
+
+    private float ClampAxis(float value, float halfView, float gridSize)
+    {
+        float min = halfView;
+        float max = gridSize - halfView;
+        if (max <= min) return gridSize * 0.5f;
+        return Mathf.Clamp(value, min, max);
     }
 
     private Vector3 ScreenToGround(Vector2 screenPoint)
