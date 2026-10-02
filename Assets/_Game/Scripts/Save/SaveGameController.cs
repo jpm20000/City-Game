@@ -67,13 +67,6 @@ public sealed class SaveGameController : MonoBehaviour
             return false;
         }
 
-        GridData grid = m_GameManager.Grid;
-        if (data.Width != grid.Width || data.Height != grid.Height)
-        {
-            GameEvents.RaiseNotification($"Couldn't load: save is {data.Width}x{data.Height}, map is {grid.Width}x{grid.Height}.");
-            return false;
-        }
-
         int skipped = Apply(data);
         GameEvents.RaiseNotification(skipped == 0
             ? $"City loaded — Day {data.Day}, Month {data.Month}, Year {data.Year}"
@@ -81,19 +74,26 @@ public sealed class SaveGameController : MonoBehaviour
         return true;
     }
 
+    // Keeps the current map size.
     public void NewCity()
     {
         if (!IsReady()) return;
+        NewCity(m_GameManager.MapSize);
+    }
 
-        GridData grid = m_GameManager.Grid;
-        Apply(SaveSystem.CreateNew(grid.Width, grid.Height, m_GameManager.Balance));
-        GameEvents.RaiseNotification("New city");
+    public void NewCity(Vector2Int size)
+    {
+        if (!IsReady()) return;
+
+        Apply(SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance));
+        GameEvents.RaiseNotification($"New city — {size.x}×{size.y}");
     }
 
     // Returns how many saved buildings couldn't be re-placed (unknown id or blocked footprint).
     private int Apply(SaveData data)
     {
         m_Placement.ClearAllBuildings();
+        // Resizes the map (and everything mirroring it) when the size differs.
         SaveSystem.ApplyGrid(data, m_GameManager.Grid);
 
         int skipped = 0;

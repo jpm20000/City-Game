@@ -5,9 +5,9 @@ using UnityEngine;
 public sealed class RoadNetwork
 {
     private readonly GridData m_Grid;
-    private readonly int m_Width;
-    private readonly int m_Height;
-    private readonly bool[] m_ConnectedToEntry;
+    private int m_Width;
+    private int m_Height;
+    private bool[] m_ConnectedToEntry;
     private bool m_Dirty = true;
 
     public RoadNetwork(GridData grid)
@@ -15,10 +15,17 @@ public sealed class RoadNetwork
         if (grid == null) throw new ArgumentNullException(nameof(grid));
 
         m_Grid = grid;
-        m_Width = grid.Width;
-        m_Height = grid.Height;
-        m_ConnectedToEntry = new bool[m_Width * m_Height];
+        Allocate();
         grid.OnCellChanged += _ => m_Dirty = true;
+        grid.OnResized += Allocate;
+    }
+
+    private void Allocate()
+    {
+        m_Width = m_Grid.Width;
+        m_Height = m_Grid.Height;
+        m_ConnectedToEntry = new bool[m_Width * m_Height];
+        m_Dirty = true;
     }
 
     public bool HasRoadAccess(Vector2Int cell)

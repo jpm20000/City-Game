@@ -4,18 +4,37 @@ using UnityEngine;
 
 public sealed class GridData
 {
-    public int Width { get; }
-    public int Height { get; }
+    public int Width { get; private set; }
+    public int Height { get; private set; }
 
-    private readonly ZoneType[] m_Zones;
-    private readonly bool[] m_Roads;
-    private readonly int[] m_Occupancy;
-    private readonly byte[] m_BuildingLevel;
+    private ZoneType[] m_Zones;
+    private bool[] m_Roads;
+    private int[] m_Occupancy;
+    private byte[] m_BuildingLevel;
 
     public event Action<Vector2Int> OnCellChanged;
 
+    // Raised by Resize after the map is replaced by an empty one. Anything caching per-cell state must
+    // rebuild it; no OnCellChanged is raised for the cleared cells.
+    public event Action OnResized;
+
     public GridData(int width, int height)
     {
+        Allocate(width, height);
+    }
+
+    // Replaces the map with an empty one of the given size (new city / load). Release placed
+    // buildings first: occupancy is cleared too.
+    public void Resize(int width, int height)
+    {
+        Allocate(width, height);
+        OnResized?.Invoke();
+    }
+
+    private void Allocate(int width, int height)
+    {
+        if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException(nameof(width), $"Map size {width}x{height} must be positive.");
+
         Width = width;
         Height = height;
         m_Zones = new ZoneType[width * height];

@@ -13,21 +13,63 @@ public sealed class IsoCameraController : MonoBehaviour
     [SerializeField] private float m_ZoomSpeed = 0.006f;
     [SerializeField] private float m_MinZoom = 4f;
     [SerializeField] private float m_MaxZoom = 20f;
+    [Tooltip("Max zoom also grows with the map so the whole of a large map fits on screen.")]
+    [SerializeField] private float m_MaxZoomPerCell = 0.45f;
 
     [Header("Bounds")]
-    [SerializeField] private float m_GridWidth = 24f;
-    [SerializeField] private float m_GridHeight = 24f;
     [SerializeField] private float m_SoftSpringForce = 40f;
     [SerializeField] private float m_SpringDamping = 0.88f;
 
     private Camera m_Camera;
     private InputReader m_InputReader;
     private Vector3 m_Velocity;
+    private float m_GridWidth = 24f;
+    private float m_GridHeight = 24f;
 
     private void Awake()
     {
         m_Camera = GetComponent<Camera>();
         m_InputReader = FindAnyObjectByType<InputReader>();
+    }
+
+    private void OnEnable()
+    {
+        GameEvents.WorldResized += FrameMap;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.WorldResized -= FrameMap;
+    }
+
+    // Start, not Awake: GameManager.Awake creates the map.
+    private void Start()
+    {
+        GameManager gameManager = FindAnyObjectByType<GameManager>();
+        if (gameManager != null && gameManager.Grid != null) FrameMap(gameManager.MapSize);
+    }
+
+    // Adopts a new map size and looks at its centre.
+    private void FrameMap(Vector2Int size)
+    {
+        m_GridWidth = size.x;
+        m_GridHeight = size.y;
+        m_Velocity = Vector3.zero;
+
+        Vector3 center = new Vector3(size.x * 0.5f, 0f, size.y * 0.5f);
+        transform.position += center - GroundLookAt();
+        m_Camera.orthographicSize = Mathf.Clamp(m_Camera.orthographicSize, m_MinZoom, MaxZoom);
+    }
+
+    private float MaxZoom => Mathf.Max(m_MaxZoom, Mathf.Max(m_GridWidth, m_GridHeight) * m_MaxZoomPerCell);
+
+    // Where the view's centre ray meets the ground (the camera is tilted, so not its XZ position).
+    private Vector3 GroundLookAt()
+    {
+        Vector3 forward = transform.forward;
+        if (Mathf.Abs(forward.y) < 0.0001f) return new Vector3(transform.position.x, 0f, transform.position.z);
+        float t = -transform.position.y / forward.y;
+        return transform.position + forward * t;
     }
 
     private void LateUpdate()
@@ -45,7 +87,7 @@ public sealed class IsoCameraController : MonoBehaviour
         if (Mathf.Approximately(scroll, 0f)) return;
 
         float oldSize = m_Camera.orthographicSize;
-        float newSize = Mathf.Clamp(oldSize - scroll * m_ZoomSpeed, m_MinZoom, m_MaxZoom);
+        float newSize = Mathf.Clamp(oldSize - scroll * m_ZoomSpeed, m_MinZoom, MaxZoom);
         if (Mathf.Approximately(oldSize, newSize)) return;
 
         Vector3 groundPoint = ScreenToGround(m_InputReader.Pointer);
@@ -103,11 +145,8 @@ public sealed class IsoCameraController : MonoBehaviour
         float halfHeight = m_Camera.orthographicSize;
         float halfWidth = halfHeight * m_Camera.aspect;
 
-        Vector3 forward = transform.forward;
-        if (Mathf.Abs(forward.y) < 0.0001f) return;
-
-        float t = -transform.position.y / forward.y;
-        Vector3 groundHit = transform.position + forward * t;
+        if (Mathf.Abs(transform.forward.y) < 0.0001f) return;
+        Vector3 groundHit = GroundLookAt();
 
         float targetGroundX = ClampAxis(groundHit.x, halfWidth, m_GridWidth);
         float targetGroundZ = ClampAxis(groundHit.z, halfHeight, m_GridHeight);

@@ -99,4 +99,32 @@ public sealed class GridDataTests
         Assert.IsFalse(m_Grid.InBounds(new Vector2Int(-1, 0)));
         Assert.IsFalse(m_Grid.InBounds(new Vector2Int(0, 24)));
     }
+
+    [Test]
+    public void Resize_EmptiesMap_AndRaisesOnlyOnResized()
+    {
+        m_Grid.SetRoad(new Vector2Int(1, 1), true);
+        m_Grid.SetZone(new Vector2Int(2, 2), ZoneType.Residential);
+        m_Grid.SetBuildingLevel(new Vector2Int(2, 2), 2);
+        m_Grid.Occupy(new Vector2Int(5, 5), Vector2Int.one, 0, 3);
+        int resized = 0, changed = 0;
+        m_Grid.OnResized += () => resized++;
+        m_Grid.OnCellChanged += _ => changed++;
+
+        m_Grid.Resize(40, 30);
+
+        Assert.AreEqual(40, m_Grid.Width);
+        Assert.AreEqual(30, m_Grid.Height);
+        Assert.AreEqual(1, resized);
+        Assert.AreEqual(0, changed);
+        Assert.IsTrue(m_Grid.InBounds(new Vector2Int(39, 29)));
+        Assert.IsFalse(m_Grid.InBounds(new Vector2Int(40, 0)));
+        Assert.AreEqual(0, m_Grid.CountRoads());
+        foreach (Vector2Int cell in new[] { new Vector2Int(1, 1), new Vector2Int(2, 2), new Vector2Int(5, 5) })
+        {
+            Assert.AreEqual(ZoneType.None, m_Grid.GetZone(cell));
+            Assert.AreEqual(0, m_Grid.GetBuildingLevel(cell));
+            Assert.IsFalse(m_Grid.IsOccupied(cell));
+        }
+    }
 }

@@ -6,6 +6,9 @@ using UnityEngine;
 // layer (SaveGameController) adds the calendar and placed buildings and rebuilds the scene.
 public static class SaveSystem
 {
+    // Largest map side a save may declare (guards against huge allocations from a bad file).
+    public const int MaxMapSize = 256;
+
     // Grid, economy and population. Calendar and buildings are filled in by the caller.
     public static SaveData Capture(GridData grid, SimulationSystem sim)
     {
@@ -52,15 +55,13 @@ public static class SaveSystem
         };
     }
 
-    // Step 1 of a load: replace grid contents (placed buildings must already be released).
+    // Step 1 of a load: replace grid contents, resizing the map to the save's size if it differs
+    // (placed buildings must already be released).
     public static void ApplyGrid(SaveData data, GridData grid)
     {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (grid == null) throw new ArgumentNullException(nameof(grid));
-        if (data.Width != grid.Width || data.Height != grid.Height)
-        {
-            throw new ArgumentException($"Save is {data.Width}x{data.Height}, map is {grid.Width}x{grid.Height}.");
-        }
+        if (data.Width != grid.Width || data.Height != grid.Height) grid.Resize(data.Width, data.Height);
         grid.Import(data.Zones, data.Roads, data.Levels);
     }
 
@@ -107,8 +108,15 @@ public static class SaveSystem
             return false;
         }
 
+        if (data.Width <= 0 || data.Height <= 0 || data.Width > MaxMapSize || data.Height > MaxMapSize)
+        {
+            error = $"Save file has an invalid map size ({data.Width}x{data.Height}).";
+            data = null;
+            return false;
+        }
+
         int count = data.Width * data.Height;
-        if (count <= 0 || data.Zones?.Length != count || data.Roads?.Length != count || data.Levels?.Length != count)
+        if ( data.Zones?.Length != count || data.Roads?.Length != count || data.Levels?.Length != count)
         {
             error = "Save file has missing or mismatched map data.";
             data = null;

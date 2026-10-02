@@ -5,11 +5,17 @@ using UnityEngine;
 // How many services reach each cell. Recomputed only when the placed services change.
 public sealed class CoverageSystem
 {
-    private readonly int m_Width;
-    private readonly int m_Height;
-    private readonly byte[] m_Count;
+    private int m_Width;
+    private int m_Height;
+    private byte[] m_Count;
 
     public CoverageSystem(int width, int height)
+    {
+        Resize(width, height);
+    }
+
+    // Clears all coverage; call Recompute afterwards.
+    public void Resize(int width, int height)
     {
         m_Width = width;
         m_Height = height;

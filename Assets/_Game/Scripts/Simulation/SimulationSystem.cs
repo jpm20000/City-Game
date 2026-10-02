@@ -43,6 +43,11 @@ public sealed class SimulationSystem
         Power = new PowerSystem(grid, config);
         Coverage = new CoverageSystem(grid.Width, grid.Height);
         Growth = new GrowthSystem(grid, roads, Power, config);
+        grid.OnResized += () =>
+        {
+            Coverage.Resize(grid.Width, grid.Height);
+            Coverage.Recompute(m_Sources);
+        };
     }
 
     public ServiceStats MeasureServices()

@@ -27,16 +27,33 @@ public abstract class GridTilemapView : MonoBehaviour
         Roads = m_GameManager.Roads;
         CreateTiles();
 
-        // m_Painted starts all-null, so the tilemap must too.
-        m_Tilemap.ClearAllTiles();
-        m_Painted = new Tile[Grid.Width * Grid.Height];
+        ResetPainted();
         Grid.OnCellChanged += OnCellChanged;
-        m_Dirty = true;
+        Grid.OnResized += OnResized;
     }
 
     protected virtual void OnDestroy()
     {
-        if (Grid != null) Grid.OnCellChanged -= OnCellChanged;
+        if (Grid == null) return;
+        Grid.OnCellChanged -= OnCellChanged;
+        Grid.OnResized -= OnResized;
+    }
+
+    // Called after the map is replaced by one of a new size, before the full repaint.
+    protected virtual void OnGridResized() { }
+
+    // m_Painted starts all-null, so the tilemap must too.
+    private void ResetPainted()
+    {
+        m_Tilemap.ClearAllTiles();
+        m_Painted = new Tile[Grid.Width * Grid.Height];
+        m_Dirty = true;
+    }
+
+    private void OnResized()
+    {
+        ResetPainted();
+        OnGridResized();
     }
 
     // Build the runtime tiles TileFor returns.

@@ -53,11 +53,22 @@ public sealed class GrowthVisuals : MonoBehaviour
         m_Grid = grid;
         m_Block = new MaterialPropertyBlock();
         m_Grid.OnCellChanged += SyncCell;
+        m_Grid.OnResized += ClearAll;
     }
 
     private void OnDestroy()
     {
-        if (m_Grid != null) m_Grid.OnCellChanged -= SyncCell;
+        if (m_Grid == null) return;
+        m_Grid.OnCellChanged -= SyncCell;
+        m_Grid.OnResized -= ClearAll;
+    }
+
+    // The map was replaced by an empty one; the new city's cells arrive as OnCellChanged.
+    private void ClearAll()
+    {
+        foreach (Grown grown in m_Cells.Values) DestroyGrown(grown);
+        m_Cells.Clear();
+        m_Popping.Clear();
     }
 
     // Info views recolour grown buildings (the ground overlay is mostly hidden under them). Return

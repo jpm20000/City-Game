@@ -11,10 +11,10 @@ public sealed class PowerSystem
 {
     private readonly GridData m_Grid;
     private readonly BalanceConfig m_Config;
-    private readonly int m_Width;
-    private readonly int[] m_RoadNetwork;      // network id per energised road cell, -1 = dark
-    private readonly int[] m_CellNetwork;      // network feeding each powered cell, -1 = unpowered
-    private readonly bool[] m_Visited;
+    private int m_Width;
+    private int[] m_RoadNetwork;      // network id per energised road cell, -1 = dark
+    private int[] m_CellNetwork;      // network feeding each powered cell, -1 = unpowered
+    private bool[] m_Visited;
     private readonly List<int> m_Remaining = new();
     private readonly Queue<Vector2Int> m_Frontier = new();
     private IReadOnlyList<ServiceSource> m_Sources = Array.Empty<ServiceSource>();
@@ -29,12 +29,19 @@ public sealed class PowerSystem
     {
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
-        m_Width = grid.Width;
-        int count = grid.Width * grid.Height;
+        Allocate();
+        grid.OnCellChanged += _ => m_Dirty = true;
+        grid.OnResized += Allocate;
+    }
+
+    private void Allocate()
+    {
+        m_Width = m_Grid.Width;
+        int count = m_Grid.Width * m_Grid.Height;
         m_RoadNetwork = new int[count];
         m_CellNetwork = new int[count];
         m_Visited = new bool[count];
-        grid.OnCellChanged += _ => m_Dirty = true;
+        m_Dirty = true;
     }
 
     // Supply of plants that touch a road.

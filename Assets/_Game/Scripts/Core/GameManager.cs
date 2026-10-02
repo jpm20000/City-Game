@@ -23,6 +23,7 @@ public sealed class GameManager : MonoBehaviour
     public EconomySystem Economy => Simulation?.Economy;
     public PopulationSystem Population => Simulation?.Population;
     public DemandSystem Demand => Simulation?.Demand;
+    public Vector2Int MapSize => Grid != null ? new Vector2Int(Grid.Width, Grid.Height) : Vector2Int.zero;
 
     private void Awake()
     {
@@ -32,6 +33,8 @@ public sealed class GameManager : MonoBehaviour
         Roads = new RoadNetwork(Grid);
         Grid.OnCellChanged += GameEvents.RaiseCellChanged;
         Grid.OnCellChanged += MarkPowerDirty;
+        Grid.OnResized += HandleResized;
+        m_GridSystem.PaintGround(MapSize);
 
         if (m_Balance == null)
         {
@@ -92,6 +95,14 @@ public sealed class GameManager : MonoBehaviour
         }
         Simulation.Sources = m_Sources;
         m_PowerDirty = true;
+    }
+
+    // New city / load replaced the map (GridData.Resize). The sim systems resize themselves.
+    private void HandleResized()
+    {
+        m_GridSystem.PaintGround(MapSize);
+        m_PowerDirty = true;
+        GameEvents.RaiseWorldResized(MapSize);
     }
 
     private void MarkPowerDirty(Vector2Int cell)

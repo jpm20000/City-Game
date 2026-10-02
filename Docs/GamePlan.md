@@ -407,8 +407,8 @@ Each milestone is independently verifiable before moving on.
 | 7 | UI | HUD + toolbar + selection panel | Full loop playable from UI alone |
 | 8 | Polish | Placeholder art, feedback, balance, save/load | Vertical slice complete |
 | 9 | Services & utilities | Power plant + road-carried power grid, park coverage radius, info overlays | Upgrades need power; park placement matters; see §11 |
-| 10 | Scale | Map size per city (default 64²), New City dialog, perf pass, save v2 with migration | 64² seeded city runs at speed 4× without frame drops; v1 saves load; see §12 |
-| 11 | Ages & technology | Ages 750 → today, research points, tech tree, age advancement, starting age, per-age growth rules, "Keep historical building" | Start in any age; research → advance; old buildings redevelop unless kept; see §12 |
+| 10 | Scale | Map size per city (default 64²), New City dialog, perf pass | 64² seeded city runs at speed 4× without frame drops; v1 saves load; see §12 |
+| 11 | Ages & technology | Save v2 with migration, ages 750 → today, research points, tech tree, age advancement, starting age, per-age growth rules, "Keep historical building" | Start in any age; research → advance; old buildings redevelop unless kept; see §12 |
 | 12 | Land value & local pollution | Per-cell pollution and land value; value gates upgrades; heritage bonus | Industry next to homes hurts; parks/heritage raise value |
 | 13 | Water | Wells → water towers → pipes under roads, per-age requirement | Industrial+ upgrades need water |
 | 14 | Civic services | Order, fire, health, education per age; education produces research | Coverage drives crime/fire risk/health; schools speed research |
@@ -594,7 +594,7 @@ instead of retrofitting eight milestones of buildings and balance numbers.
   string, because `BuildingDefinition` lives in `Assembly-CSharp`.
 - **"No age data" = today's rules.** A sim built without ages behaves like the Electric age with
   current balance, so the 80 existing tests keep passing unchanged. Age-specific tests are new.
-- Save format: v2 in M10 adds a **migration chain** (`v1 → v2 → …`) instead of rejecting old
+- Save format: v2 in M11 adds a **migration chain** (`v1 → v2 → …`) instead of rejecting old
   files. Every later bump adds one migration step and a test.
 - Each milestone ends with: EditMode tests green, a UI-only virtual-input play-through, and docs
   (`AGENTS.md` Systems + this file's status lines).
@@ -653,24 +653,28 @@ city.
 **Done when:** New City offers 32/64/96; a 96² city seeded and run at 4× keeps 60 fps; v1 saves
 load as 24² cities; all tests pass.
 
-- **10a Variable map size.** `GameManager.ResetWorld(size)` rebuilds `GridData` and the systems
-  that hold it (`RoadNetwork`, `SimulationSystem`, `PowerSystem`/`CoverageSystem`) and raises
-  `GameEvents.WorldReset`. Views (`GridTilemapView`s, `GrowthVisuals`, `PlacementController`,
-  `InfoOverlay`, the camera) rebind to the new grid. The ground tilemap is painted from the size,
-  and camera bounds are derived from it. `DebugSeedCity` scales with the size, but the seeded-test
-  layout stays 24².
-- **10b Performance.** Profile a full 96² city. Likely fixes: `GridTilemapView` re-diffs only
-  dirty regions instead of every cell; `GrowthVisuals` uses pooled objects / GPU instancing (one
-  shared material + `MaterialPropertyBlock` already); `InfoOverlay` what-if preview is
+- **10a Variable map size — done (2026-10-02).** Instead of rebuilding the world, the one
+  `GridData` is **resized in place** (`GridData.Resize` → `OnResized`), so nothing rebinds and no
+  handlers can leak. `RoadNetwork`, `PowerSystem`, `CoverageSystem` (via `SimulationSystem`),
+  `GridTilemapView`s, `InfoOverlay` and `GrowthVisuals` reallocate their per-cell state on
+  `OnResized`. `GameManager` repaints the ground (`GridSystem.PaintGround`) and raises
+  `GameEvents.WorldResized`, and the camera reframes the map's centre (max zoom grows with the map).
+  `SaveSystem.ApplyGrid` resizes to the save's size, and `SaveGameController.NewCity(size)` exists.
+  The scene now starts at 64². Play-mode check: 64² seeded city = 212 pop at day 60, the same as
+  24² (growth is limited by the daily budget, not the area); 96² sim tick 0.35 ms; the 24² v1 save
+  loads with the original camera framing. 82 EditMode tests green.
+- **10b Performance.** Profile a fully built 96² city. Likely fixes: `GridTilemapView` re-diffs
+  only dirty regions instead of every cell; `GrowthVisuals` uses pooled objects / GPU instancing
+  (one shared material + `MaterialPropertyBlock` already); `InfoOverlay` what-if preview is
   recomputed only when the ghost cell changes. Budget: sim tick < 2 ms, no per-frame GC.
-- **10c Save v2 + migration.** `SaveData` v2 adds `Width`/`Height`. `SaveMigrations` holds one
-  step per version (v1 → v2: size 24²). Older files are migrated, and only newer ones are
-  rejected. Tests: v1 fixture JSON loads and runs identically.
+- **10c Save versioning — moved to M11.** v1 saves already store `Width`/`Height`, so M10 needs
+  no format change. The migration chain is built in M11 with its first real step (v1 → v2).
+  `TryFromJson` now rejects sizes above `SaveSystem.MaxMapSize` (256).
 - **10d New City dialog.** Modal UGUI panel (map size now; starting age is added in M11)
   replaces the double-click "New". Play-through + docs.
 
-**Risks:** rebinding every subscriber on reset is the main bug source. Add an EditMode test that
-resets the world twice and checks no handlers leak (`GridData.OnCellChanged` count).
+**Risks:** anything new that caches per-cell state must handle `GridData.OnResized`. Note that
+`MaxGrowthPerDay` doesn't scale with the area, so big maps fill at the same pace as small ones.
 
 ### M11 — Ages & technology foundation
 
@@ -678,7 +682,7 @@ resets the world twice and checks no handlers leak (`GridData.OnCellChanged` cou
 placeholder art.
 **Done when:** a city started in Early Medieval researches and advances through every age;
 outdated blocks redevelop unless kept; a city started in Electric plays exactly like today; save
-v3 round-trips age, techs, research progress and per-cell age/historic flags.
+v2 round-trips age, techs, research progress and per-cell age/historic flags.
 
 - **11a Sim core.** In the Simulation asmdef:
   - `AgeDefinition` (index, name, start year, max level, capacity scale, upgrade requirements,
@@ -716,9 +720,10 @@ v3 round-trips age, techs, research progress and per-cell age/historic flags.
   - Selection panel: "Built in *age*", outdated hint, **Keep historical building** toggle.
   - Toasts: research complete, new age reached, first redevelopment.
   - Info view **Age**: tints cells by built age; historic cells are outlined.
-- **11e Save v3, balance, play-through, docs.** v3 adds age, researched techs, active research
-  + progress, queue, and per-cell `BuiltAge`/`Historic`. Migration v2 → v3 = Electric age with
-  all earlier techs and every cell built in Electric. Balance target: about 45–90 in-game days per
+- **11e Save v2 + migration, balance, play-through, docs.** v2 adds age, researched techs, active
+  research + progress, queue, and per-cell `BuiltAge`/`Historic`. `SaveMigrations` holds one step
+  per version; v1 → v2 = Electric age with all earlier techs and every cell built in Electric.
+  Older files are migrated, and only newer ones are rejected. Balance target: about 45–90 in-game days per
   age at 1× for an engaged player (to be confirmed in play). Play-through: start medieval, reach
   age 3, keep a block historic, save/load.
 
@@ -770,4 +775,4 @@ cosmetic carts/cars on busy roads (visual only).
 **M19 — Release.** Main menu, settings (audio, keybinds, UI scale), multiple save slots with
 thumbnails, a tutorial for the first age, and a Windows player build.
 
-**Status (2026-10-02):** M10–M19 planned; M10 is next.
+**Status (2026-10-02):** M10 in progress (10a done).

@@ -223,10 +223,57 @@ public sealed class SaveSystemTests
     }
 
     [Test]
-    public void ApplyGrid_RejectsMismatchedMapSize()
+    public void ApplyGrid_ResizesMapToSaveSize()
     {
-        SaveData data = SaveSystem.CreateNew(10, 10, m_Config);
-        Assert.Throws<System.ArgumentException>(() => SaveSystem.ApplyGrid(data, new GridData(24, 24)));
+        GridData grid = new GridData(24, 24);
+        int resized = 0;
+        grid.OnResized += () => resized++;
+
+        SaveSystem.ApplyGrid(SaveSystem.CreateNew(10, 12, m_Config), grid);
+        SaveSystem.ApplyGrid(SaveSystem.CreateNew(10, 12, m_Config), grid);   // same size: no resize
+
+        Assert.AreEqual(10, grid.Width);
+        Assert.AreEqual(12, grid.Height);
+        Assert.AreEqual(1, resized);
+    }
+
+    [Test]
+    public void LoadIntoDifferentSizedMap_ThenContinue_MatchesUninterruptedRun()
+    {
+        // The running game keeps one GridData and its systems for the whole session, so a load into a
+        // map of another size must leave roads, power and coverage exactly as on a fresh map.
+        ServiceSource plant = new ServiceSource(new Vector2Int(0, 9), new Vector2Int(3, 3), 0, 400);
+        ServiceSource park = new ServiceSource(new Vector2Int(14, 14), new Vector2Int(2, 2), 4, 0);
+        GridData gridA = new GridData(24, 24);
+        SeedCity(gridA);
+        SimulationSystem a = new SimulationSystem(gridA, new RoadNetwork(gridA), m_Config);
+        a.Sources = new[] { plant, park };
+        Run(a, 40);
+        SaveData saved = SaveSystem.Capture(gridA, a);
+
+        // A bigger city with its own buildings, running before the load.
+        GridData gridB = new GridData(40, 40);
+        SeedCity(gridB);
+        SimulationSystem b = new SimulationSystem(gridB, new RoadNetwork(gridB), m_Config);
+        b.Sources = new[] { new ServiceSource(new Vector2Int(0, 17), new Vector2Int(3, 3), 0, 600) };
+        Run(b, 25);
+
+        b.Sources = null;                       // ClearAllBuildings
+        SaveSystem.ApplyGrid(saved, gridB);
+        b.Sources = new[] { park, plant };      // buildings re-placed
+        SaveSystem.ApplySimulation(saved, b);
+
+        Assert.AreEqual(24, gridB.Width);
+        Assert.AreEqual(a.Power.Supply, b.Power.Supply);
+        Assert.AreEqual(a.Power.Load, b.Power.Load);
+        Assert.AreEqual(a.Population.Happiness.Services, b.Population.Happiness.Services, 1e-5f);
+
+        Run(a, 30);
+        Run(b, 30);
+
+        Assert.AreEqual(a.Population.Population, b.Population.Population);
+        Assert.AreEqual(a.Economy.Money, b.Economy.Money, 1e-3f);
+        AssertSameGrid(gridA, gridB);
     }
 
     // --- JSON / file ---
@@ -267,6 +314,10 @@ public sealed class SaveSystemTests
         SaveData truncated = SaveSystem.CreateNew(4, 4, m_Config);
         truncated.Zones = new byte[3];
         Assert.IsFalse(SaveSystem.TryFromJson(SaveSystem.ToJson(truncated), out _, out _));
+
+        SaveData huge = SaveSystem.CreateNew(4, 4, m_Config);
+        huge.Width = SaveSystem.MaxMapSize + 1;
+        Assert.IsFalse(SaveSystem.TryFromJson(SaveSystem.ToJson(huge), out _, out _));
     }
 
     [Test]

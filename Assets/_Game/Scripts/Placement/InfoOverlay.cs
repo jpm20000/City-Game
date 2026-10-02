@@ -150,6 +150,12 @@ public sealed class InfoOverlay : GridTilemapView
         Refresh();
     }
 
+    protected override void OnGridResized()
+    {
+        m_PreviewCoverage.Resize(Grid.Width, Grid.Height);
+        Refresh();
+    }
+
     protected override void OnDestroy()
     {
         base.OnDestroy();
