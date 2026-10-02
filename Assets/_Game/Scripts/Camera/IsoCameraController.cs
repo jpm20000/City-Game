@@ -25,11 +25,13 @@ public sealed class IsoCameraController : MonoBehaviour
     private Vector3 m_Velocity;
     private float m_GridWidth = 24f;
     private float m_GridHeight = 24f;
+    private float m_BaseDistance;   // scene distance from the camera to its ground-look-at point
 
     private void Awake()
     {
         m_Camera = GetComponent<Camera>();
         m_InputReader = FindAnyObjectByType<InputReader>();
+        m_BaseDistance = Vector3.Distance(transform.position, GroundLookAt());
     }
 
     private void OnEnable()
@@ -56,8 +58,13 @@ public sealed class IsoCameraController : MonoBehaviour
         m_GridHeight = size.y;
         m_Velocity = Vector3.zero;
 
+        // Orthographic, so distance doesn't change the framing, but the camera must sit far enough back
+        // that the map's near corner isn't behind the near clip plane (and the far corner within far).
+        float side = Mathf.Max(size.x, size.y);
+        float distance = Mathf.Max(m_BaseDistance, side * 0.75f + 10f);
         Vector3 center = new Vector3(size.x * 0.5f, 0f, size.y * 0.5f);
-        transform.position += center - GroundLookAt();
+        transform.position = center - transform.forward * distance;
+        m_Camera.farClipPlane = Mathf.Max(m_Camera.farClipPlane, distance + side * 1.5f + 20f);
         m_Camera.orthographicSize = Mathf.Clamp(m_Camera.orthographicSize, m_MinZoom, MaxZoom);
     }
 

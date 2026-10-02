@@ -5,7 +5,11 @@ using UnityEngine;
 // Mirrors grown zone cells (GridData building levels) as placeholder blocks. Each zone has its own
 // silhouette per level (houses -> apartments -> towers, shops -> offices -> high-rises, low wide
 // factories with chimneys), with a per-cell size jitter so rows don't look stamped. New and upgraded
-// cells "pop" (scale overshoot) so growth is noticeable.
+// cells "pop" (scale overshoot) so growth is noticeable. Blocks are pooled (hidden, not destroyed):
+// creating or destroying GameObjects costs milliseconds per frame once a big map holds thousands.
+// Colours are shared materials (one per colour), not MaterialPropertyBlocks: a property block makes a
+// renderer incompatible with the SRP Batcher and the GPU Resident Drawer, which on a full 96x96 map
+// cost ~20 ms of render thread per frame.
 public sealed class GrowthVisuals : MonoBehaviour
 {
     private const int k_BuildingsLayer = 9;
@@ -32,10 +36,18 @@ public sealed class GrowthVisuals : MonoBehaviour
     private static readonly Profile[] s_Commercial = { new(0.80f, 0.50f), new(0.72f, 1.15f), new(0.60f, 2.20f) };
     private static readonly Profile[] s_Industrial = { new(0.82f, 0.42f), new(0.86f, 0.62f), new(0.90f, 0.85f) };
 
+    // One pooled cube: the body keeps its collider (selection raycasts); roofs have none.
+    private sealed class Block
+    {
+        public Transform Transform;
+        public MeshRenderer Renderer;
+        public Collider Collider;
+    }
+
     private sealed class Grown
     {
-        public Transform Body;
-        public Transform Roof;      // R/C: darker cap; I: chimney
+        public Block Body;
+        public Block Roof;          // R/C: darker cap; I: chimney
         public ZoneType Zone;
         public int Level;
         public float Jitter;        // per-cell height multiplier
@@ -44,31 +56,43 @@ public sealed class GrowthVisuals : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, Grown> m_Cells = new();
     private readonly List<Vector2Int> m_Popping = new();
+    private readonly Stack<Block> m_FreeBodies = new();
+    private readonly Stack<Block> m_FreeRoofs = new();
     private GridData m_Grid;
-    private MaterialPropertyBlock m_Block;
+    private readonly Dictionary<Color, Material> m_Materials = new();
     private Func<Vector2Int, Color?> m_ColorOverride;
 
     public void Init(GridData grid)
     {
         m_Grid = grid;
-        m_Block = new MaterialPropertyBlock();
         m_Grid.OnCellChanged += SyncCell;
         m_Grid.OnResized += ClearAll;
     }
 
     private void OnDestroy()
     {
+        foreach (Material material in m_Materials.Values) Destroy(material);
+        m_Materials.Clear();
         if (m_Grid == null) return;
         m_Grid.OnCellChanged -= SyncCell;
         m_Grid.OnResized -= ClearAll;
     }
 
-    // The map was replaced by an empty one; the new city's cells arrive as OnCellChanged.
+    // The map was replaced by an empty one; the new city's cells arrive as OnCellChanged. The pool is
+    // dropped too, so shrinking from a big map doesn't keep thousands of hidden blocks around.
     private void ClearAll()
     {
-        foreach (Grown grown in m_Cells.Values) DestroyGrown(grown);
+        foreach (Grown grown in m_Cells.Values)
+        {
+            Destroy(grown.Body.Transform.gameObject);
+            Destroy(grown.Roof.Transform.gameObject);
+        }
+        foreach (Block block in m_FreeBodies) Destroy(block.Transform.gameObject);
+        foreach (Block block in m_FreeRoofs) Destroy(block.Transform.gameObject);
         m_Cells.Clear();
         m_Popping.Clear();
+        m_FreeBodies.Clear();
+        m_FreeRoofs.Clear();
     }
 
     // Info views recolour grown buildings (the ground overlay is mostly hidden under them). Return
@@ -116,26 +140,23 @@ public sealed class GrowthVisuals : MonoBehaviour
 
         if (level == 0)
         {
-            if (grown != null) DestroyGrown(grown);
-            m_Cells.Remove(cell);
+            if (grown != null)
+            {
+                Release(grown.Body, m_FreeBodies);
+                Release(grown.Roof, m_FreeRoofs);
+                m_Cells.Remove(cell);
+            }
             return;
         }
 
-        ZoneType zone = m_Grid.GetZone(cell);
         if (grown == null)
         {
-            grown = new Grown { Body = CreateBlock($"Grown_{cell.x}_{cell.y}", true), Jitter = CellJitter(cell) };
+            grown = new Grown { Body = Acquire(m_FreeBodies, true), Roof = Acquire(m_FreeRoofs, false), Jitter = CellJitter(cell) };
             m_Cells[cell] = grown;
         }
 
-        // Zone changes swap the roof piece (cap vs chimney).
-        if (grown.Roof == null || grown.Zone != zone)
-        {
-            if (grown.Roof != null) Destroy(grown.Roof.gameObject);
-            grown.Roof = CreateBlock(zone == ZoneType.Industrial ? "Chimney" : "Roof", false);
-            grown.Roof.SetParent(grown.Body.parent, false);
-            grown.Zone = zone;
-        }
+        // A rezone just reshapes the roof block (cap vs chimney) in ApplyTransform.
+        grown.Zone = m_Grid.GetZone(cell);
 
         // Only growth pops; a rezone recolour or a level drop updates instantly.
         bool grew = level > grown.Level;
@@ -169,8 +190,10 @@ public sealed class GrowthVisuals : MonoBehaviour
         float height = profile.Height * grown.Jitter * scale;
         Vector3 ground = new Vector3(cell.x + 0.5f, 0f, cell.y + 0.5f);
 
-        grown.Body.localScale = new Vector3(footprint, height, footprint);
-        grown.Body.position = ground + Vector3.up * (height * 0.5f);
+        Transform body = grown.Body.Transform;
+        Transform roof = grown.Roof.Transform;
+        body.localScale = new Vector3(footprint, height, footprint);
+        body.position = ground + Vector3.up * (height * 0.5f);
 
         if (grown.Zone == ZoneType.Industrial)
         {
@@ -178,16 +201,16 @@ public sealed class GrowthVisuals : MonoBehaviour
             float width = 0.14f * scale;
             float chimneyHeight = height + 0.45f * scale;
             float offset = footprint * 0.5f - width * 0.5f;
-            grown.Roof.localScale = new Vector3(width, chimneyHeight, width);
-            grown.Roof.position = ground + new Vector3(-offset, chimneyHeight * 0.5f, -offset);
+            roof.localScale = new Vector3(width, chimneyHeight, width);
+            roof.position = ground + new Vector3(-offset, chimneyHeight * 0.5f, -offset);
         }
         else
         {
             // Overhanging cap on houses; an inset rooftop box on taller buildings.
             float capFootprint = grown.Level == 1 ? footprint * 1.08f : footprint * 0.55f;
             float capHeight = (grown.Level == 1 ? 0.10f : 0.14f) * scale;
-            grown.Roof.localScale = new Vector3(capFootprint, capHeight, capFootprint);
-            grown.Roof.position = ground + Vector3.up * (height + capHeight * 0.5f);
+            roof.localScale = new Vector3(capFootprint, capHeight, capFootprint);
+            roof.position = ground + Vector3.up * (height + capHeight * 0.5f);
         }
     }
 
@@ -221,28 +244,60 @@ public sealed class GrowthVisuals : MonoBehaviour
         return 1f + c3 * u * u * u + c1 * u * u;
     }
 
+    private Block Acquire(Stack<Block> pool, bool isBody)
+    {
+        if (pool.Count > 0)
+        {
+            Block block = pool.Pop();
+            block.Renderer.enabled = true;
+            if (block.Collider != null) block.Collider.enabled = true;
+            return block;
+        }
+        return CreateBlock(isBody);
+    }
+
+    // Hiding the renderer (not SetActive) avoids a hierarchy change; the collider goes too so hidden
+    // bodies can't be selected.
+    private static void Release(Block block, Stack<Block> pool)
+    {
+        block.Renderer.enabled = false;
+        if (block.Collider != null) block.Collider.enabled = false;
+        pool.Push(block);
+    }
+
     // Only the body keeps its collider: selection raycasts should land on the main block.
-    private Transform CreateBlock(string name, bool withCollider)
+    private Block CreateBlock(bool isBody)
     {
         GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        go.name = name;
+        go.name = isBody ? "GrownBody" : "GrownRoof";
         go.layer = k_BuildingsLayer;
         go.transform.SetParent(transform, false);
-        if (!withCollider) Destroy(go.GetComponent<Collider>());
-        if (m_Material != null) go.GetComponent<MeshRenderer>().sharedMaterial = m_Material;
-        return go.transform;
+        Collider collider = go.GetComponent<Collider>();
+        if (!isBody)
+        {
+            Destroy(collider);
+            collider = null;
+        }
+        MeshRenderer renderer = go.GetComponent<MeshRenderer>();
+        return new Block { Transform = go.transform, Renderer = renderer, Collider = collider };
     }
 
-    private void SetColor(Transform block, Color color)
+    private void SetColor(Block block, Color color)
     {
         color.a = 1f;
-        m_Block.SetColor(s_BaseColorId, color);
-        block.GetComponent<MeshRenderer>().SetPropertyBlock(m_Block);
+        Material material = MaterialFor(color);
+        if (block.Renderer.sharedMaterial != material) block.Renderer.sharedMaterial = material;
     }
 
-    private static void DestroyGrown(Grown grown)
+    // Zone colours, roof shades and the info views' tints are a small fixed set, so this stays tiny.
+    private Material MaterialFor(Color color)
     {
-        if (grown.Roof != null) Destroy(grown.Roof.gameObject);
-        Destroy(grown.Body.gameObject);
+        if (m_Materials.TryGetValue(color, out Material material)) return material;
+
+        material = m_Material != null ? new Material(m_Material) : new Material(Shader.Find("Universal Render Pipeline/Simple Lit"));
+        material.name = $"Grown {ColorUtility.ToHtmlStringRGB(color)}";
+        material.SetColor(s_BaseColorId, color);
+        m_Materials.Add(color, material);
+        return material;
     }
 }

@@ -663,10 +663,16 @@ load as 24² cities; all tests pass.
   The scene now starts at 64². Play-mode check: 64² seeded city = 212 pop at day 60, the same as
   24² (growth is limited by the daily budget, not the area); 96² sim tick 0.35 ms; the 24² v1 save
   loads with the original camera framing. 82 EditMode tests green.
-- **10b Performance.** Profile a fully built 96² city. Likely fixes: `GridTilemapView` re-diffs
-  only dirty regions instead of every cell; `GrowthVisuals` uses pooled objects / GPU instancing
-  (one shared material + `MaterialPropertyBlock` already); `InfoOverlay` what-if preview is
-  recomputed only when the ghost cell changes. Budget: sim tick < 2 ms, no per-frame GC.
+- **10b Performance — done (2026-10-03).** Measured in a development player (`PerfBenchmark`,
+  `-perfBenchmark`) on a fully grown 96² city (5,776 level-3 cells, 11.5k blocks). The sim was never
+  the problem (tick 0.5 ms), and neither were the tilemap views (~1 ms main thread for a per-frame
+  edit). The cost was **drawing**: `GrowthVisuals` tinted every block with a `MaterialPropertyBlock`,
+  which opts each renderer out of the SRP Batcher and the GPU Resident Drawer — 23 ms frames at the
+  default zoom (render thread 22 ms) and 110 ms with the whole map on screen. Switching to shared
+  per-colour materials brought that to **1.1 ms / 1.5 ms** (≈2 ms with an edit every frame). Blocks
+  are also pooled now (hidden, not destroyed). The camera backs off further on big maps, which
+  were clipping their near corner. Editor-only numbers were misleading (GameObject churn looks like
+  ~5 ms there), so performance is checked in a player build.
 - **10c Save versioning — moved to M11.** v1 saves already store `Width`/`Height`, so M10 needs
   no format change. The migration chain is built in M11 with its first real step (v1 → v2).
   `TryFromJson` now rejects sizes above `SaveSystem.MaxMapSize` (256).
@@ -775,4 +781,4 @@ cosmetic carts/cars on busy roads (visual only).
 **M19 — Release.** Main menu, settings (audio, keybinds, UI scale), multiple save slots with
 thumbnails, a tutorial for the first age, and a Windows player build.
 
-**Status (2026-10-02):** M10 in progress (10a done).
+**Status (2026-10-03):** M10 in progress (10a, 10b done; 10d next).
