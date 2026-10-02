@@ -6,7 +6,7 @@ Project conventions, architecture and per-system notes live in `AGENTS.md` (shar
 
 @AGENTS.md
 
-Design intent, balance formulas and the milestone roadmap are in `Docs/GamePlan.md` (sections marked stale in `AGENTS.md` take precedence from `AGENTS.md`).
+Design intent, balance formulas and the milestone roadmap are in `Docs/GamePlan.md` (sections marked stale in `AGENTS.md` take precedence from `AGENTS.md`). M0–M9 are done; §12 holds the M10–M19 ages roadmap — when starting a milestone, expand its outline there into a §11-style plan (goal, done-when, lettered steps, risks) before implementing.
 
 ## Claude Code specifics
 

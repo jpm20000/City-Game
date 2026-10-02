@@ -3,6 +3,7 @@
 ## Project
 - Unity **6000.6.3f1**, URP 17.6.0, Linear, PC target, new Input System only (`activeInputHandler: 1`).
 - Isometric 2.5D city-builder with an abstract (statistical) simulation. Design + roadmap: `Docs/GamePlan.md`.
+- **Roadmap M10–M19** (`Docs/GamePlan.md` §12): the city spans history through 7 ages (~750 → today) with research, a tech tree and a selectable starting age. M10 = per-city map size + perf + save v2 with migration (next); M11 = ages & technology foundation. Rules for that work: age/tech data are ScriptableObjects in the Simulation asmdef referencing buildings by `Id` string; a sim with no age data must behave exactly like today (Electric-age rules), so existing tests stay valid; from v2 on, save format bumps add a migration step instead of rejecting old files. Map size is still fixed at 24×24 until M10 (`GridSystem.m_GridSize`, the painted `Ground` tilemap, the `Grid` offset and the camera's serialized bounds all assume it).
 - Game code lives under `Assets/_Game/` (never at `Assets/` root). Default scene: `Assets/_Game/Scenes/Main.unity`.
 
 ## Build / run / test

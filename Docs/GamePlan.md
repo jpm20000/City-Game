@@ -407,6 +407,16 @@ Each milestone is independently verifiable before moving on.
 | 7 | UI | HUD + toolbar + selection panel | Full loop playable from UI alone |
 | 8 | Polish | Placeholder art, feedback, balance, save/load | Vertical slice complete |
 | 9 | Services & utilities | Power plant + road-carried power grid, park coverage radius, info overlays | Upgrades need power; park placement matters; see §11 |
+| 10 | Scale | Map size per city (default 64²), New City dialog, perf pass, save v2 with migration | 64² seeded city runs at speed 4× without frame drops; v1 saves load; see §12 |
+| 11 | Ages & technology | Ages 750 → today, research points, tech tree, age advancement, starting age, per-age growth rules, "Keep historical building" | Start in any age; research → advance; old buildings redevelop unless kept; see §12 |
+| 12 | Land value & local pollution | Per-cell pollution and land value; value gates upgrades; heritage bonus | Industry next to homes hurts; parks/heritage raise value |
+| 13 | Water | Wells → water towers → pipes under roads, per-age requirement | Industrial+ upgrades need water |
+| 14 | Civic services | Order, fire, health, education per age; education produces research | Coverage drives crime/fire risk/health; schools speed research |
+| 15 | Budget depth | Service funding sliders, loans, ordinances | Underfunding shrinks coverage; loans repayable |
+| 16 | Traffic | Abstract road load, per-age road tiers, Traffic view | Congestion lowers access/happiness; better roads fix it |
+| 17 | Disasters & events | Fire spread, plague, breakdowns, random events | Coverage prevents/limits disasters |
+| 18 | Art & atmosphere | Hand-made per-age assets through the M11 visual sets, day/night, audio | Every age has its own skyline |
+| 19 | Release | Main menu, settings, save slots, player build | A standalone build plays start to finish |
 
 **Status (2026-10-02):** M0–M9 implemented — the vertical slice is complete, and M9 (§11) added power, park coverage and info views. M7 shipped as UGUI + TextMeshPro
 prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
@@ -451,11 +461,11 @@ colored blocks for buildings — no external art dependency for the prototype.
 
 Deliberately out of scope for the prototype, but designed for:
 
-- Water grid (M9 ships power + coverage; water would reuse the same machinery).
-- Individual citizen agents (NavMesh) layered on top of the statistical model.
-- Freeform road drawing and zoning along curves.
-- Save/load is designed in but implemented late.
-- Progression, disasters, day/night, achievements.
+- Individual citizen agents (NavMesh) layered on top of the statistical model
+  (cosmetic cars/pedestrians are a possible M18 extra).
+- Freeform road drawing and zoning along curves (breaks the cell grid).
+- Achievements, scenarios, map editor.
+- Water, progression, disasters and day/night are now planned in §12 (M13, M11, M17, M18).
 
 ---
 
@@ -561,3 +571,203 @@ same state; all EditMode tests pass.
   footprint's perimeter.
 - **Scope guard.** Water, power lines (power off roads), local pollution and new service
   types (police, clinic) are deferred to M10+.
+
+---
+
+## 12. Milestones 10–19 — Ages roadmap (plan, 2026-10-02)
+
+**Direction:** the city spans history, from an early-medieval settlement (~750) to today. The
+player researches technologies, grows the population and advances through **ages**. Each age
+changes what can be built, how dense the city gets and what upgrades need. A new city can start
+in **any age**. Grown buildings redevelop into the current age's style, unless the player marks
+them **Keep historical building**. Art is out of scope until M18 (the player authors the assets).
+Until then, M11 sets up the slots the assets will plug into, and the placeholder blocks stay.
+
+**Why ages come early (M11):** ages touch every building definition, the growth rules (the M9
+power gate only makes sense from the Electric age), the visuals and the save format. Building the
+foundation right after the map change means every later milestone just adds content per age,
+instead of retrofitting eight milestones of buildings and balance numbers.
+
+**Ground rules for M10–M19**
+- The sim stays pure (`CityBuilder.Simulation`). Age and tech data are ScriptableObjects
+  **inside the Simulation asmdef** (like `BalanceConfig`), and they refer to buildings by `Id`
+  string, because `BuildingDefinition` lives in `Assembly-CSharp`.
+- **"No age data" = today's rules.** A sim built without ages behaves like the Electric age with
+  current balance, so the 80 existing tests keep passing unchanged. Age-specific tests are new.
+- Save format: v2 in M10 adds a **migration chain** (`v1 → v2 → …`) instead of rejecting old
+  files. Every later bump adds one migration step and a test.
+- Each milestone ends with: EditMode tests green, a UI-only virtual-input play-through, and docs
+  (`AGENTS.md` Systems + this file's status lines).
+
+### The ages (tunable; display names and years are placeholders)
+
+| # | Age | Starts | Max level | Capacity scale | Upgrades need | Typical unlocks |
+|---|---|---|---|---|---|---|
+| 1 | Early Medieval | 750 | 2 | ×0.5 | — | Huts, market, workshops, village green |
+| 2 | High Medieval | 1100 | 2 | ×0.75 | — (well coverage from M13) | Stone houses, guild halls, monastery |
+| 3 | Renaissance | 1450 | 3 | ×0.75 | — (well coverage from M13) | Townhouses, printing press, academy |
+| 4 | Industrial | 1760 | 3 | ×1 | Water (from M13) | Factories, rail-era roads, water tower |
+| 5 | Electric | 1880 | 3 | ×1 | Power + water | Power plant (the M9 rules), trams |
+| 6 | Modern | 1945 | 3 | ×1.25 | Power + water | Apartments, offices, highways |
+| 7 | Contemporary | 1990 | 3 | ×1.5 | Power + water | Towers, clean energy, tech parks |
+
+Capacity per cell = `CapacityForLevel(level) × CapacityScale(builtAge)`. Zones stay R/C/I in code;
+ages can give them display names (e.g. Industrial = "Crafts" in the medieval ages).
+
+**Calendar:** the date starts at the starting age's year. Advancing to an age moves the year to
+`max(current year, age start year)`, so history is compressed but the date always reads right
+for the age.
+
+### Research & advancement
+- **Research points (RP)** accrue per tick from a base rate per employed commercial worker plus
+  research buildings (`BuildingDefinition.ResearchPerDay`; monastery/scriptorium in M11; schools
+  and universities in M14).
+- **Technologies** (`TechDefinition`: Id, Age, RP cost, prerequisites, effects). There is one active
+  research at a time, plus a queue; leftover RP carries over. Effects are a small typed list, read
+  by the pure sim: `UnlockBuilding(id)`, `UnlockRoadTier`, and multiplier modifiers (demand,
+  capacity, research, upkeep, happiness).
+- **Advancing an age** is itself a special tech. It needs **(a)** its RP cost, **(b)** at least N
+  techs of the current age, and **(c)** population ≥ the age's threshold. The tech panel shows all
+  three as a checklist.
+- **Starting age:** the New City dialog picks an age. Every tech of the earlier ages counts as
+  researched, and the starting money scales with the age.
+
+### Keep historical building
+- After an advance, grown cells built in an older age are **outdated**. Growth can **redevelop**
+  them (same level, current age's style and capacity). Redevelopment uses the growth budget after
+  new cells and upgrades.
+- **Keep historical** (a selection-panel toggle, per grown cell) freezes the cell's age, so its
+  style and capacity stay as built and it is never redeveloped. It still upgrades within its own
+  age's max level.
+- The cost of keeping is lower density than a redeveloped block. The payoff is a **heritage**
+  land-value and happiness bonus, which arrives in M12. M11 only stores and shows the flag.
+- Placed buildings (services, utilities) never change by themselves. Obsolete ones show an
+  "outdated, replace with X" hint (from M14).
+
+---
+
+### M10 — Scale
+
+**Goal:** a map big enough for a city that lives through seven ages, with the size chosen per
+city.
+**Done when:** New City offers 32/64/96; a 96² city seeded and run at 4× keeps 60 fps; v1 saves
+load as 24² cities; all tests pass.
+
+- **10a Variable map size.** `GameManager.ResetWorld(size)` rebuilds `GridData` and the systems
+  that hold it (`RoadNetwork`, `SimulationSystem`, `PowerSystem`/`CoverageSystem`) and raises
+  `GameEvents.WorldReset`. Views (`GridTilemapView`s, `GrowthVisuals`, `PlacementController`,
+  `InfoOverlay`, the camera) rebind to the new grid. The ground tilemap is painted from the size,
+  and camera bounds are derived from it. `DebugSeedCity` scales with the size, but the seeded-test
+  layout stays 24².
+- **10b Performance.** Profile a full 96² city. Likely fixes: `GridTilemapView` re-diffs only
+  dirty regions instead of every cell; `GrowthVisuals` uses pooled objects / GPU instancing (one
+  shared material + `MaterialPropertyBlock` already); `InfoOverlay` what-if preview is
+  recomputed only when the ghost cell changes. Budget: sim tick < 2 ms, no per-frame GC.
+- **10c Save v2 + migration.** `SaveData` v2 adds `Width`/`Height`. `SaveMigrations` holds one
+  step per version (v1 → v2: size 24²). Older files are migrated, and only newer ones are
+  rejected. Tests: v1 fixture JSON loads and runs identically.
+- **10d New City dialog.** Modal UGUI panel (map size now; starting age is added in M11)
+  replaces the double-click "New". Play-through + docs.
+
+**Risks:** rebinding every subscriber on reset is the main bug source. Add an EditMode test that
+resets the world twice and checks no handlers leak (`GridData.OnCellChanged` count).
+
+### M11 — Ages & technology foundation
+
+**Goal:** the full age/tech framework with enough content to play from age 1 to age 7 on
+placeholder art.
+**Done when:** a city started in Early Medieval researches and advances through every age;
+outdated blocks redevelop unless kept; a city started in Electric plays exactly like today; save
+v3 round-trips age, techs, research progress and per-cell age/historic flags.
+
+- **11a Sim core.** In the Simulation asmdef:
+  - `AgeDefinition` (index, name, start year, max level, capacity scale, upgrade requirements,
+    population threshold, techs needed to advance, zone display names) and `AgeDatabase`.
+  - `TechDefinition` + `TechDatabase` (validated: no cycles, prerequisites in the same or earlier
+    age).
+  - `TechSystem`: RP income, active research and queue, researched set, `CanAdvance` checklist,
+    and effect aggregation into a `TechModifiers` struct.
+  - `GridData` gains per-cell `BuiltAge` (byte) and `Historic` (flag), with export/import.
+  - `GrowthSystem` reads the current age: level cap, power gate only where the age requires it,
+    and redevelopment of outdated, non-historic cells (`GrowthBlocker.KeptHistoric` /
+    `AgeMaxLevel`).
+  - `SimulationSystem.Tick` adds the research step after Economy.
+
+  Tests: tech graph validation, RP accrual and carry-over, advancement checklist, level cap per
+  age, redevelopment order is deterministic, historic cells are never redeveloped, no-age config
+  matches the current seeded-city numbers.
+- **11b Content.** 7 `AgeDefinition` assets plus about 4–6 techs per age, using existing
+  buildings where possible:
+  - Power plant → Electric.
+  - Park → available from age 1 (as "village green" via display name).
+  - A new research building per early age: monastery (age 2), academy (age 3).
+  - `BuildingDefinition` gains `RequiredTech` (Id string) and `ResearchPerDay`;
+    `UnlockPopulation` is removed (superseded).
+  - Toolbar buttons of locked buildings are hidden or locked with a "Requires *tech*" tooltip.
+- **11c Visual slots.** `AgeVisualSet` asset per age: per zone, per level, an optional prefab;
+  when empty, it falls back to today's procedural blocks, tinted/shaped per age so ages are
+  distinguishable. `GrowthVisuals` picks the set by the cell's `BuiltAge`. This is the contract
+  your hand-made assets plug into in M18 (pivot at the footprint's ground centre, 1 unit = 1
+  cell, layer 9, needs a collider for selection).
+- **11d UI.**
+  - Tech panel: tree by age, active research and progress, queue, and the advancement checklist.
+  - HUD: age name + RP/day.
+  - New City dialog: starting age.
+  - Selection panel: "Built in *age*", outdated hint, **Keep historical building** toggle.
+  - Toasts: research complete, new age reached, first redevelopment.
+  - Info view **Age**: tints cells by built age; historic cells are outlined.
+- **11e Save v3, balance, play-through, docs.** v3 adds age, researched techs, active research
+  + progress, queue, and per-cell `BuiltAge`/`Historic`. Migration v2 → v3 = Electric age with
+  all earlier techs and every cell built in Electric. Balance target: about 45–90 in-game days per
+  age at 1× for an engaged player (to be confirmed in play). Play-through: start medieval, reach
+  age 3, keep a block historic, save/load.
+
+**Risks / open questions**
+- **Scope of content.** 7 ages × several techs is a lot of data. M11 ships thin tech trees, and
+  later milestones fill them (each one adds its age-specific buildings).
+- **Economy across ages.** One currency ($) and one balance table for now. Per-age income and
+  upkeep multipliers go on `AgeDefinition` if the early ages feel too rich or poor.
+- **Redevelopment churn.** Redeveloping a cell briefly drops its capacity. M11 keeps capacity
+  during the rebuild (instant swap); construction time is a candidate for later.
+
+### M12–M19 outline (detailed plans written when each milestone starts)
+
+**M12 — Land value & local pollution.** Pollution becomes per-cell (industrial cells emit in a
+radius scaled by age: workshops low, factories high, clean energy low), replacing the city-wide
+term. Land value per cell comes from parks, services, water/coast later, pollution and the
+**heritage bonus** (historic cells raise value around them). Level 3 needs a land-value
+threshold. Adds Pollution and Land value info views. Reuses the `CoverageSystem` pattern.
+
+**M13 — Water.** Wells and fountains (coverage radius, ages 1–3), water towers and pumps feeding
+pipes under roads (ages 4+, a copy of the `PowerSystem` network/allocation model). Fills in the
+"Upgrades need water" column above. Water info view, HUD readout, toasts.
+
+**M14 — Civic services.** Four service lines, each with per-age buildings:
+- order: watchman → police
+- fire: bucket brigade → fire station
+- health: apothecary → hospital
+- education: monastery school → university, which produces RP
+
+Per-cell crime and fire risk, health as a happiness term. Obsolete-service "replace with" hints.
+Gives the tech trees most of their content.
+
+**M15 — Budget depth.** Per-service funding sliders (funding scales radius/effect), loans with
+interest and repayment, a few ordinances per age (unlocked by tech). Expands the TaxPanel into a
+budget panel.
+
+**M16 — Traffic.** Abstract load per road cell from the homes↔jobs flow (statistical, no
+agents). Congestion reduces road access quality and happiness. Road tiers by age (dirt →
+cobble → paved → avenue → highway), unlocked by tech, with capacity and cost. Traffic view.
+
+**M17 — Disasters & events.** Fire spreads between cells without fire coverage (a big threat
+in the timber ages), plague in the medieval ages without health coverage, plant breakdowns.
+Random events with choices are delivered as toasts or popups. Can be toggled in New City.
+
+**M18 — Art & atmosphere.** Your hand-made per-age assets go into the `AgeVisualSet` slots,
+along with per-age road tiles, day/night lighting, and per-age music and ambience. Optional extra:
+cosmetic carts/cars on busy roads (visual only).
+
+**M19 — Release.** Main menu, settings (audio, keybinds, UI scale), multiple save slots with
+thumbnails, a tutorial for the first age, and a Windows player build.
+
+**Status (2026-10-02):** M10–M19 planned; M10 is next.
