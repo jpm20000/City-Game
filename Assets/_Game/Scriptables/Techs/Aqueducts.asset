@@ -10,16 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4a81a50374d8fd1488dba7cf9e9b874e, type: 3}
-  m_Name: PublicSanitation
+  m_Name: Aqueducts
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
-  m_Id: public_sanitation
-  m_DisplayName: Public Sanitation
-  m_Description: 'Sewers and clean water. Happiness +3%. Unlocks the Pumping Station.'
-  m_Age: 2
-  m_Cost: 450
+  m_Id: aqueducts
+  m_DisplayName: Aqueducts
+  m_Description: 'Channels carry spring water into town. Unlocks the Fountain, which waters and cheers the blocks around it.'
+  m_Age: 1
+  m_Cost: 160
   m_Prerequisites: 
-  - {fileID: 11400000, guid: c3e132b0f74858f5b0084acb49b975e7, type: 2}
-  m_Effects:
-  - Type: 3
-    Target: 
-    Value: 0.03
+  - {fileID: 11400000, guid: 89807dc22f0055238f9706007d6da8f5, type: 2}
+  m_Effects: []

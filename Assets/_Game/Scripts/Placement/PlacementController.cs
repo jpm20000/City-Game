@@ -76,10 +76,10 @@ public sealed class PlacementController : MonoBehaviour
         UpdateSelection();
     }
 
-    // Locked buildings (tech not researched) can't be selected.
+    // Locked buildings (tech not researched) and obsolete ones (M13) can't be selected.
     public void SelectBuilding(BuildingDefinition definition)
     {
-        if (!m_GameManager.IsUnlocked(definition)) return;
+        if (!m_GameManager.CanBuild(definition)) return;
         m_Selected = definition;
         m_Rotation = 0;
         SetMode(Mode.Building);
@@ -266,7 +266,7 @@ public sealed class PlacementController : MonoBehaviour
     private void TryPlaceBuilding(Vector2Int cell)
     {
         if (m_Selected == null || m_Selected.Prefab == null) return;
-        if (!m_GameManager.IsUnlocked(m_Selected)) return;
+        if (!m_GameManager.CanBuild(m_Selected)) return;
         if (!m_GridData.CanPlace(cell, m_Selected.Size, m_Rotation)) return;
         if (!m_GameManager.Economy.CanAfford(m_Selected.Cost))
         {
@@ -521,6 +521,7 @@ public sealed class PlacementController : MonoBehaviour
                 if (m_Selected == null) break;
                 string problem = FootprintProblem(cell, m_Selected.Size, m_Rotation);
                 if (!m_GameManager.IsUnlocked(m_Selected)) SetHint($"Locked — research {m_GameManager.RequiredTechName(m_Selected)}", false);
+                else if (m_GameManager.IsObsolete(m_Selected)) SetHint($"Obsolete in the {m_GameManager.ObsoleteAgeName(m_Selected)}", false);
                 else if (problem != null) SetHint(problem, false);
                 else if (!economy.CanAfford(m_Selected.Cost)) SetHint($"Need ${m_Selected.Cost:N0}", false);
                 else SetHint($"{m_Selected.DisplayName}  ${m_Selected.Cost:N0}   [R] rotate", true);

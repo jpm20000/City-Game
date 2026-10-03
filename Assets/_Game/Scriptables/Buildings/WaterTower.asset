@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79acbc5bd48b8f947ae8ae28bc4213ac, type: 3}
+  m_Name: WaterTower
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingDefinition
+  m_Id: water_tower
+  m_DisplayName: Water Tower
+  m_Category: 3
+  m_Icon: {fileID: 0}
+  m_Prefab: {fileID: 4101903692968096592, guid: 1ac6c89284721924fa6d2695fb56231f, type: 3}
+  m_Size: {x: 1, y: 1}
+  m_Cost: 1500
+  m_UpkeepPerDay: 15
+  m_HousingCapacity: 0
+  m_JobsProvided: 0
+  m_HappinessEffect: 0
+  m_ZoneRestriction: 0
+  m_Height: 0.05
+  m_CoverageRadius: 0
+  m_PowerSupply: 0
+  m_RequiredTech: waterworks
+  m_ResearchPerDay: 0
+  m_Pollution: 0
+  m_PollutionRadius: 0
+  m_WaterSupply: 500
+  m_WaterRadius: 0
+  m_ObsoleteAge: 

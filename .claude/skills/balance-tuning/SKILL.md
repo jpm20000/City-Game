@@ -21,7 +21,7 @@ description: Tune City Game's simulation balance — BalanceConfig values, age/t
 - Print reports with `TestContext.WriteLine` and read them from `ITestResultAdaptor.Output` (see `unity-test-loop`).
 
 ## Targets (GamePlan §12) and tests
-- About 45–90 in-game days per age with engaged play; no age where the city stalls; never in debt; happiness ≥ 0.55. M11g result from Medieval: 86 / 62 / 63 days, Modern on day 211.
+- About 45–90 in-game days per age with engaged play; no age where the city stalls; never in debt; happiness ≥ 0.55. M11g result from Medieval: 86 / 62 / 63 days, Modern on day 211; M13b: 86 / 62 / 69, Modern on day 217.
 - `AgeBalanceTests` assert these with `CreateInstance` defaults (`FromMedieval_EachAgeTakes45To90Days_AndReachesModern`, `LaterStart_KeepsGrowing(1..3)`, the Industrial baseline). Update their numbers and comments deliberately when a plan changes balance, and record the new numbers in `AGENTS.md` and GamePlan §7/§12.
 
 ## Debugging a stalled harness
@@ -31,5 +31,6 @@ Look at the diagnostics line first: demand per zone, housing/jobs, cells per lev
 - `SeededCity` and `EngagedCity` build their sources by hand: when a building asset or age gains a sim field (power supply, pollution, …) copy it into `SeededCity.Build` / `EngagedCity.LoadBuildings` (it reads the building assets through `SerializedObject`).
 - When a rule holds players back (e.g. the land-value gate), teach `EngagedCity` the response a player would make (it places a park for held homes) before judging the balance — otherwise the harness measures a player who ignores the game.
 - A run's `Diagnostics()` line lists the `GrowthBlocker` per zone and level; a new blocker that dominates it (e.g. `LowLandValue:10`) shows what the rule costs.
-- Current M12 numbers: seeded 24² city, day 60, 10% taxes, with plant: 212 pop, 0.62 happiness (0.70 with the two parks); 20% C/I taxes without parks stalls at ~22 pop. Industrial start (real content): 220 pop / 0.660. From Medieval: 86 / 62 / 63 days per age.
+- Current M12 numbers: seeded 24² city, day 60, 10% taxes, with plant: 212 pop, 0.62 happiness (0.70 with the two parks); 20% C/I taxes without parks stalls at ~22 pop. Industrial start (real content): 220 pop / 0.660. From Medieval: 86 / 62 / 63 days per age (M13b: 86 / 62 / 69).
+- **Harness players must save for blocking utilities** (M13b): an `EngagedCity` that keeps buying parks and roads while a plant or tower is what's blocking growth never affords it — the Industrial age took 100+ days until the player stopped other spending while power or water supply was below demand. When a new must-build arrives, check the probe timeline for a city hovering just below a purchase threshold.
 

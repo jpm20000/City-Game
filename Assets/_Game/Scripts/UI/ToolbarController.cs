@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 // Bottom build toolbar. Fixed tools are wired in the prefab; Service/Utility buildings are generated
 // from the BuildingDatabase so new definitions appear without UI work.
@@ -28,6 +29,10 @@ public sealed class ToolbarController : MonoBehaviour
     [Header("Buildings")]
     [SerializeField] private ToolButton m_ButtonTemplate;
     [SerializeField] private Transform m_BuildingsContainer;
+    [Tooltip("Width of a building button while at most FullWidthBuildings are shown (the template's width).")]
+    [SerializeField] private float m_BuildingButtonWidth = 104f;
+    [SerializeField] private float m_MinBuildingButtonWidth = 80f;
+    [SerializeField] private int m_FullWidthBuildings = 5;
 
     [Header("Tooltip")]
     [SerializeField] private GameObject m_TooltipRoot;
@@ -67,6 +72,7 @@ public sealed class ToolbarController : MonoBehaviour
         if (m_InfoOverlay != null) m_InfoOverlay.ViewChanged += RefreshActive;
         GameEvents.MoneyChanged += RefreshAffordable;
         GameEvents.TechCompleted += OnTechCompleted;
+        GameEvents.AgeChanged += OnAgeChanged;
         GameEvents.CityLoaded += RefreshUnlocked;
         HideTooltip(null);
         RefreshUnlocked();
@@ -80,12 +86,16 @@ public sealed class ToolbarController : MonoBehaviour
         if (m_InfoOverlay != null) m_InfoOverlay.ViewChanged -= RefreshActive;
         GameEvents.MoneyChanged -= RefreshAffordable;
         GameEvents.TechCompleted -= OnTechCompleted;
+        GameEvents.AgeChanged -= OnAgeChanged;
         GameEvents.CityLoaded -= RefreshUnlocked;
     }
 
     private void OnTechCompleted(string techId) => RefreshUnlocked();
 
-    // Locked buildings get no button; a tech unlocking one (or a load) shows it. Views that aren't
+    private void OnAgeChanged(int age) => RefreshUnlocked();
+
+    // Locked buildings get no button; a tech unlocking one (or a load) shows it. Obsolete ones (M13:
+    // wells once water is piped) lose theirs when the city enters that age. Views that aren't
     // available yet (Power before Electricity, Age without age data) are hidden the same way.
     private void RefreshUnlocked()
     {
@@ -95,14 +105,30 @@ public sealed class ToolbarController : MonoBehaviour
             if (m_AgeViewButton != null) m_AgeViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Age));
         }
         bool any = false;
+        int visible = 0;
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {
-            bool unlocked = m_GameManager.IsUnlocked(pair.Key);
+            bool unlocked = m_GameManager.CanBuild(pair.Key);
             pair.Value.gameObject.SetActive(unlocked);
             any |= unlocked;
+            if (unlocked) visible++;
         }
+        FitBuildingButtons(visible);
         // The whole BUILDINGS section (header included) hides while nothing can be built.
         if (m_BuildingsContainer != null && m_BuildingsContainer.parent != null) m_BuildingsContainer.parent.gameObject.SetActive(any);
+    }
+
+    // Building buttons narrow as more unlock (M13: seven in the Industrial age) so the toolbar still
+    // fits 1920 px; their labels shrink to fit.
+    private void FitBuildingButtons(int visible)
+    {
+        float width = visible <= m_FullWidthBuildings ? m_BuildingButtonWidth
+            : Mathf.Max(m_MinBuildingButtonWidth, m_BuildingButtonWidth - (visible - m_FullWidthBuildings) * 12f);
+        foreach (ToolButton button in m_BuildingButtons.Values)
+        {
+            var layout = button.GetComponent<LayoutElement>();
+            if (layout != null) layout.preferredWidth = width;
+        }
     }
 
     private void CreateBuildingButtons()
@@ -116,6 +142,12 @@ public sealed class ToolbarController : MonoBehaviour
 
             ToolButton button = Instantiate(m_ButtonTemplate, m_BuildingsContainer);
             button.name = $"Build_{def.Id}";
+            if (button.Label != null)
+            {
+                button.Label.enableAutoSizing = true;
+                button.Label.fontSizeMax = button.Label.fontSize;
+                button.Label.fontSizeMin = 11f;
+            }
             BuildingDefinition captured = def;
             Bind(button, def.DisplayName, $"${def.Cost:N0}", Color.clear, BuildingTooltip(def),
                 () => ToggleBuilding(captured));
@@ -128,6 +160,8 @@ public sealed class ToolbarController : MonoBehaviour
         string text = $"{def.DisplayName}  ({def.Size.x}x{def.Size.y})\n${def.Cost:N0} to build, ${def.UpkeepPerDay:N0}/day upkeep.";
         if (def.PowerSupply > 0) text += $"\nPowers {def.PowerSupply} units along the roads it touches (L1/L2/L3 buildings use 4/8/16). Upgrades past level 1 need power.";
         if (def.CoverageRadius > 0) text += $"\nRaises happiness of homes within {def.CoverageRadius} cells.";
+        if (def.WaterRadius > 0) text += $"\nWaters blocks within {def.WaterRadius} cells (Medieval and Renaissance). Upgrades past level 1 need water.";
+        if (def.WaterSupply > 0) text += $"\nPumps {def.WaterSupply} units of water along the roads it touches (L1/L2/L3 buildings use 4/8/16). Upgrades past level 1 need water.";
         if (def.ResearchPerDay > 0f) text += $"\nProduces {def.ResearchPerDay:0.#} research points a day.";
         text += "\n[R] rotates.";
         return text;

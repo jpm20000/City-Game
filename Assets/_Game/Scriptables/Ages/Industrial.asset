@@ -18,7 +18,7 @@ MonoBehaviour:
   m_MaxLevel: 3
   m_CapacityScale: 1.0
   m_UpgradesNeedPower: 1
-  m_Water: 0
+  m_Water: 2
   m_PollutionScale: 1.0
   m_PollutionRadius: 3
   m_TechsToAdvance: 4
@@ -27,6 +27,7 @@ MonoBehaviour:
   m_AdvanceCost: 1200
   m_StartingTechs: 
   - {fileID: 11400000, guid: 921727713547586792a514b9a4066d18, type: 2}
+  - {fileID: 11400000, guid: 44c4e4a4c29d5b7eb998aa20eea6867a, type: 2}
   m_StartingMoney: 50000
   m_ZoneNames:
   - 

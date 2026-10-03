@@ -106,6 +106,25 @@ public sealed class GameManager : MonoBehaviour
         return tech != null && Simulation.Tech.IsResearched(tech);
     }
 
+    // Whether the city's age is at or past the building's ObsoleteAge (M13): it can't be built any
+    // more, but placed ones stay. Never without age data.
+    public bool IsObsolete(BuildingDefinition def)
+    {
+        if (def == null || string.IsNullOrEmpty(def.ObsoleteAge) || Simulation?.Tech == null) return false;
+        int age = Simulation.Tech.Ages.IndexOf(def.ObsoleteAge);
+        return age >= 0 && Simulation.Tech.CurrentAge >= age;
+    }
+
+    // Unlocked and not obsolete: the toolbar shows it and the placement tool accepts it.
+    public bool CanBuild(BuildingDefinition def) => IsUnlocked(def) && !IsObsolete(def);
+
+    // Display name of the age a building became obsolete in, or null.
+    public string ObsoleteAgeName(BuildingDefinition def)
+    {
+        if (!IsObsolete(def)) return null;
+        return Simulation.Tech.Ages[Simulation.Tech.Ages.IndexOf(def.ObsoleteAge)].DisplayName;
+    }
+
     // Whether any power source can be built (or is already researched for): the Power HUD group,
     // Power view and power toasts stay hidden until then. Always true without age data.
     public bool PowerUnlocked
@@ -146,7 +165,7 @@ public sealed class GameManager : MonoBehaviour
 
     private static bool IsSource(BuildingDefinition def)
     {
-        return def.CoverageRadius > 0 || def.PowerSupply > 0 || def.Pollution > 0f;
+        return def.CoverageRadius > 0 || def.PowerSupply > 0 || def.Pollution > 0f || def.WaterSupply > 0 || def.WaterRadius > 0;
     }
 
     private void RebuildSources()
@@ -156,7 +175,7 @@ public sealed class GameManager : MonoBehaviour
         {
             BuildingDefinition def = b.Definition;
             m_Sources.Add(new ServiceSource(b.Origin, CellUtils.EffectiveSize(def.Size, b.Rotation),
-                def.CoverageRadius, def.PowerSupply, def.Pollution, def.PollutionRadius));
+                def.CoverageRadius, def.PowerSupply, def.Pollution, def.PollutionRadius, def.WaterSupply, def.WaterRadius));
         }
         Simulation.Sources = m_Sources;
         m_PowerDirty = true;

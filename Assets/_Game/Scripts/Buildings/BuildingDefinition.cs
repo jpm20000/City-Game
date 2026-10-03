@@ -28,6 +28,12 @@ public sealed class BuildingDefinition : ScriptableObject
     [SerializeField] private float m_Pollution;
     [Tooltip("Cells the pollution spreads, falling off linearly (M12).")]
     [SerializeField] private int m_PollutionRadius;
+    [Tooltip("Water units fed into the piped network through the roads this building touches (M13; Industrial age on); 0 = none.")]
+    [SerializeField] private int m_WaterSupply;
+    [Tooltip("Cells a well or fountain waters (Chebyshev distance from the footprint; M13, Medieval and Renaissance); 0 = none.")]
+    [SerializeField] private int m_WaterRadius;
+    [Tooltip("Age Id from which this building can no longer be built (M13, e.g. wells once water is piped); empty = never. Placed ones stay.")]
+    [SerializeField] private string m_ObsoleteAge = "";
 
     public string Id => m_Id;
     public string DisplayName => m_DisplayName;
@@ -48,4 +54,7 @@ public sealed class BuildingDefinition : ScriptableObject
     public float ResearchPerDay => m_ResearchPerDay;
     public float Pollution => m_Pollution;
     public int PollutionRadius => m_PollutionRadius;
+    public int WaterSupply => m_WaterSupply;
+    public int WaterRadius => m_WaterRadius;
+    public string ObsoleteAge => m_ObsoleteAge;
 }

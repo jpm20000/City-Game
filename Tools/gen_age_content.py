@@ -62,15 +62,17 @@ TECHS = [
     ("PrintingPress", "printing_press", "Printing Press", 1, 200, ["monasticism"], [research(1.25)], "Books for everyone. Research +25%."),
     ("Academies", "academies", "Academies", 1, 250, ["printing_press"], [], "Halls of scholarship. Unlocks the Academy, which produces research."),
     ("Banking", "banking", "Banking", 1, 220, ["guilds"], [demand(C, 1.15)], "Credit and bills of exchange. Commercial demand +15%."),
+    ("Aqueducts", "aqueducts", "Aqueducts", 1, 160, ["masonry"], [], "Channels carry spring water into town. Unlocks the Fountain, which waters and cheers the blocks around it."),
     ("Architecture", "architecture", "Architecture", 1, 200, ["masonry"], [land_value(0.05)], "Proportion, domes and planned facades. Land value +5% everywhere."),
     ("CivicPlanning", "civic_planning", "Civic Planning", 1, 260, ["architecture"], [happy(0.03)], "Squares, straight streets and order. Happiness +3%."),
     ("Watermills", "watermills", "Watermills", 1, 180, ["smithing"], [upkeep(0.9)], "Water does the heavy work. Upkeep -10%."),
     # Industrial
     ("Electricity", "electricity", "Electricity", 2, 150, [], [], "Unlocks the Power Plant. From this age on, buildings need power to grow past level 1."),
+    ("Waterworks", "waterworks", "Waterworks", 2, 100, [], [], "Unlocks the Water Tower. From this age on, water is piped along the roads and buildings need it to grow past level 1."),
     ("SteamPower", "steam_power", "Steam Power", 2, 400, ["watermills"], [demand(I, 1.2)], "Engines that never tire. Industrial demand +20%."),
     ("Factories", "factories", "Factories", 2, 500, ["steam_power"], [], "Mass production under one roof."),
     ("Railways", "railways", "Railways", 2, 500, ["steam_power"], [], "Iron roads connect the city to the world."),
-    ("PublicSanitation", "public_sanitation", "Public Sanitation", 2, 450, ["civic_planning"], [happy(0.03)], "Sewers and clean water. Happiness +3%."),
+    ("PublicSanitation", "public_sanitation", "Public Sanitation", 2, 450, ["civic_planning"], [happy(0.03)], "Sewers and clean water. Happiness +3%. Unlocks the Pumping Station."),
     ("Telegraph", "telegraph", "Telegraph", 2, 450, ["electricity", "printing_press"], [research(1.2)], "News at the speed of light. Research +20%."),
     ("SteelFrames", "steel_frames", "Steel Frames", 2, 550, ["factories"], [], "Skeletons of steel let buildings climb."),
     ("ElectricTrams", "electric_trams", "Electric Trams", 2, 400, ["electricity"], [], "Cheap rides along the main streets."),
@@ -86,12 +88,13 @@ TECHS = [
 ]
 
 # (asset, id, display, year, max level, scale, power, techs to advance, required, pop, advance cost, starting techs, money, zone names,
-#  pollution scale, pollution radius (M12: workshops pollute little and close by, factories a lot, clean energy less))
+#  pollution scale, pollution radius (M12: workshops pollute little and close by, factories a lot, clean energy less),
+#  water rule (M13: 1 Coverage = wells and fountains, 2 Piped = towers and pumps on the road network))
 AGES = [
-    ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"], 0.3, 1),
-    ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"], 0.5, 2),
-    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity"], 50000, ["", "", ""], 1.0, 3),
-    ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""], 0.6, 3),
+    ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"], 0.3, 1, 1),
+    ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"], 0.5, 2, 1),
+    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity", "waterworks"], 50000, ["", "", ""], 1.0, 3, 2),
+    ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""], 0.6, 3, 2),
 ]
 
 tech_guid = {t[1]: guid("tech_" + t[1]) for t in TECHS}
@@ -107,12 +110,12 @@ for asset, tid, display, age, cost, prereqs, effects, desc in TECHS:
     write(os.path.join(ROOT, "Techs", asset + ".asset"), text, tech_guid[tid])
 
 age_guid = {}
-for asset, aid, display, year, maxl, scale, power, toadv, req, pop, cost, starting, money, zones, pscale, pradius in AGES:
+for asset, aid, display, year, maxl, scale, power, toadv, req, pop, cost, starting, money, zones, pscale, pradius, water in AGES:
     g = guid("age_" + aid)
     age_guid[aid] = g
     text = header(GUID_AGE_DEF, asset, "AgeDefinition")
     text += "  m_Id: %s\n  m_DisplayName: %s\n  m_StartYear: %d\n  m_MaxLevel: %d\n  m_CapacityScale: %s\n" % (aid, display, year, maxl, scale)
-    text += "  m_UpgradesNeedPower: %d\n  m_Water: 0\n" % (1 if power else 0)
+    text += "  m_UpgradesNeedPower: %d\n  m_Water: %d\n" % (1 if power else 0, water)
     text += "  m_PollutionScale: %s\n  m_PollutionRadius: %d\n  m_TechsToAdvance: %d\n" % (pscale, pradius, toadv)
     text += "  m_RequiredTechs: %s\n" % array([ref(tech_guid[t]) for t in req])
     text += "  m_PopulationToEnter: %d\n  m_AdvanceCost: %s\n" % (pop, cost)

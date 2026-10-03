@@ -45,7 +45,11 @@ public sealed class ContentTests
         Assert.AreEqual(2, m_Ages.Legacy);
         Assert.Contains(m_Techs.GetById("electricity"), m_Ages[m_Ages.Legacy].StartingTechs);
         Assert.IsTrue(m_Ages[m_Ages.Legacy].UpgradesNeedPower);
-        Assert.AreEqual(30, m_Techs.Techs.Count);
+        Assert.Contains(m_Techs.GetById("waterworks"), m_Ages[m_Ages.Legacy].StartingTechs);
+        CollectionAssert.AreEqual(new[] { WaterRule.Coverage, WaterRule.Coverage, WaterRule.Piped, WaterRule.Piped },
+            new[] { m_Ages[0].Water, m_Ages[1].Water, m_Ages[2].Water, m_Ages[3].Water }, "wells, then piped water (M13)");
+        Assert.AreEqual(AgeRules.Legacy.Water, m_Ages[m_Ages.Legacy].Rules.Water, "Industrial = the age-less rules");
+        Assert.AreEqual(32, m_Techs.Techs.Count);   // + Aqueducts, Waterworks (M13)
     }
 
     // Starting in any age, something can be researched right away.
