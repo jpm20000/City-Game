@@ -7,22 +7,36 @@ using UnityEngine;
 // their supply. Grown cells beside a carrying cell draw DrawFor(capacity); supply is handed out in
 // BFS order from the sources (seeds sorted row-major, so the result doesn't depend on build order),
 // so the cells furthest out go without first. A carrying cell that is itself a grown cell (water: a
-// pipe under it) is served too. Recomputes lazily after any grid or source change.
-// Power (M9) and piped water (M13) are the two subclasses.
+// pipe under it) is served too. Power (M9) and piped water (M13) are the two subclasses.
+//
+// Kept cheap on big maps (M13 follow-up): each cell's draw and carrying flag are updated as the
+// grid changes, and the work is split in two lazy stages. The topology (which cells carry, the
+// networks, the sources' shares and the BFS feed order, recorded as a list of feed attempts) is
+// rebuilt only when a carrying flag or the sources change. Any other change (levels, zones, built
+// ages) only replays the recorded attempts over flat arrays, which serves exactly the same cells as
+// a full BFS would.
 public abstract class UtilityNetwork
 {
     protected readonly GridData m_Grid;
     private readonly CapacityModel m_Capacity;
     private int m_Width;
+    private int m_Height;
     private int[] m_RoadNetwork;      // network id per carrying cell, -1 = dry
     private int[] m_CellNetwork;      // network feeding each served cell, -1 = unserved
+    private int[] m_Draw;             // each cell's draw, kept up to date as cells change
+    private bool[] m_Carries;         // Carries(cell), kept up to date as cells change
+    private int[] m_Queue;            // BFS frontier (each cell enters at most once per pass)
     private bool[] m_Visited;
-    private int[] m_Draw;             // each cell's draw, filled once per recompute (M13e: the BFS asks up to 5x per cell)
-    private bool[] m_Carries;         // Carries(cell), filled once per recompute
-    private readonly List<int> m_Remaining = new();
-    private readonly Queue<Vector2Int> m_Frontier = new();
+    private int[] m_Attempts = new int[64];   // (cell, network) pairs in feed order
+    private int m_AttemptCount;
+    private int[] m_InitialRemaining = Array.Empty<int>();   // each network's supply before anything is served
+    private int[] m_Remaining = Array.Empty<int>();
+    private int m_NetworkCount;
     private IReadOnlyList<ServiceSource> m_Sources = Array.Empty<ServiceSource>();
-    private bool m_Dirty = true;
+
+    private bool m_CellsStale = true;     // every cell's draw / carrying flag must be re-read (new map, new subclass state)
+    private bool m_TopologyDirty = true;
+    private bool m_AllocationDirty = true;
 
     private int m_Supply;
     private int m_Demand;
@@ -35,7 +49,7 @@ public abstract class UtilityNetwork
         if (config == null) throw new ArgumentNullException(nameof(config));
         m_Capacity = capacity ?? new CapacityModel(config);
         Allocate();
-        grid.OnCellChanged += _ => m_Dirty = true;
+        grid.OnCellChanged += OnCellChanged;
         grid.OnResized += Allocate;
     }
 
@@ -43,6 +57,7 @@ public abstract class UtilityNetwork
     protected abstract int SupplyOf(ServiceSource source);
 
     // Whether the utility flows through this cell (roads for power; roads and pipes for water).
+    // Must depend only on the cell's own grid state.
     protected virtual bool Carries(Vector2Int cell) => m_Grid.IsRoad(cell);
 
     // Units a cell of the given capacity draws.
@@ -54,13 +69,15 @@ public abstract class UtilityNetwork
     private void Allocate()
     {
         m_Width = m_Grid.Width;
-        int count = m_Grid.Width * m_Grid.Height;
+        m_Height = m_Grid.Height;
+        int count = m_Width * m_Height;
         m_RoadNetwork = new int[count];
         m_CellNetwork = new int[count];
-        m_Visited = new bool[count];
         m_Draw = new int[count];
         m_Carries = new bool[count];
-        m_Dirty = true;
+        m_Queue = new int[count];
+        m_Visited = new bool[count];
+        m_CellsStale = true;
     }
 
     // Supply of sources that touch the network.
@@ -75,7 +92,7 @@ public abstract class UtilityNetwork
     public void SetSources(IReadOnlyList<ServiceSource> sources)
     {
         m_Sources = sources ?? Array.Empty<ServiceSource>();
-        m_Dirty = true;
+        m_TopologyDirty = true;
     }
 
     public bool IsServed(Vector2Int cell)
@@ -108,26 +125,68 @@ public abstract class UtilityNetwork
         return true;
     }
 
-    // Marks the network for a recompute (subclasses whose carrying cells change outside the grid's events).
-    protected void MarkDirty() => m_Dirty = true;
+    // Marks the whole network for a rebuild (subclasses whose carrying cells or draws change outside the grid's events).
+    protected void MarkDirty() => m_CellsStale = true;
+
+    // A changed cell can only change its own draw and carrying flag. A carrying change means new
+    // networks (topology); anything else only needs the supply handed out again.
+    private void OnCellChanged(Vector2Int cell)
+    {
+        m_AllocationDirty = true;
+        if (m_CellsStale) return;   // everything is re-read anyway
+        int i = Index(cell);
+        m_Draw[i] = Draw(cell);
+        bool carries = Carries(cell);
+        if (carries != m_Carries[i])
+        {
+            m_Carries[i] = carries;
+            m_TopologyDirty = true;
+        }
+    }
 
     private void EnsureFresh()
     {
-        if (!m_Dirty) return;
-        m_Dirty = false;
-        Recompute();
+        if (m_CellsStale)
+        {
+            m_CellsStale = false;
+            ReadAllCells();
+            m_TopologyDirty = true;
+        }
+        if (m_TopologyDirty)
+        {
+            m_TopologyDirty = false;
+            RebuildTopology();
+            m_AllocationDirty = true;
+        }
+        if (m_AllocationDirty)
+        {
+            m_AllocationDirty = false;
+            Distribute();
+        }
     }
 
-    private void Recompute()
+    private void ReadAllCells()
+    {
+        for (int y = 0; y < m_Height; y++)
+        {
+            for (int x = 0; x < m_Width; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                int i = y * m_Width + x;
+                m_Draw[i] = Draw(cell);
+                m_Carries[i] = Carries(cell);
+            }
+        }
+    }
+
+    // Networks, the sources' shares of them and the feed order (a multi-source BFS from every seed:
+    // cells nearest a source are fed first). Depends only on the carrying flags and the sources.
+    private void RebuildTopology()
     {
         Array.Fill(m_RoadNetwork, -1);
-        Array.Fill(m_CellNetwork, -1);
-        Array.Clear(m_Visited, 0, m_Visited.Length);
-        m_Remaining.Clear();
         m_Supply = 0;
-        m_Load = 0;
-        m_UnservedCells = 0;
-        m_Demand = CountDemand();   // also fills m_Draw and m_Carries
+        m_NetworkCount = 0;
+        m_AttemptCount = 0;
 
         // Seeds: network cells touching a source.
         SortedSet<int> seeds = new SortedSet<int>();
@@ -149,11 +208,16 @@ public abstract class UtilityNetwork
         foreach (int seed in seeds)
         {
             if (m_RoadNetwork[seed] >= 0) continue;
-            Flood(seed, m_Remaining.Count);
-            m_Remaining.Add(0);
+            Flood(seed, m_NetworkCount++);
         }
 
         // A source touching several separate networks splits its supply evenly between them.
+        if (m_InitialRemaining.Length < m_NetworkCount)
+        {
+            m_InitialRemaining = new int[m_NetworkCount];
+            m_Remaining = new int[m_NetworkCount];
+        }
+        Array.Clear(m_InitialRemaining, 0, m_NetworkCount);
         foreach ((int supply, List<int> roads) in plants)
         {
             List<int> networks = new List<int>();
@@ -165,76 +229,104 @@ public abstract class UtilityNetwork
             int share = supply / networks.Count;
             for (int k = 0; k < networks.Count; k++)
             {
-                m_Remaining[networks[k]] += k == 0 ? supply - share * (networks.Count - 1) : share;
+                m_InitialRemaining[networks[k]] += k == 0 ? supply - share * (networks.Count - 1) : share;
             }
         }
 
-        // Multi-source BFS from every seed: cells nearest a source are served first.
-        m_Frontier.Clear();
+        // Record the feed attempts in BFS order: for each carrying cell as it is dequeued, the cell
+        // itself and then its neighbours in CellUtils.Neighbors4's order (+x, -x, +y, -y).
+        Array.Clear(m_Visited, 0, m_Visited.Length);
+        int head = 0, tail = 0;
         foreach (int seed in seeds)
         {
             m_Visited[seed] = true;
-            m_Frontier.Enqueue(CellOf(seed));
+            m_Queue[tail++] = seed;
         }
-        while (m_Frontier.Count > 0)
+        while (head < tail)
         {
-            Vector2Int road = m_Frontier.Dequeue();
-            FeedCellsBeside(road);
-            foreach (Vector2Int offset in CellUtils.Neighbors4)
-            {
-                Vector2Int next = road + offset;
-                if (!m_Grid.InBounds(next)) continue;
-                int i = Index(next);
-                if (!m_Carries[i] || m_Visited[i]) continue;
-                m_Visited[i] = true;
-                m_Frontier.Enqueue(next);
-            }
+            int road = m_Queue[head++];
+            int network = m_RoadNetwork[road];
+            int x = road % m_Width, y = road / m_Width;
+            AddAttempt(road, network);
+            if (x + 1 < m_Width) AddAttempt(road + 1, network);
+            if (x > 0) AddAttempt(road - 1, network);
+            if (y + 1 < m_Height) AddAttempt(road + m_Width, network);
+            if (y > 0) AddAttempt(road - m_Width, network);
+
+            if (x + 1 < m_Width) Visit(road + 1, ref tail);
+            if (x > 0) Visit(road - 1, ref tail);
+            if (y + 1 < m_Height) Visit(road + m_Width, ref tail);
+            if (y > 0) Visit(road - m_Width, ref tail);
         }
     }
 
-    private static readonly Vector2Int[] s_SelfAndNeighbors =
-        { Vector2Int.zero, new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(0, -1) };   // self, then CellUtils.Neighbors4's order
-
-    // Serves the grown cells beside one carrying cell (and the cell itself, when it is a grown cell
-    // with a pipe under it) while its network has supply left. Roads draw nothing, so power is unchanged.
-    private void FeedCellsBeside(Vector2Int road)
+    private void AddAttempt(int cell, int network)
     {
-        int network = m_RoadNetwork[Index(road)];
-        foreach (Vector2Int offset in s_SelfAndNeighbors)
-        {
-            Vector2Int cell = road + offset;
-            if (!m_Grid.InBounds(cell)) continue;
-            int i = Index(cell);
-            if (m_CellNetwork[i] >= 0) continue;
+        if (m_AttemptCount + 2 > m_Attempts.Length) Array.Resize(ref m_Attempts, m_Attempts.Length * 2);
+        m_Attempts[m_AttemptCount++] = cell;
+        m_Attempts[m_AttemptCount++] = network;
+    }
 
+    private void Visit(int i, ref int tail)
+    {
+        if (!m_Carries[i] || m_Visited[i]) return;
+        m_Visited[i] = true;
+        m_Queue[tail++] = i;
+    }
+
+    // Hands out the supply: replays the recorded attempts, serving each cell the first time its
+    // network still has room for its draw.
+    private void Distribute()
+    {
+        Array.Fill(m_CellNetwork, -1);
+        Array.Copy(m_InitialRemaining, m_Remaining, m_NetworkCount);
+        m_Load = 0;
+        int demand = 0, unserved = 0;
+        for (int i = 0; i < m_Draw.Length; i++)
+        {
             int draw = m_Draw[i];
+            demand += draw;
+            if (draw > 0) unserved++;
+        }
+
+        for (int k = 0; k < m_AttemptCount; k += 2)
+        {
+            int cell = m_Attempts[k];
+            if (m_CellNetwork[cell] >= 0) continue;
+            int draw = m_Draw[cell];
+            int network = m_Attempts[k + 1];
             if (draw == 0 || m_Remaining[network] < draw) continue;
 
             m_Remaining[network] -= draw;
             m_Load += draw;
-            m_CellNetwork[i] = network;
-            m_UnservedCells--;
+            m_CellNetwork[cell] = network;
+            unserved--;
         }
+        m_Demand = demand;
+        m_UnservedCells = unserved;
     }
 
     private void Flood(int seed, int network)
     {
-        m_Frontier.Clear();
+        int head = 0, tail = 0;
         m_RoadNetwork[seed] = network;
-        m_Frontier.Enqueue(CellOf(seed));
-        while (m_Frontier.Count > 0)
+        m_Queue[tail++] = seed;
+        while (head < tail)
         {
-            Vector2Int cell = m_Frontier.Dequeue();
-            foreach (Vector2Int offset in CellUtils.Neighbors4)
-            {
-                Vector2Int next = cell + offset;
-                if (!m_Grid.InBounds(next)) continue;
-                int i = Index(next);
-                if (!m_Carries[i] || m_RoadNetwork[i] >= 0) continue;
-                m_RoadNetwork[i] = network;
-                m_Frontier.Enqueue(next);
-            }
+            int cell = m_Queue[head++];
+            int x = cell % m_Width, y = cell / m_Width;
+            if (x + 1 < m_Width) Label(cell + 1, network, ref tail);
+            if (x > 0) Label(cell - 1, network, ref tail);
+            if (y + 1 < m_Height) Label(cell + m_Width, network, ref tail);
+            if (y > 0) Label(cell - m_Width, network, ref tail);
         }
+    }
+
+    private void Label(int i, int network, ref int tail)
+    {
+        if (!m_Carries[i] || m_RoadNetwork[i] >= 0) return;
+        m_RoadNetwork[i] = network;
+        m_Queue[tail++] = i;
     }
 
     // Carrying cells sharing an edge with the footprint (diagonals don't count, like road access).
@@ -256,25 +348,6 @@ public abstract class UtilityNetwork
         return roads;
     }
 
-    private int CountDemand()
-    {
-        int demand = 0;
-        for (int y = 0; y < m_Grid.Height; y++)
-        {
-            for (int x = 0; x < m_Width; x++)
-            {
-                Vector2Int cell = new Vector2Int(x, y);
-                int i = Index(cell);
-                int draw = Draw(cell);
-                m_Draw[i] = draw;
-                m_Carries[i] = Carries(cell);
-                demand += draw;
-                if (draw > 0) m_UnservedCells++;   // counted down as cells get served
-            }
-        }
-        return demand;
-    }
-
     // A grown zone cell draws for its capacity; everything else draws nothing.
     private int Draw(Vector2Int cell)
     {
@@ -284,6 +357,4 @@ public abstract class UtilityNetwork
     }
 
     private int Index(Vector2Int cell) => CellUtils.Index(cell, m_Width);
-
-    private Vector2Int CellOf(int index) => new Vector2Int(index % m_Width, index / m_Width);
 }

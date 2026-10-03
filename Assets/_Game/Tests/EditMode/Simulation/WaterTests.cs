@@ -444,6 +444,81 @@ public sealed class WaterTests
         Assert.AreEqual(10 * m_Config.PipeUpkeepPerDay, sim.Economy.ExpensePerDay, 1e-5f);
     }
 
+    // --- Incremental recompute (M13 follow-up) ---
+
+    // The networks update draws incrementally and rebuild their topology only when a carrying flag
+    // or a source changes; after any mix of edits they must equal networks built from scratch.
+    [Test]
+    public void IncrementalUpdates_MatchFreshNetworks()
+    {
+        var random = new System.Random(1234);
+        var grid = new GridData(20, 16);
+        var water = new WaterNetwork(grid, m_Config);
+        var power = new PowerSystem(grid, m_Config);
+        var sources = new List<ServiceSource>();
+
+        for (int round = 0; round < 40; round++)
+        {
+            for (int edit = 0; edit < 25; edit++)
+            {
+                var cell = new Vector2Int(random.Next(grid.Width), random.Next(grid.Height));
+                switch (random.Next(7))
+                {
+                    case 0: grid.SetRoad(cell, random.Next(3) > 0); break;
+                    case 1: grid.SetPipe(cell, random.Next(2) == 0); break;
+                    case 2: grid.SetZone(cell, (ZoneType)random.Next(4)); break;
+                    case 3:
+                    case 4: if (grid.GetZone(cell) != ZoneType.None && !grid.IsRoad(cell)) grid.SetBuildingLevel(cell, (byte)random.Next(4)); break;
+                    case 5: grid.SetBuiltAge(cell, (byte)random.Next(2)); break;
+                    case 6:
+                        if (sources.Count > 0 && random.Next(3) == 0) sources.RemoveAt(random.Next(sources.Count));
+                        else sources.Add(new ServiceSource(cell, new Vector2Int(1 + random.Next(2), 1 + random.Next(2)), 0,
+                            random.Next(10, 60), waterSupply: random.Next(10, 60)));
+                        water.SetSources(sources);
+                        power.SetSources(sources);
+                        break;
+                }
+            }
+            // Interleave reservations like a growth tick does, then compare after a further change.
+            if (round % 3 == 0)
+            {
+                for (int k = 0; k < 10; k++)
+                {
+                    var cell = new Vector2Int(random.Next(grid.Width), random.Next(grid.Height));
+                    water.TryReserve(cell, 1);
+                    power.TryReserve(cell, 1);
+                }
+                var flip = new Vector2Int(round % grid.Width, 0);
+                grid.SetBuiltAge(flip, (byte)(grid.GetBuiltAge(flip) ^ 1));   // always a change: reservations are dropped
+            }
+
+            var freshWater = new WaterNetwork(grid, m_Config);
+            var freshPower = new PowerSystem(grid, m_Config);
+            freshWater.SetSources(sources);
+            freshPower.SetSources(sources);
+            AssertSame(grid, freshWater, water, $"water, round {round}");
+            AssertSame(grid, freshPower, power, $"power, round {round}");
+        }
+    }
+
+    private static void AssertSame(GridData grid, UtilityNetwork expected, UtilityNetwork actual, string what)
+    {
+        Assert.AreEqual(expected.Supply, actual.Supply, what + " supply");
+        Assert.AreEqual(expected.Demand, actual.Demand, what + " demand");
+        Assert.AreEqual(expected.Load, actual.Load, what + " load");
+        Assert.AreEqual(expected.UnservedCells, actual.UnservedCells, what + " unserved");
+        for (int y = 0; y < grid.Height; y++)
+        {
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var cell = new Vector2Int(x, y);
+                Assert.AreEqual(expected.IsServed(cell), actual.IsServed(cell), $"{what} served {cell}");
+                Assert.AreEqual(expected.IsCarrying(cell), actual.IsCarrying(cell), $"{what} carrying {cell}");
+                Assert.AreEqual(expected.HasHeadroom(cell, 3), actual.HasHeadroom(cell, 3), $"{what} headroom {cell}");
+            }
+        }
+    }
+
     // --- Happiness ---
 
     [Test]
