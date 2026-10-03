@@ -106,6 +106,20 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_HeritageHappinessEach = 0.02f;
     [SerializeField] private float m_HeritageHappinessCap = 0.06f;
 
+    [Header("Civic services (M14)")]
+    [Tooltip("(M14) Civic needs (crime, later fire risk and sickness) are 0 up to this population...")]
+    [SerializeField] private int m_CivicFreePopulation = 100;
+    [Tooltip("(M14) ...and reach full strength at this population (linear between).")]
+    [SerializeField] private int m_CivicFullPopulation = 700;
+    [Tooltip("(M14) Crime per unit of capacity of a grown home or shop before policing (capped at 1; an Industrial level-1 home = 0.16, level 3 = 0.64).")]
+    [SerializeField] private float m_CrimePerCapacity = 0.04f;
+    [Tooltip("(M14) Happiness a home loses per unit of crime; the Crime term is the average over homes.")]
+    [SerializeField] private float m_CrimePenalty = 0.15f;
+    [Tooltip("(M14) Cap on one home's crime penalty.")]
+    [SerializeField] private float m_CrimePenaltyCap = 0.10f;
+    [Tooltip("(M14) Land value lost per unit of crime.")]
+    [SerializeField] private float m_LandValuePerCrime = 0.15f;
+
     [Header("Research & ages")]
     [Tooltip("(tuned, M11g) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs). 0.25 puts each age at ~60-90 days of engaged play (AgeBalanceTests).")]
     [SerializeField] private float m_ResearchPerCommercialJob = 0.25f;
@@ -180,6 +194,13 @@ public sealed class BalanceConfig : ScriptableObject
     public float HeritageLandValueCap => m_HeritageLandValueCap;
     public float HeritageHappinessEach => m_HeritageHappinessEach;
     public float HeritageHappinessCap => m_HeritageHappinessCap;
+
+    public int CivicFreePopulation => m_CivicFreePopulation;
+    public int CivicFullPopulation => m_CivicFullPopulation;
+    public float CrimePerCapacity => m_CrimePerCapacity;
+    public float CrimePenalty => m_CrimePenalty;
+    public float CrimePenaltyCap => m_CrimePenaltyCap;
+    public float LandValuePerCrime => m_LandValuePerCrime;
 
     public float ResearchPerCommercialJob => m_ResearchPerCommercialJob;
     public int RedevelopPerDay => m_RedevelopPerDay;

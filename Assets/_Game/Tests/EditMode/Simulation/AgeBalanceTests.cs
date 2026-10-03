@@ -59,7 +59,8 @@ public sealed class AgeBalanceTests
 
     // Industrial start with the real content = today's game plus the bonuses of every Medieval and
     // Renaissance tech it starts with (accepted in M11g). Same layout as SimulationTests.RunSeededCity
-    // (212 pop at day 60 without ages). Re-recorded in M12a for local pollution (was 0.647).
+    // (212 pop at day 60 without ages). Re-recorded in M12a for local pollution (was 0.647) and in
+    // M14a for crime (was 0.660; crime -0.007 at 220 pop).
     [Test]
     public void IndustrialStart_RealContent_Baseline()
     {
@@ -68,7 +69,7 @@ public sealed class AgeBalanceTests
         SimulationSystem sim = SeededCity.Run(new GridData(24, 24), m_Config, 60, ages: ages, techs: techs, startAge: ages.Legacy);
 
         Assert.AreEqual(220, sim.Population.Population);
-        Assert.AreEqual(0.660f, sim.Population.AverageHappiness, 0.005f);
+        Assert.AreEqual(0.653f, sim.Population.AverageHappiness, 0.005f);
         Assert.AreEqual(0.05f, sim.Population.Happiness.Technology, 1e-5f);
     }
 

@@ -67,6 +67,12 @@ MonoBehaviour:
   m_HeritageLandValueCap: 0.2
   m_HeritageHappinessEach: 0.02
   m_HeritageHappinessCap: 0.06
+  m_CivicFreePopulation: 100
+  m_CivicFullPopulation: 700
+  m_CrimePerCapacity: 0.04
+  m_CrimePenalty: 0.15
+  m_CrimePenaltyCap: 0.1
+  m_LandValuePerCrime: 0.15
   m_ResearchPerCommercialJob: 0.25
   m_RedevelopPerDay: 3
   m_ResearchQueueMax: 5

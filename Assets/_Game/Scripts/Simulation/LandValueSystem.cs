@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-// The parts of one cell's land value, for explaining it to the player. Pollution is negative.
+// The parts of one cell's land value, for explaining it to the player. Pollution and crime are negative.
 public readonly struct LandValueBreakdown
 {
     public readonly float Base;
@@ -9,9 +9,12 @@ public readonly struct LandValueBreakdown
     public readonly float Heritage;     // kept historic blocks nearby
     public readonly float Technology;   // researched techs' LandValueBonus
     public readonly float Pollution;
+    public readonly float Crime;        // (M14)
 
-    public LandValueBreakdown(float baseValue, float services, float heritage, float technology, float pollution)
+    public LandValueBreakdown(float baseValue, float services, float heritage, float technology, float pollution,
+        float crime = 0f)
     {
+        Crime = crime;
         Base = baseValue;
         Services = services;
         Heritage = heritage;
@@ -19,14 +22,14 @@ public readonly struct LandValueBreakdown
         Pollution = pollution;
     }
 
-    public float Total => Mathf.Clamp01(Base + Services + Heritage + Technology + Pollution);
+    public float Total => Mathf.Clamp01(Base + Services + Heritage + Technology + Pollution + Crime);
 }
 
 // Land value per cell (M12), 0..1: LandValueBase + services in range (capped) + kept historic
 // blocks within HeritageRadius (capped) + the techs' LandValueBonus - pollution x
-// LandValuePerPollution. Homes and shops need LandValueForLevel3 to reach level 3. Derived, never
-// saved. Only the heritage counts are cached (recomputed after any grid change); the rest reads the
-// coverage, pollution and tech state live.
+// LandValuePerPollution - crime x LandValuePerCrime (M14). Homes and shops need LandValueForLevel3
+// to reach level 3. Derived, never saved. Only the heritage counts are cached (recomputed after any
+// grid change); the rest reads the coverage, pollution, crime and tech state live.
 public sealed class LandValueSystem
 {
     private readonly GridData m_Grid;
@@ -34,18 +37,20 @@ public sealed class LandValueSystem
     private readonly CoverageSystem m_Coverage;
     private readonly PollutionSystem m_Pollution;
     private readonly Func<TechModifiers> m_Tech;
+    private readonly CivicSystem m_Civic;
     private byte[] m_Heritage;
     private bool m_Dirty = true;
 
-    // tech null = no tech bonus.
+    // tech null = no tech bonus; civic null = no crime term.
     public LandValueSystem(GridData grid, BalanceConfig config, CoverageSystem coverage, PollutionSystem pollution,
-        Func<TechModifiers> tech = null)
+        Func<TechModifiers> tech = null, CivicSystem civic = null)
     {
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
         m_Coverage = coverage ?? throw new ArgumentNullException(nameof(coverage));
         m_Pollution = pollution ?? throw new ArgumentNullException(nameof(pollution));
         m_Tech = tech;
+        m_Civic = civic;
         Allocate();
         grid.OnCellChanged += _ => m_Dirty = true;
         grid.OnResized += Allocate;
@@ -83,7 +88,8 @@ public sealed class LandValueSystem
         float heritage = Mathf.Min(HeritageCount(cell) * m_Config.HeritageLandValueEach, m_Config.HeritageLandValueCap);
         float tech = (m_Tech?.Invoke() ?? TechModifiers.None).LandValueBonus;
         float pollution = -m_Pollution.GetPollution(cell) * m_Config.LandValuePerPollution;
-        return new LandValueBreakdown(m_Config.LandValueBase, services, heritage, tech, pollution);
+        float crime = m_Civic != null ? -m_Civic.GetCrime(cell) * m_Config.LandValuePerCrime : 0f;
+        return new LandValueBreakdown(m_Config.LandValueBase, services, heritage, tech, pollution, crime);
     }
 
     private void EnsureFresh()

@@ -20,6 +20,8 @@ public sealed class SimulationSystem
     public CoverageSystem Coverage { get; }
     public PollutionSystem Pollution { get; }
     public LandValueSystem LandValue { get; }
+    // Civic service cover and the needs it meets: crime (M14).
+    public CivicSystem Civic { get; }
 
     // Research and the current age; null when the sim was built without age/tech databases.
     public TechSystem Tech { get; }
@@ -48,6 +50,7 @@ public sealed class SimulationSystem
             Water.SetSources(m_Sources);
             Coverage.Recompute(m_Sources);
             Pollution.SetSources(m_Sources);
+            Civic.SetSources(m_Sources);
         }
     }
 
@@ -69,7 +72,8 @@ public sealed class SimulationSystem
         Water = new WaterSystem(grid, config, Capacity, () => Rules.Water);
         Coverage = new CoverageSystem(grid.Width, grid.Height);
         Pollution = new PollutionSystem(grid, config, Capacity, ages, () => TechModifiers);
-        LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers);
+        Civic = new CivicSystem(grid, config, Capacity, () => Population.Population);
+        LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic);
         Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water);
         grid.OnResized += () =>
         {
@@ -81,7 +85,8 @@ public sealed class SimulationSystem
     // The Power term only counts in ages whose upgrades need power; the Water term in ages needing water.
     public ServiceStats MeasureServices()
     {
-        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution, LandValue, Water);
+        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution, LandValue, Water,
+            Civic);
     }
 
     // Research points earned per day at the current population: filled commercial jobs plus

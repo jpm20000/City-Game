@@ -12,10 +12,12 @@ public readonly struct HappinessBreakdown
     public readonly float Technology;       // researched techs' bonus (M11)
     public readonly float Heritage;         // kept historic blocks near homes (M12)
     public readonly float Water;            // homes without water (M13)
+    public readonly float Crime;            // crime at homes (M14; already ramped by population)
 
     public HappinessBreakdown(float baseValue, float unemployment, float taxes, float pollution, float services, float power, float homeless,
-        float technology = 0f, float heritage = 0f, float water = 0f)
+        float technology = 0f, float heritage = 0f, float water = 0f, float crime = 0f)
     {
+        Crime = crime;
         Water = water;
         Heritage = heritage;
         Base = baseValue;
@@ -28,5 +30,5 @@ public readonly struct HappinessBreakdown
         Technology = technology;
     }
 
-    public float Total => UnityEngine.Mathf.Clamp01(Base + Unemployment + Taxes + Pollution + Services + Power + Homeless + Technology + Heritage + Water);
+    public float Total => UnityEngine.Mathf.Clamp01(Base + Unemployment + Taxes + Pollution + Services + Power + Homeless + Technology + Heritage + Water + Crime);
 }

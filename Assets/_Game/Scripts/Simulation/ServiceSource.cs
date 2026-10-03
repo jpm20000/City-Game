@@ -1,8 +1,8 @@
 using UnityEngine;
 
 // A player-placed building as the spatial systems see it: where it stands, how far its service
-// reaches, how much power it feeds into the roads it touches, how much it pollutes and how it
-// supplies water. Built by the runtime layer because BuildingDefinition lives outside the Simulation assembly.
+// reaches, how much power it feeds into the roads it touches, how much it pollutes, how it
+// supplies water and which civic service it provides. Built by the runtime layer because BuildingDefinition lives outside the Simulation assembly.
 public readonly struct ServiceSource
 {
     public readonly Vector2Int Origin;
@@ -13,9 +13,13 @@ public readonly struct ServiceSource
     public readonly int PollutionRadius;    // cells the pollution spreads (M12)
     public readonly int WaterSupply;        // units fed into the piped network (M13); 0 = none
     public readonly int WaterRadius;        // cells a well or fountain waters in coverage ages (M13); 0 = none
+    public readonly ServiceKind CivicKind;  // civic service line (M14); None = not a civic building
+    public readonly int CivicRadius;        // cells its civic service reaches (Chebyshev from the footprint) (M14)
+    public readonly float CivicStrength;    // 0..1, how well it covers a cell in reach (M14)
 
     public ServiceSource(Vector2Int origin, Vector2Int size, int coverageRadius, int powerSupply,
-        float pollution = 0f, int pollutionRadius = 0, int waterSupply = 0, int waterRadius = 0)
+        float pollution = 0f, int pollutionRadius = 0, int waterSupply = 0, int waterRadius = 0,
+        ServiceKind civicKind = ServiceKind.None, int civicRadius = 0, float civicStrength = 0f)
     {
         Origin = origin;
         Size = size;
@@ -25,5 +29,8 @@ public readonly struct ServiceSource
         PollutionRadius = pollutionRadius;
         WaterSupply = waterSupply;
         WaterRadius = waterRadius;
+        CivicKind = civicKind;
+        CivicRadius = civicRadius;
+        CivicStrength = civicStrength;
     }
 }
