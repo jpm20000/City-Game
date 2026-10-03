@@ -930,9 +930,94 @@ road tiers on these techs (water tower → Public Sanitation, fire station → S
   milestone so far; the steps above are ordered so the game stays playable after each one
   (11a–11c change nothing visible for an Industrial-start city).
 
+### M12 — Land value & local pollution (plan, 2026-10-03)
+
+**Goal:** where things stand matters. Pollution is local: industry (and the power plant) dirties
+the cells around it, by an amount and radius that depend on the age a block was built in. Every
+cell gets a land value from parks, kept historic blocks, technology and pollution. Homes and shops
+need enough land value to reach level 3, and polluted homes are unhappy. Kept historic blocks
+finally pay off with a heritage bonus.
+
+**Done when:**
+- Homes beside industry are less happy and stop at level 2; the same homes with a park nearby (or
+  away from industry) reach level 3. Industry itself is never land-value gated.
+- Medieval workshops pollute little and close by; Industrial factories pollute a lot and further.
+  A kept historic block raises land value and happiness around it.
+- Pollution and Land value info views and the SelectionPanel explain all of it (contributors,
+  the level-3 threshold, the new blocker).
+- `AgeBalanceTests` still meet their targets (45–90 days per age, never in debt, happiness ≥ 0.55);
+  all EditMode tests green, plus a UI-only virtual-input play-through.
+
+#### Design decisions (defaults — change any before the step that uses them)
+
+| Topic | Decision |
+|---|---|
+| Baseline | **Changes everywhere, the age-less sim included** (decided 2026-10-03): one pollution model for every age. The city-wide `IndustrialJobs / (Housing + Jobs)` term is gone. The legacy seeded-city tests stay as qualitative checks (retuned only if a check fails), the two formula unit tests are rewritten, and `IndustrialStart_RealContent_Baseline` is re-recorded. The no-age sim still equals the Industrial age's rules. |
+| Pollution sources | Grown **industrial** cells emit `IndustrialPollution × capacity × PollutionScale(built age) × tech multiplier` points (a level-1 Industrial-age shed = 1, level 3 = 4). Placed buildings with `BuildingDefinition.Pollution` > 0 emit that many points (the Power Plant: 6, radius 5). Commercial and residential cells don't emit. |
+| Spread | Each source adds `points × (1 − d / (r + 1))` to every cell within Chebyshev distance `d ≤ r` of its footprint (linear falloff, full at the source). `r` = the built age's `PollutionRadius` (Medieval 1, Renaissance 2, Industrial 3, Modern 3; `BalanceConfig.PollutionRadius` 3 without ages). Pollution is a float per cell, derived and never saved. |
+| Pollution happiness | The `Pollution` term becomes the housing-weighted average over homes of `min(pollution(home) × PollutionPenaltyPerPoint, PollutionPenaltyCap)` (0.02 per point, cap 0.25 per home), still ramped in with `SmallTownGracePopulation`. Measured in `ServiceStats` like the Services and Power terms. |
+| Land value | Per cell, 0..1: `LandValueBase` (0.5) + parks `min(coverage × 0.10, 0.20)` + heritage `min(kept historic cells within HeritageRadius 3 × 0.05, 0.20)` + tech `LandValueBonus` − `pollution × LandValuePerPollution` (0.04), clamped. Derived, never saved. |
+| Level-3 gate | Residential and commercial cells need land value ≥ `LandValueForLevel3` (0.40) to upgrade 2 → 3 — new `GrowthBlocker.LowLandValue`. Industry is exempt. Cells already at level 3 never drop. Redevelopment (same level) is not gated. Medieval (max level 2) never meets the gate; its pollution still costs happiness. |
+| Heritage happiness | New `HappinessBreakdown.Heritage` term: housing-weighted average of `min(kept historic cells within HeritageRadius × 0.02, 0.06)` per home. 0 in a city without kept blocks, so the age-less baseline is unaffected by it. |
+| Age data | `AgeDefinition` gains `PollutionScale` (Medieval 0.3, Renaissance 0.5, Industrial 1, Modern 0.6 — "workshops low, factories high, clean energy low") and `PollutionRadius`. A block keeps its built age's pollution until it is redeveloped, so advancing raises pollution gradually. |
+| Tech effects | Two new `TechEffectType`s: `PollutionMultiplier` (all emissions × Value) and `LandValueBonus` (+ Value on every cell). Content: Renewables pollution ×0.75, Architecture land value +0.05 (both had no effect so far). |
+| Saves | No new persisted state (pollution and land value are derived; historic flags are already saved), so **no version bump**. |
+| UI | Two info views, `Pollution` and `LandValue` (VIEW buttons, `V` cycles; always available). SelectionPanel: pollution + land value lines with contributors and the level-3 threshold on zoned / grown cells, emissions on industrial cells and polluting buildings, "Heritage: +x land value within 3 cells" on kept blocks. Happiness tooltip: "Pollution (nearby industry)" and "Heritage". One-time toast the first time a home or shop is held at level 2 by land value. |
+
+#### Architecture
+
+**Pure, in the Simulation asmdef:**
+
+| New / changed | Notes |
+|---|---|
+| `PollutionSystem` | Per-cell float field. Inputs: `GridData` (industrial cells, levels, built ages), `CapacityModel`, `AgeDatabase` (scale/radius per built age; legacy values without), `ServiceSource.Pollution`/`PollutionRadius`, `TechModifiers.PollutionMultiplier`. Lazy like `PowerSystem`: `OnCellChanged`, `SetSources` and a tech change mark it dirty; `GetPollution(cell)`, `EmissionOf(cell)`, `RadiusOf(cell)`. Reallocates on `OnResized`. |
+| `LandValueSystem` | Per-cell float field from `CoverageSystem`, historic counts (own per-cell heritage count, recomputed with the field), `PollutionSystem` and `TechModifiers.LandValueBonus`. Lazy; `GetLandValue(cell)` + `Explain(cell)` → `{Base, Parks, Heritage, Tech, Pollution}` for the UI; `HeritageCount(cell)`. |
+| `ServiceSource` | `+ Pollution` (points), `+ PollutionRadius` (old constructor kept). |
+| `ServiceStats` | `+ PollutionPenalty` (average per-home, before the grace ramp), `+ HeritageBonus`; `Measure` reads the two new systems. |
+| `PopulationSystem` / `HappinessBreakdown` | Pollution term from `ServiceStats`; `+ Heritage` term (tooltip line). |
+| `GrowthSystem` | Level 2 → 3 for R/C checks `LandValue ≥ LandValueForLevel3`; `GetBlocker` → `LowLandValue`. |
+| `SimulationSystem` | Owns `Pollution` and `LandValue`; passes `TechModifiers` changes on. |
+| `AgeDefinition` / `AgeRules` | `PollutionScale`, `PollutionRadius` (read per built age, like `CapacityScale`). |
+| `TechEffectType` / `TechModifiers` | `PollutionMultiplier`, `LandValueBonus` (appended — enum values are serialized in the tech assets). |
+| `BalanceConfig` | `IndustrialPollution` 0.25, `PollutionRadius` 3, `PollutionPenaltyPerPoint` 0.02, `PollutionPenaltyCap` 0.25, `LandValueBase` 0.5, `LandValuePerService` 0.10, `LandValueServiceCap` 0.20, `HeritageRadius` 3, `HeritageLandValueEach` 0.05, `HeritageLandValueCap` 0.20, `HeritageHappinessEach` 0.02, `HeritageHappinessCap` 0.06, `LandValuePerPollution` 0.04, `LandValueForLevel3` 0.40 — tagged "(M12)", mirrored in the asset; `PollutionPenalty` removed. |
+
+**Runtime (`Assembly-CSharp`):** `BuildingDefinition.Pollution` + `PollutionRadius` (Power Plant 6 / 5) → `GameManager` sources; `InfoOverlay` views; `SelectionPanel`, `HappinessTooltip`, `NotificationController` lines; toolbar VIEW buttons.
+
+#### Steps (each one fits a session and is committed on its own)
+
+- **12a Local pollution (pure + content).** `PollutionSystem`, the new `AgeDefinition`, `ServiceSource`,
+  `BuildingDefinition` and `BalanceConfig` fields, the per-home Pollution term, `PollutionMultiplier`.
+  Generator + Power Plant asset. Tests: falloff and radius, emission by level and built age, plant
+  source, resize, laziness (recomputes after a level change), tech multiplier; per-home term (a home
+  far from industry pays nothing); the rewritten formula tests. Re-run the seeded-city and age
+  balance tests and record what moved.
+- **12b Land value, the level-3 gate and heritage (pure + content).** `LandValueSystem`, the gate and
+  `LowLandValue`, the Heritage happiness term, `LandValueBonus` + Architecture. Tests: contributors
+  add up and clamp; polluted homes stop at level 2 and a park lets them through; industry ungated;
+  historic cells raise neighbours' value and happiness; the blocker; Medieval unaffected by the gate.
+- **12c UI.** Pollution and Land value info views (ground shading + building tints, through
+  `GrowthVisuals.SetColorOverride`), two VIEW buttons, SelectionPanel lines, tooltip lines, the
+  land-value toast. Play-mode screenshots of both views on a seeded city.
+- **12d Balance, play-through, docs.** `EngagedCity` learns to place parks for homes blocked by land
+  value and to keep zones apart (industry blocks away from homes); retune toward the `AgeBalanceTests`
+  targets and re-record the Industrial-start baseline. UI-only play-through: industry next to homes →
+  Pollution view → a home held at level 2 (panel says why) → park → it reaches level 3 → keep a block
+  historic → Land value view shows the heritage ring. Measure the tick on a full 96² city (must stay
+  ≈1–2 ms; `perf-benchmark` only if it doesn't). `AGENTS.md`, §8/§12 status.
+
+#### Risks / open questions
+
+- **Seeded-city layout:** the seeded test city puts homes directly across a road from industry, so it
+  will lose some happiness and level-3 homes. That is the point of the milestone; the legacy checks
+  are ranges and relative comparisons, so only the re-recorded baseline should need new numbers.
+- **Balance:** pollution and the gate slow growth; if `AgeBalanceTests` go over 90 days per age, the
+  first knobs are `LandValueForLevel3`, `PollutionPenaltyPerPoint` and the player model's zoning.
+- **Tick cost:** pollution recomputes after any grid change, which is almost every day; cost is
+  sources × (2r + 1)² (~0.1 M adds on a full 96² map). Fine, but measure it.
+
 ### M12–M19 outline (detailed plans written when each milestone starts)
 
-**M12 — Land value & local pollution.** Pollution becomes per-cell (industrial cells emit in a
+**M12 — Land value & local pollution** (full plan above). Pollution becomes per-cell (industrial cells emit in a
 radius scaled by age: workshops low, factories high, clean energy low), replacing the city-wide
 term. Land value per cell comes from parks, services, water/coast later, pollution and the
 **heritage bonus** (historic cells raise value around them). Level 3 needs a land-value
@@ -973,5 +1058,5 @@ thumbnails, a tutorial for the first age, and a Windows player build.
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). **M11 done** (steps 11a–11g,
 all done-when checks met: Medieval start advances through all four ages with redevelopment and Keep
 historical; Industrial start = today's game plus the accepted earlier-age bonuses; save v2 round
-trips and v1 migrates; EditMode tests green plus the UI-only play-through). Next: M12 (land value &
-local pollution) — expand its outline below into a full plan first.
+trips and v1 migrates; EditMode tests green plus the UI-only play-through). **M12 planned** (land value &
+local pollution, steps 12a–12d above); next: 12a.
