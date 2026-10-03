@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Crop Rotation
   m_Description: 'Fields rest in turn and feed more mouths. Residential demand +10%.'
   m_Age: 0
-  m_Cost: 50
+  m_Cost: 35
   m_Prerequisites: []
   m_Effects:
   - Type: 2

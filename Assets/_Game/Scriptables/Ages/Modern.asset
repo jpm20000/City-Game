@@ -21,8 +21,8 @@ MonoBehaviour:
   m_UpgradesNeedWater: 0
   m_TechsToAdvance: 5
   m_RequiredTechs: []
-  m_PopulationToEnter: 2500
-  m_AdvanceCost: 8000
+  m_PopulationToEnter: 650
+  m_AdvanceCost: 3000
   m_StartingTechs: []
   m_StartingMoney: 80000
   m_ZoneNames:

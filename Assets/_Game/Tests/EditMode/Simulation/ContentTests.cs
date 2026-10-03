@@ -154,7 +154,7 @@ public sealed class ContentTests
         Assert.AreEqual("electricity", required["power_plant"]);
         Assert.AreEqual("monasticism", required["monastery"]);
         Assert.AreEqual("academies", required["academy"]);
-        Assert.AreEqual(2f, research["monastery"]);
+        Assert.AreEqual(3f, research["monastery"]);
         Assert.AreEqual(5f, research["academy"]);
     }
 }

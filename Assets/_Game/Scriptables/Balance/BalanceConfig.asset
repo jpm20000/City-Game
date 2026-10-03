@@ -50,7 +50,7 @@ MonoBehaviour:
   m_IncomePerWorker: 10
   m_IncomePerCommercialJob: 12
   m_IncomePerIndustrialJob: 12
-  m_ResearchPerCommercialJob: 0.05
+  m_ResearchPerCommercialJob: 0.25
   m_RedevelopPerDay: 3
   m_ResearchQueueMax: 5
   m_ResearchBankDays: 30

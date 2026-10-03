@@ -21,8 +21,8 @@ MonoBehaviour:
   m_UpgradesNeedWater: 0
   m_TechsToAdvance: 4
   m_RequiredTechs: []
-  m_PopulationToEnter: 900
-  m_AdvanceCost: 2500
+  m_PopulationToEnter: 350
+  m_AdvanceCost: 1200
   m_StartingTechs: 
   - {fileID: 11400000, guid: 921727713547586792a514b9a4066d18, type: 2}
   m_StartingMoney: 50000

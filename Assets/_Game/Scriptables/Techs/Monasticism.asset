@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Monasticism
   m_Description: 'Communities of learning. Unlocks the Monastery, which produces research.'
   m_Age: 0
-  m_Cost: 80
+  m_Cost: 50
   m_Prerequisites: 
   - {fileID: 11400000, guid: 89807dc22f0055238f9706007d6da8f5, type: 2}
   m_Effects: []

@@ -28,4 +28,4 @@ MonoBehaviour:
   m_CoverageRadius: 0
   m_PowerSupply: 0
   m_RequiredTech: monasticism
-  m_ResearchPerDay: 2
+  m_ResearchPerDay: 3

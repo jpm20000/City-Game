@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Charters
   m_Description: 'A town charter grants rights to its citizens. Happiness +2%.'
   m_Age: 0
-  m_Cost: 100
+  m_Cost: 70
   m_Prerequisites: 
   - {fileID: 11400000, guid: 4c61bc3c331157deb4637019a8d1f876, type: 2}
   m_Effects:

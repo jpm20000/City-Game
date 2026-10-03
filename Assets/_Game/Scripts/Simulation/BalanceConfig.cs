@@ -71,8 +71,8 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_IncomePerIndustrialJob = 12f;
 
     [Header("Research & ages")]
-    [Tooltip("(M11) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs).")]
-    [SerializeField] private float m_ResearchPerCommercialJob = 0.05f;
+    [Tooltip("(tuned, M11g) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs). 0.25 puts each age at ~60-90 days of engaged play (AgeBalanceTests).")]
+    [SerializeField] private float m_ResearchPerCommercialJob = 0.25f;
     [Tooltip("(M11) Outdated grown cells rebuilt in the current age's style per day (separate from MaxGrowthPerDay).")]
     [SerializeField] private int m_RedevelopPerDay = 3;
     [Tooltip("(M11) Research projects that can wait behind the active one.")]

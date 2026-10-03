@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Smithing
   m_Description: 'Forges for tools and nails. Crafts demand +10%.'
   m_Age: 0
-  m_Cost: 50
+  m_Cost: 35
   m_Prerequisites: []
   m_Effects:
   - Type: 2

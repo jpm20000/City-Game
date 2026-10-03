@@ -47,14 +47,14 @@ def upkeep(v): return (4, "", v)
 # (asset name, id, display, age, cost, prerequisites, effects, description)
 TECHS = [
     # Medieval
-    ("Commons", "commons", "Commons", 0, 40, [], [], "Common land for all. Unlocks the Park, a village green that cheers nearby homes."),
-    ("Masonry", "masonry", "Masonry", 0, 60, [], [], "Dressed stone for lasting walls. Leads to monasteries and, much later, architecture."),
-    ("CropRotation", "crop_rotation", "Crop Rotation", 0, 50, [], [demand(R, 1.1)], "Fields rest in turn and feed more mouths. Residential demand +10%."),
-    ("Smithing", "smithing", "Smithing", 0, 50, [], [demand(I, 1.1)], "Forges for tools and nails. Crafts demand +10%."),
-    ("Monasticism", "monasticism", "Monasticism", 0, 80, ["masonry"], [], "Communities of learning. Unlocks the Monastery, which produces research."),
-    ("Markets", "markets", "Markets", 0, 70, ["crop_rotation"], [demand(C, 1.1)], "A weekly market draws traders. Commercial demand +10%."),
-    ("Guilds", "guilds", "Guilds", 0, 120, ["masonry", "markets", "smithing"], [demand(C, 1.1), demand(I, 1.1)], "Masters, journeymen and standards. Commercial and crafts demand +10%."),
-    ("Charters", "charters", "Charters", 0, 100, ["markets"], [happy(0.02)], "A town charter grants rights to its citizens. Happiness +2%."),
+    ("Commons", "commons", "Commons", 0, 30, [], [], "Common land for all. Unlocks the Park, a village green that cheers nearby homes."),
+    ("Masonry", "masonry", "Masonry", 0, 40, [], [], "Dressed stone for lasting walls. Leads to monasteries and, much later, architecture."),
+    ("CropRotation", "crop_rotation", "Crop Rotation", 0, 35, [], [demand(R, 1.1)], "Fields rest in turn and feed more mouths. Residential demand +10%."),
+    ("Smithing", "smithing", "Smithing", 0, 35, [], [demand(I, 1.1)], "Forges for tools and nails. Crafts demand +10%."),
+    ("Monasticism", "monasticism", "Monasticism", 0, 50, ["masonry"], [], "Communities of learning. Unlocks the Monastery, which produces research."),
+    ("Markets", "markets", "Markets", 0, 50, ["crop_rotation"], [demand(C, 1.1)], "A weekly market draws traders. Commercial demand +10%."),
+    ("Guilds", "guilds", "Guilds", 0, 90, ["masonry", "markets", "smithing"], [demand(C, 1.1), demand(I, 1.1)], "Masters, journeymen and standards. Commercial and crafts demand +10%."),
+    ("Charters", "charters", "Charters", 0, 70, ["markets"], [happy(0.02)], "A town charter grants rights to its citizens. Happiness +2%."),
     # Renaissance
     ("PrintingPress", "printing_press", "Printing Press", 1, 200, ["monasticism"], [research(1.25)], "Books for everyone. Research +25%."),
     ("Academies", "academies", "Academies", 1, 250, ["printing_press"], [], "Halls of scholarship. Unlocks the Academy, which produces research."),
@@ -85,9 +85,9 @@ TECHS = [
 # (asset, id, display, year, max level, scale, power, techs to advance, required, pop, advance cost, starting techs, money, zone names)
 AGES = [
     ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"]),
-    ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 300, 800, [], 30000, ["", "", "Workshops"]),
-    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 900, 2500, ["electricity"], 50000, ["", "", ""]),
-    ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 2500, 8000, [], 80000, ["", "", ""]),
+    ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"]),
+    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity"], 50000, ["", "", ""]),
+    ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""]),
 ]
 
 tech_guid = {t[1]: guid("tech_" + t[1]) for t in TECHS}
