@@ -14,6 +14,8 @@ public sealed class TechModifiers
     public float ResearchMultiplier { get; private set; } = 1f;
     public float HappinessBonus { get; private set; }
     public float UpkeepMultiplier { get; private set; } = 1f;
+    public float PollutionMultiplier { get; private set; } = 1f;
+    public float LandValueBonus { get; private set; }
     public IReadOnlyCollection<string> UnlockedBuildings => m_Unlocked;
 
     private TechModifiers() { }
@@ -49,6 +51,12 @@ public sealed class TechModifiers
                         break;
                     case TechEffectType.UpkeepMultiplier:
                         result.UpkeepMultiplier *= effect.Value;
+                        break;
+                    case TechEffectType.PollutionMultiplier:
+                        result.PollutionMultiplier *= effect.Value;
+                        break;
+                    case TechEffectType.LandValueBonus:
+                        result.LandValueBonus += effect.Value;
                         break;
                     case TechEffectType.DemandMultiplier:
                         if (string.IsNullOrEmpty(effect.Target))

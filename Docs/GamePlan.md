@@ -985,7 +985,14 @@ finally pay off with a heritage bonus.
 
 #### Steps (each one fits a session and is committed on its own)
 
-- **12a Local pollution (pure + content).** `PollutionSystem`, the new `AgeDefinition`, `ServiceSource`,
+- **12a Local pollution (pure + content) — done (2026-10-03).** Notes from implementing: at the planned
+  0.02 per point the seeded city lost only 0.03 happiness to pollution (the old city-wide term cost
+  0.10), so `PollutionPenaltyPerPoint` is 0.06 (tuned): seeded city day 60 = 212 pop, 0.62 happiness
+  (0.70 with parks; pre-M12 0.60 / 0.68), half its homes polluted (the east ones face industry, the
+  west ones near the plant); 20% C/I without parks stalls at 22 pop. `EngagedCity` pacing is unchanged
+  (86 / 62 / 63 days). Industrial-start baseline re-recorded: 220 pop / 0.660 (was 0.647). Tests
+  seed the plant's pollution like the asset. 145 EditMode tests green.
+  Original plan: `PollutionSystem`, the new `AgeDefinition`, `ServiceSource`,
   `BuildingDefinition` and `BalanceConfig` fields, the per-home Pollution term, `PollutionMultiplier`.
   Generator + Power Plant asset. Tests: falloff and radius, emission by level and built age, plant
   source, resize, laziness (recomputes after a level change), tech multiplier; per-home term (a home

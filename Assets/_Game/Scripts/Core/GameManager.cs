@@ -146,7 +146,7 @@ public sealed class GameManager : MonoBehaviour
 
     private static bool IsSource(BuildingDefinition def)
     {
-        return def.CoverageRadius > 0 || def.PowerSupply > 0;
+        return def.CoverageRadius > 0 || def.PowerSupply > 0 || def.Pollution > 0f;
     }
 
     private void RebuildSources()
@@ -156,7 +156,7 @@ public sealed class GameManager : MonoBehaviour
         {
             BuildingDefinition def = b.Definition;
             m_Sources.Add(new ServiceSource(b.Origin, CellUtils.EffectiveSize(def.Size, b.Rotation),
-                def.CoverageRadius, def.PowerSupply));
+                def.CoverageRadius, def.PowerSupply, def.Pollution, def.PollutionRadius));
         }
         Simulation.Sources = m_Sources;
         m_PowerDirty = true;

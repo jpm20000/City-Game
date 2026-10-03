@@ -20,6 +20,12 @@ public sealed class AgeDefinition : ScriptableObject
     [Tooltip("Unused until M13 (water).")]
     [SerializeField] private bool m_UpgradesNeedWater;
 
+    [Header("Pollution (M12)")]
+    [Tooltip("Emission of industrial blocks built in this age, x BalanceConfig.IndustrialPollution x capacity.")]
+    [SerializeField] private float m_PollutionScale = 1f;
+    [Tooltip("Cells the pollution of industrial blocks built in this age reaches; 0 = BalanceConfig.PollutionRadius.")]
+    [SerializeField] private int m_PollutionRadius;
+
     [Header("Entering this age")]
     [Tooltip("Techs of the previous age that must be researched before advancing into this age.")]
     [SerializeField] private int m_TechsToAdvance;
@@ -44,6 +50,8 @@ public sealed class AgeDefinition : ScriptableObject
     public float CapacityScale => m_CapacityScale;
     public bool UpgradesNeedPower => m_UpgradesNeedPower;
     public bool UpgradesNeedWater => m_UpgradesNeedWater;
+    public float PollutionScale => m_PollutionScale;
+    public int PollutionRadius => m_PollutionRadius;
     public int TechsToAdvance => m_TechsToAdvance;
     public TechDefinition[] RequiredTechs => m_RequiredTechs ?? Array.Empty<TechDefinition>();
     public int PopulationToEnter => m_PopulationToEnter;
@@ -68,8 +76,10 @@ public sealed class AgeDefinition : ScriptableObject
     internal void Init(string id, int startYear, int maxLevel = 3, float capacityScale = 1f,
         bool upgradesNeedPower = true, int techsToAdvance = 0, int populationToEnter = 0,
         float advanceCost = 0f, TechDefinition[] requiredTechs = null, TechDefinition[] startingTechs = null,
-        float startingMoney = 50000f)
+        float startingMoney = 50000f, float pollutionScale = 1f, int pollutionRadius = 0)
     {
+        m_PollutionScale = pollutionScale;
+        m_PollutionRadius = pollutionRadius;
         m_Id = id;
         m_DisplayName = id;
         m_StartYear = startYear;

@@ -230,14 +230,16 @@ public sealed class SimulationTests
     }
 
     [Test]
-    public void Happiness_Pollution_IndustryHurtsMoreThanCommerce()
+    public void Happiness_Pollution_IsLocalNotCityWide()
     {
-        // Same jobs and homes; industry's share of development is 40 / 200 in the mixed city.
+        // M12: industry jobs alone cost nothing; only pollution reaching homes (ServiceStats) does.
         PopulationSystem commerce = StepCity(new CityModifiers { Housing = 100, CommercialJobs = 100 });
         PopulationSystem mixed = StepCity(new CityModifiers { Housing = 100, CommercialJobs = 60, IndustrialJobs = 40 });
+        PopulationSystem polluted = StepCity(new CityModifiers { Housing = 100, CommercialJobs = 100 },
+            services: new ServiceStats(0f, 0f, 0.08f));
 
-        Assert.AreEqual(commerce.Employed, mixed.Employed);
-        Assert.AreEqual(m_Config.PollutionPenalty * 0.2f, commerce.AverageHappiness - mixed.AverageHappiness, 1e-4f);
+        Assert.AreEqual(commerce.AverageHappiness, mixed.AverageHappiness, 1e-5f);
+        Assert.AreEqual(0.08f, commerce.AverageHappiness - polluted.AverageHappiness, 1e-4f);
     }
 
     [Test]
@@ -258,14 +260,14 @@ public sealed class SimulationTests
     public void Happiness_BreakdownExplainsTotal()
     {
         CityModifiers city = new CityModifiers { Housing = 100, CommercialJobs = 30, IndustrialJobs = 20 };
-        PopulationSystem population = StepCity(city, 0.12f, 0.15f, 0.10f, new ServiceStats(0.05f, 0.5f));
+        PopulationSystem population = StepCity(city, 0.12f, 0.15f, 0.10f, new ServiceStats(0.05f, 0.5f, 0.04f));
         HappinessBreakdown h = population.Happiness;
 
         Assert.AreEqual(population.AverageHappiness, h.Total, 1e-5f);
         Assert.AreEqual(m_Config.HappinessBase, h.Base, 1e-5f);
         Assert.Less(h.Unemployment, 0f);    // 60 workers, 50 jobs
         Assert.AreEqual(-(m_Config.TaxPenalty * 0.02f + m_Config.JobTaxPenalty * 0.05f), h.Taxes, 1e-4f);
-        Assert.AreEqual(-m_Config.PollutionPenalty * 20f / 150f, h.Pollution, 1e-4f);
+        Assert.AreEqual(-0.04f, h.Pollution, 1e-5f);
         Assert.AreEqual(0.05f, h.Services, 1e-5f);
         Assert.AreEqual(-m_Config.PowerPenalty * 0.5f, h.Power, 1e-5f);
     }

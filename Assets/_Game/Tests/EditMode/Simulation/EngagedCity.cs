@@ -32,6 +32,8 @@ internal sealed class EngagedCity
         public float Research;
         public int Radius;
         public int Supply;
+        public float Pollution;
+        public int PollutionRadius;
         public string RequiredTech;
     }
 
@@ -93,6 +95,8 @@ internal sealed class EngagedCity
                 Research = so.FindProperty("m_ResearchPerDay").floatValue,
                 Radius = so.FindProperty("m_CoverageRadius").intValue,
                 Supply = so.FindProperty("m_PowerSupply").intValue,
+                Pollution = so.FindProperty("m_Pollution").floatValue,
+                PollutionRadius = so.FindProperty("m_PollutionRadius").intValue,
                 RequiredTech = so.FindProperty("m_RequiredTech").stringValue,
             };
             m_Buildings[b.Id] = b;
@@ -334,9 +338,9 @@ internal sealed class EngagedCity
         m_Modifiers.UpkeepPerDay += b.Upkeep;
         m_Modifiers.ResearchPerDay += b.Research;
         Sim.Modifiers = m_Modifiers;
-        if (b.Radius > 0 || b.Supply > 0)
+        if (b.Radius > 0 || b.Supply > 0 || b.Pollution > 0f)
         {
-            m_Sources.Add(new ServiceSource(origin, b.Size, b.Radius, b.Supply));
+            m_Sources.Add(new ServiceSource(origin, b.Size, b.Radius, b.Supply, b.Pollution, b.PollutionRadius));
             Sim.Sources = m_Sources.ToArray();
         }
         m_Placed[b.Id] = Count(b.Id) + 1;

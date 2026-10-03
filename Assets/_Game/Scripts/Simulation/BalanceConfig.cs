@@ -53,8 +53,10 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_TaxPenaltyThreshold = 0.10f;
     [Tooltip("(tuned, M8) Happiness lost per point of commercial and of industrial tax above the threshold (cost of living).")]
     [SerializeField] private float m_JobTaxPenalty = 0.50f;
-    [Tooltip("(tuned, M8) Pollution: happiness lost scales with industry's share of all development, IndustrialJobs / (Housing + Jobs).")]
-    [SerializeField] private float m_PollutionPenalty = 0.50f;
+    [Tooltip("(tuned, M12) Happiness a home loses per pollution point reaching it; the Pollution term is the average over homes (ramps in with SmallTownGracePopulation).")]
+    [SerializeField] private float m_PollutionPenaltyPerPoint = 0.06f;
+    [Tooltip("(M12) Cap on one home's pollution penalty.")]
+    [SerializeField] private float m_PollutionPenaltyCap = 0.25f;
     [Tooltip("(tuned, M9) Bonus per service (park) whose coverage radius reaches a home; the Services term is the average over homes. Doc: 0.05 city-wide per service; doubled because a park now only helps the homes in its radius.")]
     [SerializeField] private float m_ServiceBonusEach = 0.10f;
     [Tooltip("(M9) Cap on one home's service bonus.")]
@@ -69,6 +71,12 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_IncomePerWorker = 10f;
     [SerializeField] private float m_IncomePerCommercialJob = 12f;
     [SerializeField] private float m_IncomePerIndustrialJob = 12f;
+
+    [Header("Pollution (M12)")]
+    [Tooltip("(M12) Pollution points a grown industrial cell emits per unit of capacity (a level-1 shed = 1, level 3 = 4), x its built age's PollutionScale.")]
+    [SerializeField] private float m_IndustrialPollution = 0.25f;
+    [Tooltip("(M12) Cells industrial pollution reaches without ages (and in ages whose PollutionRadius is 0); falls off linearly to the edge.")]
+    [SerializeField] private int m_PollutionRadius = 3;
 
     [Header("Research & ages")]
     [Tooltip("(tuned, M11g) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs). 0.25 puts each age at ~60-90 days of engaged play (AgeBalanceTests).")]
@@ -114,7 +122,8 @@ public sealed class BalanceConfig : ScriptableObject
     public float TaxPenalty => m_TaxPenalty;
     public float TaxPenaltyThreshold => m_TaxPenaltyThreshold;
     public float JobTaxPenalty => m_JobTaxPenalty;
-    public float PollutionPenalty => m_PollutionPenalty;
+    public float PollutionPenaltyPerPoint => m_PollutionPenaltyPerPoint;
+    public float PollutionPenaltyCap => m_PollutionPenaltyCap;
     public float ServiceBonusEach => m_ServiceBonusEach;
     public float ServiceBonusCap => m_ServiceBonusCap;
     public float PowerPenalty => m_PowerPenalty;
@@ -125,6 +134,9 @@ public sealed class BalanceConfig : ScriptableObject
     public float IncomePerWorker => m_IncomePerWorker;
     public float IncomePerCommercialJob => m_IncomePerCommercialJob;
     public float IncomePerIndustrialJob => m_IncomePerIndustrialJob;
+
+    public float IndustrialPollution => m_IndustrialPollution;
+    public int PollutionRadius => m_PollutionRadius;
 
     public float ResearchPerCommercialJob => m_ResearchPerCommercialJob;
     public int RedevelopPerDay => m_RedevelopPerDay;

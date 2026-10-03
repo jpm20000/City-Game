@@ -37,12 +37,15 @@ def write(path, text, g):
 def array(lines, indent="  "):
     return "[]" if not lines else "\n" + "\n".join(indent + "- " + l for l in lines)
 
-# Effect types: 0 UnlockBuilding, 1 ResearchMultiplier, 2 DemandMultiplier, 3 HappinessBonus, 4 UpkeepMultiplier
+# Effect types: 0 UnlockBuilding, 1 ResearchMultiplier, 2 DemandMultiplier, 3 HappinessBonus, 4 UpkeepMultiplier,
+# 5 PollutionMultiplier, 6 LandValueBonus (M12)
 R, C, I = "Residential", "Commercial", "Industrial"
 def demand(zone, v): return (2, zone, v)
 def research(v): return (1, "", v)
 def happy(v): return (3, "", v)
 def upkeep(v): return (4, "", v)
+def pollution(v): return (5, "", v)
+def land_value(v): return (6, "", v)
 
 # (asset name, id, display, age, cost, prerequisites, effects, description)
 TECHS = [
@@ -77,17 +80,18 @@ TECHS = [
     ("Suburbs", "suburbs", "Suburbs", 3, 900, ["automobiles"], [demand(R, 1.15)], "Homes with gardens at the edge of town. Residential demand +15%."),
     ("MassMedia", "mass_media", "Mass Media", 3, 800, ["telegraph"], [], "Radio and television in every home."),
     ("Internet", "internet", "Internet", 3, 1400, ["computing"], [research(1.3)], "Everything connected. Research +30%."),
-    ("Renewables", "renewables", "Renewables", 3, 1000, ["electricity"], [], "Power from wind and sun."),
+    ("Renewables", "renewables", "Renewables", 3, 1000, ["electricity"], [pollution(0.75)], "Power from wind and sun. Pollution -25%."),
     ("GreenBuilding", "green_building", "Green Building", 3, 1100, ["steel_frames"], [upkeep(0.9)], "Efficient buildings cost less to run. Upkeep -10%."),
     ("SmartGrid", "smart_grid", "Smart Grid", 3, 1300, ["computing", "renewables"], [], "A grid that balances itself."),
 ]
 
-# (asset, id, display, year, max level, scale, power, techs to advance, required, pop, advance cost, starting techs, money, zone names)
+# (asset, id, display, year, max level, scale, power, techs to advance, required, pop, advance cost, starting techs, money, zone names,
+#  pollution scale, pollution radius (M12: workshops pollute little and close by, factories a lot, clean energy less))
 AGES = [
-    ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"]),
-    ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"]),
-    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity"], 50000, ["", "", ""]),
-    ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""]),
+    ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"], 0.3, 1),
+    ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"], 0.5, 2),
+    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity"], 50000, ["", "", ""], 1.0, 3),
+    ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""], 0.6, 3),
 ]
 
 tech_guid = {t[1]: guid("tech_" + t[1]) for t in TECHS}
@@ -103,12 +107,13 @@ for asset, tid, display, age, cost, prereqs, effects, desc in TECHS:
     write(os.path.join(ROOT, "Techs", asset + ".asset"), text, tech_guid[tid])
 
 age_guid = {}
-for asset, aid, display, year, maxl, scale, power, toadv, req, pop, cost, starting, money, zones in AGES:
+for asset, aid, display, year, maxl, scale, power, toadv, req, pop, cost, starting, money, zones, pscale, pradius in AGES:
     g = guid("age_" + aid)
     age_guid[aid] = g
     text = header(GUID_AGE_DEF, asset, "AgeDefinition")
     text += "  m_Id: %s\n  m_DisplayName: %s\n  m_StartYear: %d\n  m_MaxLevel: %d\n  m_CapacityScale: %s\n" % (aid, display, year, maxl, scale)
-    text += "  m_UpgradesNeedPower: %d\n  m_UpgradesNeedWater: 0\n  m_TechsToAdvance: %d\n" % (1 if power else 0, toadv)
+    text += "  m_UpgradesNeedPower: %d\n  m_UpgradesNeedWater: 0\n" % (1 if power else 0)
+    text += "  m_PollutionScale: %s\n  m_PollutionRadius: %d\n  m_TechsToAdvance: %d\n" % (pscale, pradius, toadv)
     text += "  m_RequiredTechs: %s\n" % array([ref(tech_guid[t]) for t in req])
     text += "  m_PopulationToEnter: %d\n  m_AdvanceCost: %s\n" % (pop, cost)
     text += "  m_StartingTechs: %s\n" % array([ref(tech_guid[t]) for t in starting])

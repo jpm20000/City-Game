@@ -19,6 +19,8 @@ MonoBehaviour:
   m_CapacityScale: 1.0
   m_UpgradesNeedPower: 1
   m_UpgradesNeedWater: 0
+  m_PollutionScale: 1.0
+  m_PollutionRadius: 3
   m_TechsToAdvance: 4
   m_RequiredTechs: []
   m_PopulationToEnter: 350

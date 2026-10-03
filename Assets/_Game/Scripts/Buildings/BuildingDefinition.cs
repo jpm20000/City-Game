@@ -24,6 +24,10 @@ public sealed class BuildingDefinition : ScriptableObject
     [SerializeField] private string m_RequiredTech = "";
     [Tooltip("Research points per day while placed (M11).")]
     [SerializeField] private float m_ResearchPerDay;
+    [Tooltip("Pollution points emitted at the footprint (M12); 0 = clean.")]
+    [SerializeField] private float m_Pollution;
+    [Tooltip("Cells the pollution spreads, falling off linearly (M12).")]
+    [SerializeField] private int m_PollutionRadius;
 
     public string Id => m_Id;
     public string DisplayName => m_DisplayName;
@@ -42,4 +46,6 @@ public sealed class BuildingDefinition : ScriptableObject
     public int PowerSupply => m_PowerSupply;
     public string RequiredTech => m_RequiredTech;
     public float ResearchPerDay => m_ResearchPerDay;
+    public float Pollution => m_Pollution;
+    public int PollutionRadius => m_PollutionRadius;
 }

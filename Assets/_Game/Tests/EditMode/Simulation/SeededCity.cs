@@ -10,6 +10,8 @@ internal static class SeededCity
 {
     public static readonly Vector2Int PlantOrigin = new Vector2Int(0, 9);
     public const int PlantSupply = 600;
+    public const float PlantPollution = 6f;      // as PowerPlant.asset (M12)
+    public const int PlantPollutionRadius = 5;
     public static readonly Vector2Int[] ParkOrigins = { new Vector2Int(5, 14), new Vector2Int(14, 16) };
 
     public static void Seed(GridData grid)
@@ -45,7 +47,8 @@ internal static class SeededCity
         CityModifiers modifiers = default;
         if (plantSupply > 0)
         {
-            PlaceSource(grid, sources, ref modifiers, PlantOrigin, new Vector2Int(3, 3), 0, plantSupply, 100f);
+            PlaceSource(grid, sources, ref modifiers, PlantOrigin, new Vector2Int(3, 3), 0, plantSupply, 100f,
+                PlantPollution, PlantPollutionRadius);
         }
         if (parks)
         {
@@ -73,14 +76,14 @@ internal static class SeededCity
     }
 
     private static void PlaceSource(GridData grid, List<ServiceSource> sources, ref CityModifiers modifiers,
-        Vector2Int origin, Vector2Int size, int radius, int supply, float upkeep)
+        Vector2Int origin, Vector2Int size, int radius, int supply, float upkeep, float pollution = 0f, int pollutionRadius = 0)
     {
         foreach (Vector2Int cell in grid.GetFootprint(origin, size, 0))
         {
             grid.SetZone(cell, ZoneType.None);
         }
         Assert.IsTrue(grid.Occupy(origin, size, 0, sources.Count + 1));
-        sources.Add(new ServiceSource(origin, size, radius, supply));
+        sources.Add(new ServiceSource(origin, size, radius, supply, pollution, pollutionRadius));
         modifiers.UpkeepPerDay += upkeep;
     }
 }

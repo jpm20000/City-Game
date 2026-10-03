@@ -29,3 +29,5 @@ MonoBehaviour:
   m_PowerSupply: 600
   m_RequiredTech: electricity
   m_ResearchPerDay: 0
+  m_Pollution: 6
+  m_PollutionRadius: 5

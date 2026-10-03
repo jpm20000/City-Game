@@ -102,7 +102,7 @@ public sealed class PopulationSystem
             m_Config.HappinessBase,
             -m_Config.UnemploymentPenalty * cityWeight * Unemployed / Mathf.Max(Workers, 1),
             -TaxHappinessPenalty(taxResidential, taxCommercial, taxIndustrial),
-            -m_Config.PollutionPenalty * cityWeight * IndustrialJobs / Mathf.Max(Housing + Jobs, 1),
+            -cityWeight * services.PollutionPenalty,
             services.ServiceBonus,
             -m_Config.PowerPenalty * cityWeight * services.UnpoweredHousingShare,
             -m_Config.HomelessPenalty * Homeless / Mathf.Max(Population + Homeless, 1),

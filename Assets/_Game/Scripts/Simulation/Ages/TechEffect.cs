@@ -7,6 +7,8 @@ public enum TechEffectType
     DemandMultiplier,       // Target = zone name (Residential/Commercial/Industrial), empty = all; demand x Value
     HappinessBonus,         // + Value happiness
     UpkeepMultiplier,       // upkeep x Value
+    PollutionMultiplier,    // every emission x Value (M12)
+    LandValueBonus,         // + Value land value on every cell (M12)
 }
 
 // One effect of a researched tech. Folded into TechModifiers.

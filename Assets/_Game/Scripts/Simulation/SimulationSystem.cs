@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 
-// Pure daily tick in the fixed order Demand -> Growth -> Population -> Economy -> Research. Power and
-// coverage are derived views (power recomputes lazily after any grid change), so they need no tick
-// step. Built without age/tech databases, the sim plays by AgeRules.Legacy and has no research.
+// Pure daily tick in the fixed order Demand -> Growth -> Population -> Economy -> Research. Power,
+// coverage and pollution are derived views (power and pollution recompute lazily after any grid
+// change), so they need no tick step. Built without age/tech databases, the sim plays by AgeRules.Legacy and has no research.
 public sealed class SimulationSystem
 {
     private readonly GridData m_Grid;
@@ -16,6 +16,7 @@ public sealed class SimulationSystem
     public GrowthSystem Growth { get; }
     public PowerSystem Power { get; }
     public CoverageSystem Coverage { get; }
+    public PollutionSystem Pollution { get; }
 
     // Research and the current age; null when the sim was built without age/tech databases.
     public TechSystem Tech { get; }
@@ -42,6 +43,7 @@ public sealed class SimulationSystem
             m_Sources = value ?? Array.Empty<ServiceSource>();
             Power.SetSources(m_Sources);
             Coverage.Recompute(m_Sources);
+            Pollution.SetSources(m_Sources);
         }
     }
 
@@ -61,6 +63,7 @@ public sealed class SimulationSystem
         Demand = new DemandSystem(config);
         Power = new PowerSystem(grid, config, Capacity);
         Coverage = new CoverageSystem(grid.Width, grid.Height);
+        Pollution = new PollutionSystem(grid, config, Capacity, ages, () => TechModifiers);
         Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech);
         grid.OnResized += () =>
         {
@@ -72,7 +75,7 @@ public sealed class SimulationSystem
     // The Power term only counts in ages whose upgrades need power.
     public ServiceStats MeasureServices()
     {
-        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower);
+        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution);
     }
 
     // Research points earned per day at the current population: filled commercial jobs plus
