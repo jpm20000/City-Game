@@ -14,6 +14,7 @@ using Object = UnityEngine.Object;
 // Each day, before the tick, the player keeps research going (advances as soon as the checklist
 // allows, otherwise the cheapest available tech) and places research buildings, parks and power
 // plants as they unlock and are needed, paying for them and keeping a cash cushion.
+// M12: homes or shops held at level 2 by low land value get a park in the middle of their block.
 // Building numbers come from the BuildingDatabase asset through SerializedObject, because
 // BuildingDefinition lives in Assembly-CSharp, which test assemblies can't reference.
 internal sealed class EngagedCity
@@ -297,6 +298,30 @@ internal sealed class EngagedCity
             want = Mathf.Min(want, b.Supply > 0 ? 12 : 8);
             if (Count(b.Id) < want) TryPlace(b);
         }
+        RaiseLandValue();
+    }
+
+    // M12: homes or shops held at level 2 by land value get a park in the free 2x2 middle of their
+    // block (no road access there, so it's never zoned). One a day, paid like any other building.
+    private void RaiseLandValue()
+    {
+        Building park = default;
+        bool found = false;
+        foreach (Building b in m_Buildings.Values)
+        {
+            if (b.Radius > 0 && b.Size == new Vector2Int(2, 2) && Unlocked(b)) { park = b; found = true; break; }
+        }
+        if (!found || Sim.Economy.Money - park.Cost < Cushion) return;
+
+        foreach (Vector2Int cell in m_ZonedCells)
+        {
+            if (!Sim.Growth.IsHeldByLandValue(cell)) continue;
+            Vector2Int block = new Vector2Int((cell.x - 1) / RoadSpacing * RoadSpacing + 1, (cell.y - 1) / RoadSpacing * RoadSpacing + 1);
+            Vector2Int middle = block + Vector2Int.one;
+            if (!Grid.CanPlace(middle, park.Size, 0) || Grid.GetZone(middle) != ZoneType.None) continue;
+            PlaceAt(park, middle);
+            return;
+        }
     }
 
     // A new plant when supply is short of demand (with a growth margin) or anything is unpowered.
@@ -332,7 +357,11 @@ internal sealed class EngagedCity
             origin = m_FreeBlocks[0];
             m_FreeBlocks.RemoveAt(0);
         }
+        PlaceAt(b, origin);
+    }
 
+    private void PlaceAt(Building b, Vector2Int origin)
+    {
         Assert.IsTrue(Grid.Occupy(origin, b.Size, 0, m_NextOccupant++), $"{b.Id} at {origin}");
         Sim.Economy.Spend(b.Cost);
         m_Modifiers.UpkeepPerDay += b.Upkeep;

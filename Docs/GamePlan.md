@@ -425,7 +425,7 @@ Each milestone is independently verifiable before moving on.
 | 18 | Art & atmosphere | Hand-made per-age assets through the M11 visual sets, day/night, audio | Every age has its own skyline |
 | 19 | Release | Main menu, settings, save slots, player build | A standalone build plays start to finish |
 
-**Status (2026-10-03):** M0–M11 implemented — the vertical slice is complete, M9 (§11) added power, park coverage and info views, M10 (§12) made the map size per city (default 64²) with a New City dialog, and M11 (§12) added four ages, research and a 30-tech tree, per-age growth rules and looks, redevelopment with Keep historical, save v2 with migration, and a starting-age picker. M7 shipped as UGUI + TextMeshPro
+**Status (2026-10-03):** M0–M12 implemented — the vertical slice is complete, M12 (§12) made pollution local and added land value (level 3 needs it) and the heritage bonus, M9 (§11) added power, park coverage and info views, M10 (§12) made the map size per city (default 64²) with a New City dialog, and M11 (§12) added four ages, research and a 30-tech tree, per-age growth rules and looks, redevelopment with Keep historical, save v2 with migration, and a starting-age picker. M7 shipped as UGUI + TextMeshPro
 prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
 generated from the database), selection panel, taxes panel, notifications (toast +
 debt banner) and an F1 debug panel. The zone-painting tool landed early (after M6),
@@ -930,7 +930,7 @@ road tiers on these techs (water tower → Public Sanitation, fire station → S
   milestone so far; the steps above are ordered so the game stays playable after each one
   (11a–11c change nothing visible for an Industrial-start city).
 
-### M12 — Land value & local pollution (plan, 2026-10-03)
+### M12 — Land value & local pollution (plan, 2026-10-03) — done (2026-10-03)
 
 **Goal:** where things stand matters. Pollution is local: industry (and the power plant) dirties
 the cells around it, by an amount and radius that depend on the age a block was built in. Every
@@ -1018,7 +1018,20 @@ finally pay off with a heritage bonus.
   Original plan: Pollution and Land value info views (ground shading + building tints, through
   `GrowthVisuals.SetColorOverride`), two VIEW buttons, SelectionPanel lines, tooltip lines, the
   land-value toast. Play-mode screenshots of both views on a seeded city.
-- **12d Balance, play-through, docs.** `EngagedCity` learns to place parks for homes blocked by land
+- **12d Balance, play-through, docs — done (2026-10-03).** Notes from implementing: `EngagedCity` places a
+  park in the free 2×2 middle of any block with a home or shop held by land value (one a day, paid);
+  zone separation wasn't needed — every `AgeBalanceTests` target holds without retuning (Medieval start
+  86 / 62 / 63 days, never in debt; Industrial / Modern starts 588 / 888 pop at day 120, happiness
+  0.80 / 0.83 with the extra parks). Tick on a full 96² city (EditMode, all cells level 3): 0.76 ms, of
+  which the pollution + heritage recompute is 0.38 ms — inside the budget, no renderers added, so no
+  player benchmark. UI-only play-through (virtual mouse / keyboard, 0 failed checks): New (Industrial,
+  64²) → road from the edge, homes across from industry, a plant from the toolbar → skip 90 days → a
+  home held at level 2 (pollution 4.5, land value 37%, −13.5% city pollution happiness) → Pollution
+  view, the panel explains it → park behind it (47%) + a second plant → level 3 → Keep historic
+  (neighbour 55% → 60%, heritage happiness +0.5%) → Value view, V cycles to Ages and Off. One run
+  failed only because the first plant was full (the scenario now adds a second). 151 EditMode tests
+  green.
+  Original plan: `EngagedCity` learns to place parks for homes blocked by land
   value and to keep zones apart (industry blocks away from homes); retune toward the `AgeBalanceTests`
   targets and re-record the Industrial-start baseline. UI-only play-through: industry next to homes →
   Pollution view → a home held at level 2 (panel says why) → park → it reaches level 3 → keep a block
@@ -1078,5 +1091,8 @@ thumbnails, a tutorial for the first age, and a Windows player build.
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). **M11 done** (steps 11a–11g,
 all done-when checks met: Medieval start advances through all four ages with redevelopment and Keep
 historical; Industrial start = today's game plus the accepted earlier-age bonuses; save v2 round
-trips and v1 migrates; EditMode tests green plus the UI-only play-through). **M12 planned** (land value &
-local pollution, steps 12a–12d above); next: 12a.
+trips and v1 migrates; EditMode tests green plus the UI-only play-through). **M12 done** (steps 12a–12d:
+local pollution by built age, land value with the level-3 gate, heritage bonus, Pollution and Value
+views; the age-less baseline changed by decision, Industrial start re-recorded at 220 pop / 0.660;
+EditMode tests green plus the UI-only play-through). Next: M13 (water) — expand its outline below into
+a full plan first.
