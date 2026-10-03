@@ -1048,11 +1048,91 @@ finally pay off with a heritage bonus.
 - **Tick cost:** pollution recomputes after any grid change, which is almost every day; cost is
   sources × (2r + 1)² (~0.1 M adds on a full 96² map). Fine, but measure it.
 
+### M13 — Water (plan, 2026-10-03)
+
+**Goal:** every age needs water to grow. In the Medieval and Renaissance ages, wells and fountains
+water the blocks around them (coverage). From the Industrial age on, water towers and pumping
+stations feed a pipe network: every road carries water, the way roads carry power, and the player
+can draw pipes where no road runs (to reach a pump outside town, or to join two road networks). The
+water gate sits beside the power gate. Water gets an info view, a HUD readout and toasts, following
+the power pattern.
+
+**Done when:**
+- Medieval: blocks stay at level 1 until a well's radius covers them, and a well lets them reach
+  level 2. Renaissance: a fountain (bigger radius, and it also counts as a park) lets them reach
+  level 3 (the land-value gate still applies).
+- Industrial / Modern: upgrades need power **and** piped water with headroom for the extra draw. A
+  water tower beside the road network waters it. A pumping station built away from any road works
+  once a drawn pipe links it to the roads. Two road networks joined by a pipe share their supply.
+- Advancing into the Industrial age needs Waterworks. On arrival wells stop counting, and the toast
+  says to build a water tower. A city that starts in Industrial or Modern has Waterworks researched.
+- The age-less sim needs piped water like the Industrial age (decided, see the table). The seeded
+  test city gets a water tower, and the legacy checks still hold.
+- Save v3 stores pipes. v2 saves and the v1 fixture migrate (no pipes), and save → load → continue
+  equals an uninterrupted run.
+- `AgeBalanceTests` still meet their targets (45–90 days per age, never in debt, happiness ≥ 0.55).
+  All EditMode tests are green, and a UI-only virtual-input play-through passes.
+
+#### Design decisions (defaults — change any before the step that uses them)
+
+| Topic | Decision |
+|---|---|
+| Baseline | **Water gates every age, the age-less sim included** (decided 2026-10-03: "everywhere, so long as all ages require water"). `AgeRules.Legacy` = Industrial = piped water. The no-age sim still equals the Industrial age's rules, so `IndustrialStart_PlaysExactlyLikeTheNoAgeSim` keeps holding (`TestAges` gives Industrial / Modern piped water). `SeededCity` seeds a water tower (free, like the plant) with supply ≥ the plant's, so water never binds before power. The legacy checks are ranges, so only upkeep-driven money numbers should move; the step records what moved, and `IndustrialStart_RealContent_Baseline` is re-recorded. |
+| Water rule per age | `AgeDefinition.m_UpgradesNeedWater` (bool, unused) becomes `WaterRule Water` = `None / Coverage / Piped` (an `AgeRules` field). Medieval and Renaissance use `Coverage`; Industrial and Modern use `Piped`. `None` is used only by tests. The gate covers every zone and every upgrade past level 1, like power. Level 0 → 1 never needs water. |
+| Coverage (early ages) | A cell has water when a source with `WaterRadius` > 0 reaches it (Chebyshev distance from the footprint, like parks). There is no capacity: a well serves everything in range. `CoverageSystem` gains a radius selector, so a second instance counts water sources. |
+| Piped network (later ages) | `PowerSystem`'s network and allocation model, generalised. Network cells = roads ∪ pipe cells, 4-connected; no map-edge requirement. Sources (`WaterSupply` > 0) seed from the road or pipe cells sharing an edge with their footprint. Sources on one network pool supply. Draw = capacity × `WaterPerCapacity` (1.0, the same units as power), handed out in BFS order from the sources (the furthest cells go dry first). A grown cell is fed by a network cell beside it **or a pipe under it**. |
+| Pipes ("both possible", decided 2026-10-03) | Roads always carry water, and pipes are optional. Pipes are a per-cell flag in `GridData` that can lie under empty, zoned, grown or built cells, but not under roads (a road placed on a pipe clears it, since the road carries water anyway). Pipes don't give road access. Pipe tool: drag to lay pipes; a drag that starts on a pipe removes them. Cost `PipeCost` $5 per cell, upkeep `PipeUpkeepPerDay` $0.02 per cell. The tool unlocks with Waterworks and is hidden before that. Pipes are drawn only while the Water view or the pipe tool is shown (they're underground). |
+| Happiness | New `HappinessBreakdown.Water` term = `−WaterPenalty (0.05) × unwateredHousingShare`, ramped in with `SmallTownGracePopulation`, like Power. It counts in every age with a water rule, which is all of them in the shipped content. `ServiceStats.UnwateredHousingShare`. |
+| Growth | New blockers `NoWater` (coverage ages: "no well nearby"; piped ages: "no water") and `WaterAtCapacity`. They are checked after power. Upgrades and redevelopment in piped ages reserve water headroom. Power and water must **both** have headroom before either is reserved (check both with `HasHeadroom`, then call `TryReserve` on both), so a blocked upgrade never leaks a reservation. |
+| Ages advancing | Advancing Renaissance → Industrial switches the rule: wells stop counting, so upgrades stall until a tower is up (the same situation as power today). Industrial's `RequiredTechs` = Electricity **and Waterworks**, and both are its `StartingTechs`. The "Welcome to the Industrial Age" toast adds the water hint. Already-grown levels never drop. |
+| Content | **Well** (`well`): Utility, 1×1, $150, $1/day, `WaterRadius` 3, no tech (buildable from day one), `ObsoleteAge` industrial. **Fountain** (`fountain`): Service, 1×1, $1,200, $8/day, `WaterRadius` 5 + `CoverageRadius` 3 (it also counts as a park), needs a new Renaissance tech **Aqueducts** (`aqueducts`, 160 RP, prereq Masonry). **Water Tower** (`water_tower`): Utility, 1×1, $2,500, $25/day, `WaterSupply` 300, needs a new Industrial tech **Waterworks** (`waterworks`, 150 RP, no prereq). **Pumping Station** (`pumping_station`): Utility, 2×2, $8,000, $70/day, `WaterSupply` 1,200, needs Public Sanitation (existing; it has no unlock yet). All numbers are tunables. |
+| Obsolete buildings | New `BuildingDefinition.ObsoleteAge` (age Id string, empty = never): hidden from the toolbar in that age and later. Existing ones stay, and the SelectionPanel says "Obsolete — homes now need piped water". M14's "replace with X" hints build on this field. In piped ages the Fountain keeps its park effect, and its panel says its water no longer counts. |
+| Saves | Pipes are persisted, so **`SaveData.CurrentVersion` 2 → 3**: `Pipes` (row-major bytes), plus a `SaveMigrations` step v2 → v3 (no pipes) with a test. Coverage, the network and watered cells are derived and never saved. Old Industrial / Modern saves load with no tower, so upgrades pause until the player builds one (the nudge toast says so). That is accepted, not migrated away. |
+| UI | `InfoOverlay.View.Water` ("Water" VIEW button; available once any water building is unlocked, which is always with the shipped content because the Well needs no tech). Coverage ages: covered land blue, uncovered homes red. Piped ages: watered roads and pipes blue, grown cells blue / red, the pipe tilemap shown. HUD `Water` group beside `Power`: "Water demand / supply" (piped) or "Water n% of homes" (coverage), red while any grown cell is dry. SelectionPanel: source lines (radius or supply / city water), "Water ✓ / No water" on grown cells, "Carries water" on roads and pipes, the blocker texts. Tooltip line "Water". Toasts: the power set mirrored (tower online, water lost, shortage, a one-time "dig a well" / "build a water tower" nudge at `SmallTownGracePopulation`). The what-if preview covers water sources too. |
+
+#### Architecture
+
+**Pure, in the Grid / Simulation asmdefs:**
+
+| New / changed | Notes |
+|---|---|
+| `GridData` (Grid asmdef) | `IsPipe / SetPipe` (false on road cells; `SetRoad(true)` clears the pipe), `CountPipes`, `ExportPipes`, `Import(..., pipes = null)`. `OnCellChanged` on change; `Resize` clears. |
+| `UtilityNetwork` | `PowerSystem`'s body moved into an abstract base: `SupplyOf(ServiceSource)`, `CarriesAt(cell)` (power: road; water: road or pipe), `FeedsUnder(cell)` (water: a pipe under a grown cell), and a draw factor. It keeps the BFS order, the even split for multi-network sources, `HasHeadroom` / `TryReserve` and laziness. `PowerSystem` becomes a thin subclass with its public API unchanged (`IsPowered`, `IsEnergisedRoad`…), so `ServicesTests` is the regression proof. |
+| `WaterSystem` | Façade owned by `SimulationSystem` (`Simulation.Water`): a `UtilityNetwork` for piped water plus a `CoverageSystem` over `WaterRadius`. Its mode comes from `Rules.Water`. API: `HasWater(cell)`, `IsCarrying(cell)`, `HasHeadroom` / `TryReserve` (always true in coverage mode), `Supply` / `Load` / `Demand` / `DryCells`, `CoverageAt(cell)`, `Mode`. Lazy; recomputes on `OnCellChanged`, on `SetSources` and when the age changes. |
+| `CoverageSystem` | Optional `Func<ServiceSource, int>` radius selector (default `CoverageRadius`, so parks are unchanged). |
+| `ServiceSource` | `+ WaterSupply`, `+ WaterRadius` (old constructor kept). |
+| `AgeDefinition` / `AgeRules` | `WaterRule Water` (replaces the unused bool); `AgeRules(..., water = None)` keeps the old call sites; `Legacy` = `Piped`. `Init(..., water)`. |
+| `GrowthSystem` | Water gate beside power in `CollectAtLevel`, `CollectRedevelopment` and `GetBlocker`, with the combined reservation; it reads `WaterSystem` (an optional constructor argument; null = no gate, so the old unit-test constructors keep working). |
+| `GrowthBlocker` | `+ NoWater`, `+ WaterAtCapacity` (appended). |
+| `ServiceStats` / `HappinessBreakdown` / `PopulationSystem` | `UnwateredHousingShare`, `Water` term (ramped). `Measure(..., countWater, water)`. |
+| `EconomySystem` tick | Expense adds `CountPipes × PipeUpkeepPerDay`. |
+| `BalanceConfig` | `WaterPerCapacity` 1.0, `WaterPenalty` 0.05, `PipeCost` 5, `PipeUpkeepPerDay` 0.02 — tagged "(M13)", mirrored in the asset. |
+| `SaveData` / `SaveMigrations` / `SaveSystem` | v3 `Pipes`; the v2 → v3 step; `Capture` / `ApplyGrid`. |
+
+**Runtime (`Assembly-CSharp`):** `BuildingDefinition.WaterSupply`, `WaterRadius`, `ObsoleteAge` → `GameManager` sources, `GameManager.WaterUnlocked` / `IsObsolete(def)`, `GameEvents.WaterChanged(supply, demand, dryCells)` (+ `ResetSubscribers`), `PlacementController` pipe mode (`SelectPipeTool`, drag lay / remove, hint, cost) + `InputReader` binding (`P`), `PipeTilemapView` (a `GridTilemapView` on a new `Grid/Pipes` Tilemap, thin auto-tiled runtime sprites, visible only in the Water view or with the pipe tool), `InfoOverlay.View.Water`, the toolbar `PIPE` and `VIEW` buttons, `HUDController` Water group, `SelectionPanel`, `HappinessTooltip`, `NotificationController`, and four building prefabs (placeholder primitives with shared materials, colliders on the root).
+
+#### Steps (each one fits a session and is committed on its own)
+
+- **13a Water in the sim (pure).** Extract `UtilityNetwork` from `PowerSystem` first and commit nothing until `ServicesTests` and the seeded-city tests are unchanged. Then add `WaterSystem` (coverage + piped, without pipes yet: roads only), `WaterRule` on `AgeDefinition` / `AgeRules`, `ServiceSource` fields, the growth gate with the combined reservation, the blockers, the Water happiness term and the `BalanceConfig` fields. `SeededCity` seeds a tower; `TestAges` gets water rules. Tests: coverage radius and multiple sources; the piped network (feeds beside roads, pools, BFS order, the furthest cell goes dry first, headroom and reservation); the combined reservation doesn't leak power when water is short; blockers per age; the rule switching on advance; resize; the Water term (zero in a fully watered city). Run the whole suite and record what moved, including the re-recorded Industrial baseline.
+- **13b Content and the engaged player.** Generator: the `WaterRule` per age, the Aqueducts and Waterworks techs, Industrial's required / starting techs. The four `BuildingDefinition`s and prefabs, plus `ObsoleteAge`. `SeededCity` / `EngagedCity.LoadBuildings` mirror the new asset fields (the M12 lesson). `EngagedCity` digs a well for any block blocked by `NoWater` in coverage ages (cheapest first, one a day), researches Waterworks before advancing into Industrial, builds a tower on the first piped day and adds towers / pumps when `WaterAtCapacity` shows up. Re-run `AgeBalanceTests` and tune (the first knobs: well radius and cost, `WaterPenalty`). `ContentTests` stays green. Runtime minimum so the game stays playable: `GameManager` sources and the toolbar hides obsolete buildings.
+- **13c Water UI.** `GameEvents.WaterChanged`, `GameManager.WaterUnlocked`, the HUD Water group, the Water view (both modes, what-if preview), the SelectionPanel lines and blocker texts, the tooltip line and the toasts (including the Industrial welcome hint and the nudge). Play-mode screenshots of the view in a Medieval and an Industrial city.
+- **13d Pipes and save v3.** `GridData` pipes, the network carrying pipes and feeding cells with a pipe under them, the pipe upkeep, save v3 + migration + tests (v2 → v3, the v1 fixture through the chain, a round trip with pipes mid-shortage = uninterrupted run). Runtime: the pipe tool (button, `P`, drag lay / remove, hint, cost), `PipeTilemapView`, and pipes in the Water view. Tests: a pump away from roads linked by a pipe; two road networks joined by a pipe pool their supply; a pipe under a grown cell feeds it; a road placed on a pipe clears it; resize.
+- **13e Balance, play-through, docs.** Final `AgeBalanceTests` pass; measure the full 96² tick (power + water networks; it must stay ≈1–2 ms, and run `perf-benchmark` only if not or if the pipe tilemap shows up in frame time). UI-only play-through: New (Medieval, 32²) → zone and road → homes held at level 1, the panel says "no well nearby" → Water view → dig a well → level 2 → (debug) research to and advance into Industrial → wells drop out, the toast → build a tower → upgrades resume → a pumping station off the road, a pipe to the roads → the HUD supply rises → save, load, the pipes are still there. Docs: §13 (a new *Water (M13)* section; Services & power notes the shared `UtilityNetwork`; Save / load v3; UI), the §12 notes and status, §8, the `AGENTS.md` Project bullet, the `CLAUDE.md` header.
+
+#### Risks / open questions
+
+- **Medieval pacing is already near the limit** (86 days of 90). Wells now gate the only Medieval upgrade, so the engaged player must dig them promptly. If the age runs over, first make the well cheaper or wider before touching `MaxGrowthPerDay` (which is shared with the age-less game).
+- **The Industrial stall on advancing** is intended, but `EngagedCity` must research Waterworks early or Renaissance → Industrial pacing slips (the advance now has one more required tech).
+- **Old saves:** every v1 / v2 Industrial or Modern city loads without a tower, and its upgrades pause until the player builds one. Accepted (the nudge toast explains it); the alternative (placing a free tower during migration) would need a free spot beside a road.
+- **Refactoring `PowerSystem`** risks a subtle order change in the BFS. Mitigation: extract first, with the full suite green and the seeded numbers identical, before any water code.
+- **Tick cost:** a second network BFS after every grid change, which is almost every day. Power costs well under 0.4 ms on a full 96² map, so measure it in 13e.
+- **Pipe UX:** underground pipes are invisible outside the Water view, which can confuse. The pipe tool forces the view on (like the Plant / Park tools force theirs), and the SelectionPanel mentions a pipe under a cell.
+
 ### Where M13–M19 plug in (integration notes)
 Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code that exists today; decide the details in each milestone's plan.
 
 - **M12 Land value & local pollution — done** (see §13 Land value & pollution). Original outline: per-cell pollution (industrial cells emit in an age-scaled radius) replaces the city-wide `PollutionPenalty` term in `PopulationSystem`; per-cell land value from parks/services, pollution and the heritage bonus (`GridData.IsHistoric` raises value around kept cells). Build both like `CoverageSystem` (per-cell arrays, lazy recompute, `OnResized`). Level 3 gains a land-value gate → new `GrowthBlocker`. Pollution and Land value info views.
-- **M13 Water:** `AgeDefinition.UpgradesNeedWater` already exists (unused) — add it to `AgeRules` and gate upgrades in `GrowthSystem` beside the power gate. Early ages: wells and fountains as coverage sources; Industrial and Modern: towers and pumps feeding pipes under roads, a copy of `PowerSystem`'s network and allocation model (`ServiceSource` + `BuildingDefinition` get a water supply). HUD group, view and toasts follow the power pattern.
+- **M13 Water** (full plan above): `AgeDefinition.UpgradesNeedWater` already exists (unused) — add it to `AgeRules` and gate upgrades in `GrowthSystem` beside the power gate. Early ages: wells and fountains as coverage sources; Industrial and Modern: towers and pumps feeding pipes under roads, a copy of `PowerSystem`'s network and allocation model (`ServiceSource` + `BuildingDefinition` get a water supply). HUD group, view and toasts follow the power pattern.
 - **M14 Civic services:** order, fire, health and education lines with per-age `BuildingDefinition`s unlocked by existing techs (e.g. fire station → Steam Power). Education buildings produce RP via `ResearchPerDay`. Health and crime become `HappinessBreakdown` terms (+ the happiness tooltip); per-cell crime and fire risk use the coverage pattern. Obsolete placed services get "outdated, replace with X" hints in `SelectionPanel`.
 - **M15 Budget depth:** per-service funding scales a service's radius and effect (`ServiceSource` / `CoverageSystem`); loans with interest live in `EconomySystem` (saved → version bump); ordinances are tech-unlocked toggles (a new `TechEffectType` if needed). `TaxPanel` grows into a budget panel in the `SidePanels` slot.
 - **M16 Traffic:** statistical load per road cell from the homes↔jobs flow (no agents); congestion lowers road access quality and happiness. Road tiers (dirt → cobble → paved → avenue → highway) become a per-road byte in `GridData` (saved → version bump), are unlocked by tech (the `UnlockRoadTier` idea in §12) and drawn per tier by `RoadTilemapView`. Traffic view. Watch the 96² benchmark.
@@ -1068,7 +1148,7 @@ term. Land value per cell comes from parks, services, water/coast later, polluti
 **heritage bonus** (historic cells raise value around them). Level 3 needs a land-value
 threshold. Adds Pollution and Land value info views. Reuses the `CoverageSystem` pattern.
 
-**M13 — Water.** Wells and fountains (coverage radius, Medieval and Renaissance), water towers and pumps
+**M13 — Water** (full plan above). Wells and fountains (coverage radius, Medieval and Renaissance), water towers and pumps
 feeding pipes under roads (Industrial and Modern, a copy of the `PowerSystem` network/allocation model). Fills in the
 "Upgrades need water" column above. Water info view, HUD readout, toasts.
 
@@ -1106,8 +1186,7 @@ historical; Industrial start = today's game plus the accepted earlier-age bonuse
 trips and v1 migrates; EditMode tests green plus the UI-only play-through). **M12 done** (steps 12a–12d:
 local pollution by built age, land value with the level-3 gate, heritage bonus, Pollution and Value
 views; the age-less baseline changed by decision, Industrial start re-recorded at 220 pop / 0.660;
-EditMode tests green plus the UI-only play-through). Next: M13 (water) — expand its outline below into
-a full plan first.
+EditMode tests green plus the UI-only play-through). Next: M13 (water) — plan written (2026-10-03), 13a next.
 
 ---
 
