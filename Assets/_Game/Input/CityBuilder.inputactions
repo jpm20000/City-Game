@@ -28,7 +28,7 @@
                 },
                 {
                     "name": "Pointer",
-                    "type": "Value",
+                    "type": "PassThrough",
                     "id": "d8d4a683-af44-4f8d-8cb6-12e75c16cb45",
                     "expectedControlType": "Vector2",
                     "processors": "",

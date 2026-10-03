@@ -389,6 +389,13 @@ Money  += Income - Expense                    // negative => bankruptcy warning 
 > These are **starting numbers**, not final. The 60-day playtest should settle at
 > roughly 200–400 population with positive cash flow at 10% tax.
 
+> **Ages (M11g):** research = 0.25 RP per filled commercial job (+ research buildings: Monastery
+> 3, Academy 5 RP/day) × tech multipliers; ages are entered at 120 / 350 / 650 residents for
+> 250 / 1,200 / 3,000 RP after 5 / 4 / 5 techs of the current age. With engaged play (the
+> `EngagedCity` harness) a Medieval start spends 86 / 62 / 63 days in Medieval / Renaissance /
+> Industrial and reaches Modern on day 211. An Industrial start keeps every earlier tech's bonus
+> (accepted): 220 pop / 0.65 happiness at day 60 vs 212 / 0.60 without ages.
+
 ---
 
 ## 8. Roadmap
@@ -418,7 +425,7 @@ Each milestone is independently verifiable before moving on.
 | 18 | Art & atmosphere | Hand-made per-age assets through the M11 visual sets, day/night, audio | Every age has its own skyline |
 | 19 | Release | Main menu, settings, save slots, player build | A standalone build plays start to finish |
 
-**Status (2026-10-03):** M0–M10 implemented — the vertical slice is complete, M9 (§11) added power, park coverage and info views, and M10 (§12) made the map size per city (default 64²) with a New City dialog. M7 shipped as UGUI + TextMeshPro
+**Status (2026-10-03):** M0–M11 implemented — the vertical slice is complete, M9 (§11) added power, park coverage and info views, M10 (§12) made the map size per city (default 64²) with a New City dialog, and M11 (§12) added four ages, research and a 30-tech tree, per-age growth rules and looks, redevelopment with Keep historical, save v2 with migration, and a starting-age picker. M7 shipped as UGUI + TextMeshPro
 prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
 generated from the database), selection panel, taxes panel, notifications (toast +
 debt banner) and an F1 debug panel. The zone-painting tool landed early (after M6),
@@ -850,7 +857,25 @@ two materials per prefab.
     new = cool), historic cells highlighted, outdated cells striped.
   - **Toasts:** research complete, "*X* unlocked", "Ready to advance to *age*", "Welcome to the
     *age*", first redevelopment. Power HUD group / Power view / power nudge hidden until Electricity is researched.
-- **11g Balance, play-through, docs.** Tune RP and thresholds with a pure harness (seeded city per
+- **11g Balance, play-through, docs — done (2026-10-03).** An `EngagedCity` harness (EditMode
+  test helper) plays the shipped content like an engaged player; tuning toward 45–90 days per age
+  set research per filled commercial job to 0.25 (was 0.05), the Monastery to 3 RP/day, Medieval
+  techs to 30–90 RP and the age gates to 120 / 350 / 650 residents and 250 / 1,200 / 3,000 RP
+  (the placeholder 300 / 900 / 2,500 and 800 / 2,500 / 8,000 assumed a much faster growth pace than
+  `MaxGrowthPerDay` gives, and that constant is shared with the age-less game). Result from
+  Medieval: 86 / 62 / 63 days per age, Modern on day 211, never in debt; later starts keep growing.
+  `AgeBalanceTests` lock it in. **Decision:** an Industrial start keeps the earlier ages' tech
+  bonuses (220 pop / 0.65 at day 60 vs 212 / 0.60) — accepted and recorded as the new baseline; the
+  age-less sim is unchanged. **UI-only play-through** with virtual mouse/keyboard (scripted, all
+  actions through input): New (Medieval, 64²) → click roads from the map edge, drag zones → plan
+  research (click / shift-click) → Monastery from the toolbar once unlocked → Advance → Renaissance
+  (1450) → Keep an outdated block (it stayed Medieval while all others were rebuilt) → Save
+  mid-research, play on, Load (research, date, population and the kept block restored exactly) →
+  Advance → Industrial (1760, power UI still hidden without Electricity) → New (Industrial): 1760,
+  $50k, Electricity, power UI shown. 0 failed checks. It found one real bug: the `Pointer` action
+  was a Value action and stuck to the first mouse's position when another pointer device was added
+  — now Pass Through. 137 EditMode tests green.
+  Original plan: Tune RP and thresholds with a pure harness (seeded city per
   starting age) toward **~45–90 in-game days per age at engaged play** and no age where the city
   stalls. Seeded-city balance tests per age. UI-only play-through: New (Medieval, 64²) →
   research → advance twice → keep a block historic → watch the rest redevelop → save / load
@@ -945,5 +970,8 @@ cosmetic carts/cars on busy roads (visual only).
 **M19 — Release.** Main menu, settings (audio, keybinds, UI scale), multiple save slots with
 thumbnails, a tutorial for the first age, and a Windows player build.
 
-**Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). M11 is planned in full above
-(steps 11a–11g); 11a–11f (tech core, ages in the sim, save v2 + migration, content, visual slots, UI) are done, next is 11g (balance, play-through, docs).
+**Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). **M11 done** (steps 11a–11g,
+all done-when checks met: Medieval start advances through all four ages with redevelopment and Keep
+historical; Industrial start = today's game plus the accepted earlier-age bonuses; save v2 round
+trips and v1 migrates; EditMode tests green plus the UI-only play-through). Next: M12 (land value &
+local pollution) — expand its outline below into a full plan first.
