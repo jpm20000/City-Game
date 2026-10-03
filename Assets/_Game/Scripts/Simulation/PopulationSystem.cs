@@ -94,8 +94,8 @@ public sealed class PopulationSystem
     private HappinessBreakdown ComputeHappiness(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services,
         float techBonus)
     {
-        // Unemployment, pollution and blackouts ramp in with size: new towns are always lopsided
-        // and can't afford a power plant yet.
+        // Unemployment, pollution, blackouts and dry homes ramp in with size: new towns are always
+        // lopsided and can't afford a power plant yet.
         float cityWeight = Mathf.Clamp01((float)Population / Mathf.Max(m_Config.SmallTownGracePopulation, 1));
 
         return new HappinessBreakdown(
@@ -107,7 +107,8 @@ public sealed class PopulationSystem
             -m_Config.PowerPenalty * cityWeight * services.UnpoweredHousingShare,
             -m_Config.HomelessPenalty * Homeless / Mathf.Max(Population + Homeless, 1),
             techBonus,
-            services.HeritageBonus);
+            services.HeritageBonus,
+            -m_Config.WaterPenalty * cityWeight * services.UnwateredHousingShare);
     }
 
     // Load / new game. Call RecountCapacity first so the derived worker/job stats are current.

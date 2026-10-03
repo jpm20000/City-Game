@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 
 // Pure daily tick in the fixed order Demand -> Growth -> Population -> Economy -> Research. Power,
-// coverage and pollution are derived views (power and pollution recompute lazily after any grid
+// water, coverage and pollution are derived views (the networks and pollution recompute lazily after any grid
 // change), so they need no tick step. Built without age/tech databases, the sim plays by AgeRules.Legacy and has no research.
 public sealed class SimulationSystem
 {
@@ -15,6 +15,8 @@ public sealed class SimulationSystem
     public DemandSystem Demand { get; }
     public GrowthSystem Growth { get; }
     public PowerSystem Power { get; }
+    // Wells / fountains (coverage ages) and the piped network (M13); its mode follows Rules.Water.
+    public WaterSystem Water { get; }
     public CoverageSystem Coverage { get; }
     public PollutionSystem Pollution { get; }
     public LandValueSystem LandValue { get; }
@@ -43,6 +45,7 @@ public sealed class SimulationSystem
         {
             m_Sources = value ?? Array.Empty<ServiceSource>();
             Power.SetSources(m_Sources);
+            Water.SetSources(m_Sources);
             Coverage.Recompute(m_Sources);
             Pollution.SetSources(m_Sources);
         }
@@ -63,10 +66,11 @@ public sealed class SimulationSystem
         Population = new PopulationSystem(config, Capacity);
         Demand = new DemandSystem(config);
         Power = new PowerSystem(grid, config, Capacity);
+        Water = new WaterSystem(grid, config, Capacity, () => Rules.Water);
         Coverage = new CoverageSystem(grid.Width, grid.Height);
         Pollution = new PollutionSystem(grid, config, Capacity, ages, () => TechModifiers);
         LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers);
-        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue);
+        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water);
         grid.OnResized += () =>
         {
             Coverage.Resize(grid.Width, grid.Height);
@@ -74,10 +78,10 @@ public sealed class SimulationSystem
         };
     }
 
-    // The Power term only counts in ages whose upgrades need power.
+    // The Power term only counts in ages whose upgrades need power; the Water term in ages needing water.
     public ServiceStats MeasureServices()
     {
-        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution, LandValue);
+        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution, LandValue, Water);
     }
 
     // Research points earned per day at the current population: filled commercial jobs plus

@@ -45,12 +45,14 @@ MonoBehaviour:
   m_ServiceBonusEach: 0.1
   m_ServiceBonusCap: 0.2
   m_PowerPenalty: 0.05
+  m_WaterPenalty: 0.05
   m_HomelessPenalty: 0.3
   m_LowHappinessThreshold: 0.5
   m_LowHappinessDemandScale: 0.5
   m_IncomePerWorker: 10
   m_IncomePerCommercialJob: 12
   m_IncomePerIndustrialJob: 12
+  m_WaterPerCapacity: 1
   m_IndustrialPollution: 0.25
   m_PollutionRadius: 3
   m_LandValueBase: 0.5

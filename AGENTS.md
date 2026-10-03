@@ -54,7 +54,7 @@ Detailed plans live in `Docs/GamePlan.md` §12 (M11 and M12 have their full plan
 **Where M13–M19 plug in:** `Docs/GamePlan.md` §12 → *Where M13–M19 plug in (integration notes)*. Decide the details in each milestone's plan.
 
 ## Systems reference
-Per-system notes (what each class does, tuned numbers, test names) live in `Docs/GamePlan.md` **§13 Systems reference**, not here — read the section for the system you are touching before editing it, and update it in the same commit (`milestone-workflow` step 4). Sections: Camera · Input · Grid · Placement · Roads (M5) · Simulation (M6) · Core / Buildings (M4, M6) · Services & power (M9) · Ages & research (M11) · Land value & pollution (M12) · Save / load (M8) · UI (M7).
+Per-system notes (what each class does, tuned numbers, test names) live in `Docs/GamePlan.md` **§13 Systems reference**, not here — read the section for the system you are touching before editing it, and update it in the same commit (`milestone-workflow` step 4). Sections: Camera · Input · Grid · Placement · Roads (M5) · Simulation (M6) · Core / Buildings (M4, M6) · Services & power (M9) · Ages & research (M11) · Land value & pollution (M12) · Water (M13) · Save / load (M8) · UI (M7).
 Keep this file to conventions and standing rules; put new per-system detail in §13 and procedures in a skill.
 
 ## Unity 6 gotchas

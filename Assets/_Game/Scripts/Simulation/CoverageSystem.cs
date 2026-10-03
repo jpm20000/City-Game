@@ -2,15 +2,18 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-// How many services reach each cell. Recomputed only when the placed services change.
+// How many services reach each cell. Recomputed only when the placed services change. The radius
+// selector picks which reach counts (parks' CoverageRadius by default; wells' WaterRadius in M13).
 public sealed class CoverageSystem
 {
+    private readonly Func<ServiceSource, int> m_Radius;
     private int m_Width;
     private int m_Height;
     private byte[] m_Count;
 
-    public CoverageSystem(int width, int height)
+    public CoverageSystem(int width, int height, Func<ServiceSource, int> radius = null)
     {
+        m_Radius = radius ?? (source => source.CoverageRadius);
         Resize(width, height);
     }
 
@@ -29,7 +32,7 @@ public sealed class CoverageSystem
 
         foreach (ServiceSource source in sources)
         {
-            int r = source.CoverageRadius;
+            int r = m_Radius(source);
             if (r <= 0) continue;
 
             int minX = Mathf.Max(0, source.Origin.x - r);

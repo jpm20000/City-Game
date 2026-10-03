@@ -6,7 +6,8 @@ using UnityEngine;
 public sealed class LandValueTests
 {
     private static readonly DemandSnapshot Full = new DemandSnapshot(1f, 1f, 1f);
-    private static readonly ServiceSource Plant = new ServiceSource(new Vector2Int(15, 1), Vector2Int.one, 0, 1000);
+    // Power and piped water (M13) for the whole street.
+    private static readonly ServiceSource Plant = new ServiceSource(new Vector2Int(15, 1), Vector2Int.one, 0, 1000, waterSupply: 1000);
 
     private readonly List<Object> m_Created = new();
     private BalanceConfig m_Config;

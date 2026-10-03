@@ -203,6 +203,8 @@ public sealed class AgesSimulationTests
         }
         grid.SetHistoric(keptTop, true);
         grid.SetHistoric(keptLow, true);
+        Assert.IsTrue(grid.Occupy(new Vector2Int(11, 3), Vector2Int.one, 0, 1));
+        sim.Sources = new[] { new ServiceSource(new Vector2Int(11, 3), Vector2Int.one, 0, 0, waterRadius: 12) };   // a well (M13)
 
         var high = new DemandSnapshot(1f, 1f, 1f);
         for (int day = 0; day < 5; day++) sim.Growth.Apply(high);
@@ -240,9 +242,9 @@ public sealed class AgesSimulationTests
         Assert.AreEqual(0, sim.Growth.Redeveloped.Count);
         Assert.AreEqual(GrowthBlocker.NoPower, sim.Growth.GetBlocker(new Vector2Int(1, 1), none));
 
-        // 18 units for 16 drawn: headroom for two +1 rebuilds, taken row-major.
+        // 18 units for 16 drawn: headroom for two +1 rebuilds, taken row-major (water as plentiful, M13).
         Assert.IsTrue(grid.Occupy(new Vector2Int(10, 1), Vector2Int.one, 0, 1));
-        sim.Sources = new[] { new ServiceSource(new Vector2Int(10, 1), Vector2Int.one, 0, 18) };
+        sim.Sources = new[] { new ServiceSource(new Vector2Int(10, 1), Vector2Int.one, 0, 18, waterSupply: 100) };
         sim.Growth.Apply(none);
 
         Assert.AreEqual(Modern, grid.GetBuiltAge(new Vector2Int(1, 1)));

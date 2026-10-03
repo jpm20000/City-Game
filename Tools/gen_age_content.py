@@ -112,7 +112,7 @@ for asset, aid, display, year, maxl, scale, power, toadv, req, pop, cost, starti
     age_guid[aid] = g
     text = header(GUID_AGE_DEF, asset, "AgeDefinition")
     text += "  m_Id: %s\n  m_DisplayName: %s\n  m_StartYear: %d\n  m_MaxLevel: %d\n  m_CapacityScale: %s\n" % (aid, display, year, maxl, scale)
-    text += "  m_UpgradesNeedPower: %d\n  m_UpgradesNeedWater: 0\n" % (1 if power else 0)
+    text += "  m_UpgradesNeedPower: %d\n  m_Water: 0\n" % (1 if power else 0)
     text += "  m_PollutionScale: %s\n  m_PollutionRadius: %d\n  m_TechsToAdvance: %d\n" % (pscale, pradius, toadv)
     text += "  m_RequiredTechs: %s\n" % array([ref(tech_guid[t]) for t in req])
     text += "  m_PopulationToEnter: %d\n  m_AdvanceCost: %s\n" % (pop, cost)

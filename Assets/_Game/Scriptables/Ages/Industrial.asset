@@ -18,7 +18,7 @@ MonoBehaviour:
   m_MaxLevel: 3
   m_CapacityScale: 1.0
   m_UpgradesNeedPower: 1
-  m_UpgradesNeedWater: 0
+  m_Water: 0
   m_PollutionScale: 1.0
   m_PollutionRadius: 3
   m_TechsToAdvance: 4

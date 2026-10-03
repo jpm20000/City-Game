@@ -17,8 +17,8 @@ public sealed class AgeDefinition : ScriptableObject
     [Tooltip("Capacity per cell = CapacityForLevel(level) x this, for blocks built in this age.")]
     [SerializeField] private float m_CapacityScale = 1f;
     [SerializeField] private bool m_UpgradesNeedPower = true;
-    [Tooltip("Unused until M13 (water).")]
-    [SerializeField] private bool m_UpgradesNeedWater;
+    [Tooltip("(M13) What upgrades past level 1 need for water: a well or fountain in reach (Coverage) or the piped network (Piped).")]
+    [SerializeField] private WaterRule m_Water;
 
     [Header("Pollution (M12)")]
     [Tooltip("Emission of industrial blocks built in this age, x BalanceConfig.IndustrialPollution x capacity.")]
@@ -49,7 +49,7 @@ public sealed class AgeDefinition : ScriptableObject
     public int MaxLevel => m_MaxLevel;
     public float CapacityScale => m_CapacityScale;
     public bool UpgradesNeedPower => m_UpgradesNeedPower;
-    public bool UpgradesNeedWater => m_UpgradesNeedWater;
+    public WaterRule Water => m_Water;
     public float PollutionScale => m_PollutionScale;
     public int PollutionRadius => m_PollutionRadius;
     public int TechsToAdvance => m_TechsToAdvance;
@@ -59,7 +59,7 @@ public sealed class AgeDefinition : ScriptableObject
     public TechDefinition[] StartingTechs => m_StartingTechs ?? Array.Empty<TechDefinition>();
     public float StartingMoney => m_StartingMoney;
 
-    public AgeRules Rules => new AgeRules(m_MaxLevel, m_CapacityScale, m_UpgradesNeedPower);
+    public AgeRules Rules => new AgeRules(m_MaxLevel, m_CapacityScale, m_UpgradesNeedPower, m_Water);
 
     // The calendar year after advancing into this age: history is compressed, never reversed.
     public int YearOnEntering(int currentYear) => Math.Max(currentYear, m_StartYear);
@@ -76,8 +76,9 @@ public sealed class AgeDefinition : ScriptableObject
     internal void Init(string id, int startYear, int maxLevel = 3, float capacityScale = 1f,
         bool upgradesNeedPower = true, int techsToAdvance = 0, int populationToEnter = 0,
         float advanceCost = 0f, TechDefinition[] requiredTechs = null, TechDefinition[] startingTechs = null,
-        float startingMoney = 50000f, float pollutionScale = 1f, int pollutionRadius = 0)
+        float startingMoney = 50000f, float pollutionScale = 1f, int pollutionRadius = 0, WaterRule water = WaterRule.None)
     {
+        m_Water = water;
         m_PollutionScale = pollutionScale;
         m_PollutionRadius = pollutionRadius;
         m_Id = id;

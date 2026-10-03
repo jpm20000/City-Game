@@ -5,9 +5,10 @@ using UnityEngine;
 // Grows undeveloped zoned cells to level 1, then upgrades the lowest-level cells, scanning in
 // row-major order so results are deterministic. Level 1 needs only road access. Upgrades are capped
 // by the current age's MaxLevel (a historic cell by its own built age's); homes and shops need
-// LandValueForLevel3 to reach level 3 (M12, industry exempt); and in ages whose
-// upgrades need power they also need power with headroom for the extra draw (reserved during the
-// scan). With ages, a separate pass then redevelops up to RedevelopPerDay outdated cells (built in
+// LandValueForLevel3 to reach level 3 (M12, industry exempt); in ages whose
+// upgrades need power they also need power with headroom for the extra draw; and they need water
+// (M13: a well in reach, or the piped network with headroom). Power and water are reserved during
+// the scan, both or neither. With ages, a separate pass then redevelops up to RedevelopPerDay outdated cells (built in
 // an older age, not kept historic) into the current age at the same level. Writes levels and built
 // ages into GridData; visuals react via GridData.OnCellChanged.
 public sealed class GrowthSystem
@@ -21,6 +22,7 @@ public sealed class GrowthSystem
     private readonly CapacityModel m_Capacity;
     private readonly TechSystem m_Tech;
     private readonly LandValueSystem m_LandValue;
+    private readonly WaterSystem m_Water;
     private readonly List<Vector2Int> m_Changed = new();
     private readonly HashSet<Vector2Int> m_ChangedSet = new();
     private readonly List<Vector2Int> m_Redeveloped = new();
@@ -30,10 +32,12 @@ public sealed class GrowthSystem
     {
     }
 
-    // tech null = no ages (AgeRules.Legacy, nothing is ever outdated); landValue null = no level-3 gate.
+    // tech null = no ages (AgeRules.Legacy, nothing is ever outdated); landValue null = no level-3 gate;
+    // water null = no water gate.
     public GrowthSystem(GridData grid, RoadNetwork roads, PowerSystem power, BalanceConfig config,
-        CapacityModel capacity, TechSystem tech, LandValueSystem landValue = null)
+        CapacityModel capacity, TechSystem tech, LandValueSystem landValue = null, WaterSystem water = null)
     {
+        m_Water = water;
         m_LandValue = landValue;
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Roads = roads ?? throw new ArgumentNullException(nameof(roads));
@@ -125,22 +129,18 @@ public sealed class GrowthSystem
             if (IsOutdated(cell))
             {
                 if (!m_Roads.HasRoadAccess(cell)) return GrowthBlocker.NoRoadAccess;
-                if (rules.UpgradesNeedPower)
-                {
-                    if (!m_Power.IsPowered(cell)) return GrowthBlocker.NoPower;
-                    if (!m_Power.HasHeadroom(cell, m_Capacity.RedevelopDraw(m_Grid, cell, CurrentAge))) return GrowthBlocker.PowerAtCapacity;
-                }
-                return GrowthBlocker.Outdated;
+                GrowthBlocker utilities = UtilityBlocker(cell, Capacity(cell), m_Capacity.Capacity(level, CurrentAge), rules);
+                return utilities != GrowthBlocker.None ? utilities : GrowthBlocker.Outdated;
             }
             if (m_Grid.IsHistoric(cell)) return GrowthBlocker.KeptHistoric;
             return level >= m_Config.MaxLevel ? GrowthBlocker.MaxLevel : GrowthBlocker.AgeMaxLevel;
         }
         if (!m_Roads.HasRoadAccess(cell)) return GrowthBlocker.NoRoadAccess;
         if (m_LandValue != null && !m_LandValue.AllowsLevel(cell, level + 1)) return GrowthBlocker.LowLandValue;
-        if (level > 0 && rules.UpgradesNeedPower)
+        if (level > 0)
         {
-            if (!m_Power.IsPowered(cell)) return GrowthBlocker.NoPower;
-            if (!m_Power.HasHeadroom(cell, m_Capacity.UpgradeDraw(m_Grid, cell))) return GrowthBlocker.PowerAtCapacity;
+            GrowthBlocker utilities = UtilityBlocker(cell, Capacity(cell), m_Capacity.Capacity(level + 1, m_Grid.GetBuiltAge(cell)), rules);
+            if (utilities != GrowthBlocker.None) return utilities;
         }
         if (demand.Get(zone) <= m_Config.GrowthDemandThreshold) return GrowthBlocker.LowDemand;
         return GrowthBlocker.None;
@@ -158,7 +158,7 @@ public sealed class GrowthSystem
                 {
                     if (level >= MaxLevelFor(cell)) continue;
                     if (m_LandValue != null && !m_LandValue.AllowsLevel(cell, level + 1)) continue;
-                    if (rules.UpgradesNeedPower && !m_Power.TryReserve(cell, m_Capacity.UpgradeDraw(m_Grid, cell))) continue;
+                    if (!TryReserveUtilities(cell, Capacity(cell), m_Capacity.Capacity(level + 1, m_Grid.GetBuiltAge(cell)), rules)) continue;
                 }
 
                 m_Changed.Add(cell);
@@ -182,12 +182,46 @@ public sealed class GrowthSystem
                 if (!IsOutdated(cell) || m_ChangedSet.Contains(cell)) continue;
                 if (m_Grid.GetZone(cell) == ZoneType.None || m_Grid.IsRoad(cell) || m_Grid.IsOccupied(cell)) continue;
                 if (!m_Roads.HasRoadAccess(cell)) continue;
-                if (rules.UpgradesNeedPower && !m_Power.TryReserve(cell, m_Capacity.RedevelopDraw(m_Grid, cell, age))) continue;
+                if (!TryReserveUtilities(cell, Capacity(cell), m_Capacity.Capacity(m_Grid.GetBuildingLevel(cell), age), rules)) continue;
 
                 m_Redeveloped.Add(cell);
                 budget--;
             }
         }
+    }
+
+    private int Capacity(Vector2Int cell) => m_Capacity.CapacityOf(m_Grid, cell);
+
+    private bool NeedsWater => m_Water != null && m_Water.Mode != WaterRule.None;
+
+    // Power then water: why a grown cell can't go from one capacity to another, or None.
+    private GrowthBlocker UtilityBlocker(Vector2Int cell, int from, int to, AgeRules rules)
+    {
+        if (rules.UpgradesNeedPower)
+        {
+            if (!m_Power.IsPowered(cell)) return GrowthBlocker.NoPower;
+            if (!m_Power.HasHeadroom(cell, Mathf.Max(0, to - from))) return GrowthBlocker.PowerAtCapacity;
+        }
+        if (NeedsWater)
+        {
+            if (!m_Water.HasWater(cell)) return GrowthBlocker.NoWater;
+            if (!m_Water.HasHeadroom(cell, from, to)) return GrowthBlocker.WaterAtCapacity;
+        }
+        return GrowthBlocker.None;
+    }
+
+    // Reserves the extra power and water draw of growing from one capacity to another: both or
+    // neither, so a cell short of water never holds power it can't use.
+    private bool TryReserveUtilities(Vector2Int cell, int from, int to, AgeRules rules)
+    {
+        bool power = rules.UpgradesNeedPower;
+        bool water = NeedsWater;
+        int extraPower = Mathf.Max(0, to - from);
+        if (power && !m_Power.HasHeadroom(cell, extraPower)) return false;
+        if (water && !m_Water.HasHeadroom(cell, from, to)) return false;
+        if (power) m_Power.TryReserve(cell, extraPower);
+        if (water) m_Water.TryReserve(cell, from, to);
+        return true;
     }
 
     private bool IsEligible(Vector2Int cell, ZoneType zone, int level)

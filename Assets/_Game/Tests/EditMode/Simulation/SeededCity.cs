@@ -5,13 +5,17 @@ using UnityEngine;
 // The seeded test city shared by the simulation, save and age tests. Mirrors
 // PlacementController.DebugSeedCity: a road cross through the middle with R/C/I strips beside it,
 // a 3x3 power plant in the west commercial strip touching the east-west road, and two parks
-// placed to cover most of the homes.
+// placed to cover most of the homes. Since M13 the plant's block also supplies water (piped, and a
+// well reach covering the whole map), free, so water never binds in seeded runs unless a test asks
+// (waterSupply 0); without a plant a 1x1 water source stands at the plant's corner by the road.
 internal static class SeededCity
 {
     public static readonly Vector2Int PlantOrigin = new Vector2Int(0, 9);
     public const int PlantSupply = 600;
     public const float PlantPollution = 6f;      // as PowerPlant.asset (M12)
     public const int PlantPollutionRadius = 5;
+    public const int WaterSupply = 600;
+    public static readonly Vector2Int WaterOnlyOrigin = new Vector2Int(0, 11);
     public static readonly Vector2Int[] ParkOrigins = { new Vector2Int(5, 14), new Vector2Int(14, 16) };
 
     public static void Seed(GridData grid)
@@ -37,18 +41,25 @@ internal static class SeededCity
         grid.SetZone(cell, zone);
     }
 
-    // plantSupply 0 = no power plant. Upkeep follows §7 ($100/day plant, $5/day park). With ages,
-    // the city starts in startAge (StartNew) before the first tick.
+    // plantSupply 0 = no power plant; waterSupply 0 = no water at all. Upkeep follows §7 ($100/day
+    // plant, $5/day park; the water is free). With ages, the city starts in startAge (StartNew) before the first tick.
     public static SimulationSystem Build(GridData grid, BalanceConfig config, int plantSupply = PlantSupply,
-        bool parks = false, float jobTax = 0.10f, AgeDatabase ages = null, TechDatabase techs = null, int startAge = -1)
+        bool parks = false, float jobTax = 0.10f, AgeDatabase ages = null, TechDatabase techs = null, int startAge = -1,
+        int waterSupply = WaterSupply)
     {
         Seed(grid);
         var sources = new List<ServiceSource>();
         CityModifiers modifiers = default;
+        int waterRadius = waterSupply > 0 ? grid.Width : 0;
         if (plantSupply > 0)
         {
             PlaceSource(grid, sources, ref modifiers, PlantOrigin, new Vector2Int(3, 3), 0, plantSupply, 100f,
-                PlantPollution, PlantPollutionRadius);
+                PlantPollution, PlantPollutionRadius, waterSupply, waterRadius);
+        }
+        else if (waterSupply > 0)
+        {
+            PlaceSource(grid, sources, ref modifiers, WaterOnlyOrigin, Vector2Int.one, 0, 0, 0f,
+                waterSupply: waterSupply, waterRadius: waterRadius);
         }
         if (parks)
         {
@@ -68,22 +79,24 @@ internal static class SeededCity
     }
 
     public static SimulationSystem Run(GridData grid, BalanceConfig config, int days, int plantSupply = PlantSupply,
-        bool parks = false, float jobTax = 0.10f, AgeDatabase ages = null, TechDatabase techs = null, int startAge = -1)
+        bool parks = false, float jobTax = 0.10f, AgeDatabase ages = null, TechDatabase techs = null, int startAge = -1,
+        int waterSupply = WaterSupply)
     {
-        SimulationSystem sim = Build(grid, config, plantSupply, parks, jobTax, ages, techs, startAge);
+        SimulationSystem sim = Build(grid, config, plantSupply, parks, jobTax, ages, techs, startAge, waterSupply);
         for (int day = 0; day < days; day++) sim.Tick();
         return sim;
     }
 
     private static void PlaceSource(GridData grid, List<ServiceSource> sources, ref CityModifiers modifiers,
-        Vector2Int origin, Vector2Int size, int radius, int supply, float upkeep, float pollution = 0f, int pollutionRadius = 0)
+        Vector2Int origin, Vector2Int size, int radius, int supply, float upkeep, float pollution = 0f, int pollutionRadius = 0,
+        int waterSupply = 0, int waterRadius = 0)
     {
         foreach (Vector2Int cell in grid.GetFootprint(origin, size, 0))
         {
             grid.SetZone(cell, ZoneType.None);
         }
         Assert.IsTrue(grid.Occupy(origin, size, 0, sources.Count + 1));
-        sources.Add(new ServiceSource(origin, size, radius, supply, pollution, pollutionRadius));
+        sources.Add(new ServiceSource(origin, size, radius, supply, pollution, pollutionRadius, waterSupply, waterRadius));
         modifiers.UpkeepPerDay += upkeep;
     }
 }

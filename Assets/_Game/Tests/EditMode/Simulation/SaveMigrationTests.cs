@@ -219,7 +219,8 @@ public sealed class SaveMigrationTests
         Assert.Greater(outdated, m_Config.RedevelopPerDay, "mid-redevelopment");
 
         SaveData saved = SaveSystem.Capture(gridA, a);
-        SimulationSystem b = Load(Read(SaveSystem.ToJson(saved), true), true, out GridData gridB, out int dropped);
+        ServiceSource[] buildings = new List<ServiceSource>(a.Sources).ToArray();   // the seeded water source
+        SimulationSystem b = Load(Read(SaveSystem.ToJson(saved), true), true, out GridData gridB, out int dropped, buildings);
 
         Assert.AreEqual(0, dropped);
         Assert.AreEqual(a.Tech.CurrentAge, b.Tech.CurrentAge);

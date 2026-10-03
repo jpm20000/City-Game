@@ -4,7 +4,8 @@ using UnityEngine;
 using Object = UnityEngine.Object;
 
 // Four ages shaped like GamePlan §12 (Medieval x0.5 / level 2, Renaissance x0.75, Industrial x1 with
-// the power gate and Electricity as its starting tech, Modern x1.25) and a few techs per age.
+// the power gate and Electricity as its starting tech, Modern x1.25) and a few techs per age. Water
+// (M13): wells in Medieval / Renaissance, piped from Industrial on.
 // Advancing is cheap and unconditional; the advancement rules are TechSystemTests' job.
 internal sealed class TestAges : IDisposable
 {
@@ -28,10 +29,10 @@ internal sealed class TestAges : IDisposable
 
         Ages = Make<AgeDatabase>();
         Ages.Init(
-            Age("medieval", 750, 2, 0.5f, false),
-            Age("renaissance", 1450, 3, 0.75f, false),
-            Age("industrial", 1760, 3, 1f, true, new[] { electricity }),
-            Age("modern", 1945, 3, 1.25f, true));
+            Age("medieval", 750, 2, 0.5f, false, WaterRule.Coverage),
+            Age("renaissance", 1450, 3, 0.75f, false, WaterRule.Coverage),
+            Age("industrial", 1760, 3, 1f, true, WaterRule.Piped, new[] { electricity }),
+            Age("modern", 1945, 3, 1.25f, true, WaterRule.Piped));
         Techs = Make<TechDatabase>();
         Techs.Init(commons, masonry, monasticism, printing, architecture, electricity, steam, computing);
     }
@@ -68,11 +69,12 @@ internal sealed class TestAges : IDisposable
         return tech;
     }
 
-    private AgeDefinition Age(string id, int year, int maxLevel, float scale, bool power, TechDefinition[] starting = null)
+    private AgeDefinition Age(string id, int year, int maxLevel, float scale, bool power, WaterRule water,
+        TechDefinition[] starting = null)
     {
         AgeDefinition age = Make<AgeDefinition>();
         age.Init(id, year, maxLevel, scale, power, advanceCost: 1f, startingTechs: starting,
-            startingMoney: 20000f + 10000f * year / 750f);
+            startingMoney: 20000f + 10000f * year / 750f, water: water);
         return age;
     }
 }

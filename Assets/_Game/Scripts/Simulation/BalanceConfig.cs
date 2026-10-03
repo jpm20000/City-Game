@@ -63,6 +63,8 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_ServiceBonusCap = 0.20f;
     [Tooltip("(tuned, M9) Happiness lost when every home is unpowered (scaled by the unpowered share; ramps in with SmallTownGracePopulation). Kept small so a powerless town stays above LowHappinessThreshold: the pressure to build a plant is being stuck at level 1, not an exodus.")]
     [SerializeField] private float m_PowerPenalty = 0.05f;
+    [Tooltip("(M13) Happiness lost when every home is without water (scaled by the dry share; ramps in with SmallTownGracePopulation), like PowerPenalty.")]
+    [SerializeField] private float m_WaterPenalty = 0.05f;
     [SerializeField] private float m_HomelessPenalty = 0.30f;
     [SerializeField] private float m_LowHappinessThreshold = 0.5f;
     [SerializeField] private float m_LowHappinessDemandScale = 0.5f;
@@ -71,6 +73,10 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_IncomePerWorker = 10f;
     [SerializeField] private float m_IncomePerCommercialJob = 12f;
     [SerializeField] private float m_IncomePerIndustrialJob = 12f;
+
+    [Header("Water (M13)")]
+    [Tooltip("(M13) Water units a grown cell draws per unit of capacity from the piped network (power draws 1 per unit).")]
+    [SerializeField] private float m_WaterPerCapacity = 1f;
 
     [Header("Pollution (M12)")]
     [Tooltip("(M12) Pollution points a grown industrial cell emits per unit of capacity (a level-1 shed = 1, level 3 = 4), x its built age's PollutionScale.")]
@@ -145,6 +151,8 @@ public sealed class BalanceConfig : ScriptableObject
     public float ServiceBonusEach => m_ServiceBonusEach;
     public float ServiceBonusCap => m_ServiceBonusCap;
     public float PowerPenalty => m_PowerPenalty;
+    public float WaterPenalty => m_WaterPenalty;
+    public float WaterPerCapacity => m_WaterPerCapacity;
     public float HomelessPenalty => m_HomelessPenalty;
     public float LowHappinessThreshold => m_LowHappinessThreshold;
     public float LowHappinessDemandScale => m_LowHappinessDemandScale;
