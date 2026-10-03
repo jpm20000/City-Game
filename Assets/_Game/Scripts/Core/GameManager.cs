@@ -6,6 +6,9 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField] private GridSystem m_GridSystem;
     [SerializeField] private BuildingDatabase m_BuildingDatabase;
     [SerializeField] private BalanceConfig m_Balance;
+    [Tooltip("Ages and techs (M11). Leave both empty to play by today's rules (Industrial, no research).")]
+    [SerializeField] private AgeDatabase m_AgeDatabase;
+    [SerializeField] private TechDatabase m_TechDatabase;
     [SerializeField] private TimeManager m_Time;
     [SerializeField] private GrowthVisuals m_GrowthVisuals;
 
@@ -18,6 +21,9 @@ public sealed class GameManager : MonoBehaviour
     public RoadNetwork Roads { get; private set; }
     public BuildingDatabase Buildings => m_BuildingDatabase;
     public BalanceConfig Balance => m_Balance;
+    // Null unless both databases are assigned (the sim then has ages and research).
+    public AgeDatabase Ages => m_AgeDatabase != null && m_TechDatabase != null ? m_AgeDatabase : null;
+    public TechDatabase Techs => m_AgeDatabase != null && m_TechDatabase != null ? m_TechDatabase : null;
     public TimeManager Clock => m_Time;
     public SimulationSystem Simulation { get; private set; }
     public EconomySystem Economy => Simulation?.Economy;
@@ -42,7 +48,11 @@ public sealed class GameManager : MonoBehaviour
             m_Balance = ScriptableObject.CreateInstance<BalanceConfig>();
         }
 
-        Simulation = new SimulationSystem(Grid, Roads, m_Balance);
+        if ((m_AgeDatabase == null) != (m_TechDatabase == null))
+        {
+            Debug.LogWarning("GameManager: assign both the AgeDatabase and the TechDatabase (or neither); playing without ages.", this);
+        }
+        Simulation = new SimulationSystem(Grid, Roads, m_Balance, Ages, Techs);
         Simulation.Economy.OnMoneyChanged += GameEvents.RaiseMoneyChanged;
 
         if (m_GrowthVisuals != null) m_GrowthVisuals.Init(Grid);

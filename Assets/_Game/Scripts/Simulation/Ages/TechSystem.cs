@@ -221,19 +221,29 @@ public sealed class TechSystem
 
         CurrentAge = startAge;
         m_Researched.Clear();
-        foreach (TechDefinition tech in m_Techs.Techs)
-        {
-            if (tech != null && tech.Age < startAge) m_Researched.Add(tech);
-        }
-        foreach (TechDefinition tech in m_Ages[startAge].StartingTechs)
-        {
-            if (tech != null) m_Researched.Add(tech);
-        }
+        m_Researched.UnionWith(StartingTechs(m_Ages, m_Techs, startAge));
         Active = null;
         m_Queue.Clear();
         Progress = 0f;
         ResearchPerDay = 0f;
         Modifiers = TechModifiers.Fold(Researched);
+    }
+
+    // The techs a city starting in the given age has researched: every tech of earlier ages plus
+    // the age's StartingTechs, in database order.
+    public static List<TechDefinition> StartingTechs(AgeDatabase ages, TechDatabase techs, int startAge)
+    {
+        if (ages == null) throw new ArgumentNullException(nameof(ages));
+        if (techs == null) throw new ArgumentNullException(nameof(techs));
+        if (!ages.IsValidIndex(startAge)) throw new ArgumentOutOfRangeException(nameof(startAge));
+
+        TechDefinition[] starting = ages[startAge].StartingTechs;
+        var result = new List<TechDefinition>();
+        foreach (TechDefinition tech in techs.Techs)
+        {
+            if (tech != null && (tech.Age < startAge || Array.IndexOf(starting, tech) >= 0)) result.Add(tech);
+        }
+        return result;
     }
 
     // Load. Unknown tech Ids and projects that are no longer valid are dropped; the count of

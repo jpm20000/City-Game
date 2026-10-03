@@ -61,7 +61,7 @@ public sealed class SaveGameController : MonoBehaviour
     {
         if (!IsReady()) return false;
 
-        if (!SaveSystem.TryRead(SavePath, out SaveData data, out string error))
+        if (!SaveSystem.TryRead(SavePath, out SaveData data, out string error, m_GameManager.Ages, m_GameManager.Techs))
         {
             GameEvents.RaiseNotification($"Couldn't load: {error}");
             return false;
@@ -85,7 +85,7 @@ public sealed class SaveGameController : MonoBehaviour
     {
         if (!IsReady()) return;
 
-        Apply(SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance));
+        Apply(SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs));
         GameEvents.RaiseNotification($"New city — {size.x}×{size.y}");
     }
 
@@ -108,7 +108,11 @@ public sealed class SaveGameController : MonoBehaviour
         }
 
         // After buildings, so GameManager's modifiers (housing, jobs, upkeep, services) are current.
-        SaveSystem.ApplySimulation(data, m_GameManager.Simulation);
+        int dropped = SaveSystem.ApplySimulation(data, m_GameManager.Simulation);
+        if (dropped > 0)
+        {
+            Debug.LogWarning($"SaveGameController: {dropped} saved tech or research project(s) are unknown to this game and were dropped.", this);
+        }
 
         TimeManager clock = m_GameManager.Clock;
         if (clock != null)

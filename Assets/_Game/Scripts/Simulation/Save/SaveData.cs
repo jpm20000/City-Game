@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 
 // Whole-city save (GamePlan §6). Public fields because JsonUtility serializes fields only.
-// Grid arrays are row-major (index = y * Width + x).
+// Grid arrays are row-major (index = y * Width + x). Older versions are upgraded on load by
+// SaveMigrations; bump CurrentVersion together with a new migration step.
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
+    public const int NoAge = -1;
 
     public int Version = CurrentVersion;
 
@@ -30,6 +32,16 @@ public sealed class SaveData
     public byte[] Zones;
     public byte[] Roads;
     public byte[] Levels;
+
+    // v2 (M11): ages and research. Age = AgeDatabase index, NoAge for a city saved without ages
+    // (adopted as Industrial when loaded with them). Research projects are TechSystem project Ids.
+    public int Age = NoAge;
+    public List<string> Researched = new();
+    public string ActiveResearch = "";
+    public float ResearchProgress;
+    public List<string> ResearchQueue = new();
+    public byte[] BuiltAges;
+    public byte[] Historic;
 
     public List<BuildingRecord> Buildings = new();
 }

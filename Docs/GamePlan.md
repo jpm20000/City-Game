@@ -782,7 +782,14 @@ two materials per prefab.
   stops at level 2 with ×0.5 capacity and no power needed; advancing makes outdated cells
   redevelop at `RedevelopPerDay`, row-major; historic cells never redevelop and cap at their own
   age; demolish / rezone clears the flags; redevelopment reserves power headroom in powered ages.
-- **11c Save v2 + migration.** `SaveData` v2: `Age`, `Researched`, `ActiveResearch`,
+- **11c Save v2 + migration — done (2026-10-03).** Notes from implementing: the v1 → v2 step only
+  marks the city as saved without ages (`Age = NoAge`); a separate adoption step turns any `NoAge`
+  city into an Industrial one when the game has age data, so v2 saves written by the ageless build
+  (until 11d wires the databases) migrate the same way as v1 files. `GameManager` got the
+  (unassigned) `AgeDatabase` / `TechDatabase` slots so save/load/new city already pass them. The
+  real 24² v1 save is the test fixture; in-game, it loads, saves as v2 and reloads unchanged.
+  126 EditMode tests green.
+  Original plan: `SaveData` v2: `Age`, `Researched`, `ActiveResearch`,
   `ResearchProgress`, `ResearchQueue`, `BuiltAges`, `Historic`. `SaveMigrations.Migrate(data,
   ages, techs)` runs one step per version (v1 → v2: Industrial age, all Medieval and Renaissance
   techs + Electricity researched, every grown cell built in Industrial, `Year += 1759`); `TryFromJson` migrates
@@ -909,4 +916,4 @@ cosmetic carts/cars on busy roads (visual only).
 thumbnails, a tutorial for the first age, and a Windows player build.
 
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). M11 is planned in full above
-(steps 11a–11g); 11a (tech core) and 11b (ages in the sim) are done, next is 11c (save v2 + migration).
+(steps 11a–11g); 11a (tech core), 11b (ages in the sim) and 11c (save v2 + migration) are done, next is 11d (content).

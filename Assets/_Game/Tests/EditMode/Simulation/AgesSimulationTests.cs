@@ -6,10 +6,12 @@ using UnityEngine;
 // redevelopment of outdated cells and "Keep historical building".
 public sealed class AgesSimulationTests
 {
-    private const int Medieval = 0, Renaissance = 1, Industrial = 2, Modern = 3;
+    private const int Medieval = TestAges.Medieval, Renaissance = TestAges.Renaissance,
+        Industrial = TestAges.Industrial, Modern = TestAges.Modern;
 
     private readonly List<Object> m_Created = new();
     private BalanceConfig m_Config;
+    private TestAges m_TestAges;
     private AgeDatabase m_Ages;
     private TechDatabase m_Techs;
     private TechDefinition m_Electricity;
@@ -18,25 +20,16 @@ public sealed class AgesSimulationTests
     public void SetUp()
     {
         m_Config = Make<BalanceConfig>();
-
-        TechDefinition commons = Tech("commons", Medieval);
-        TechDefinition printing = Tech("printing", Renaissance);
-        m_Electricity = Tech("electricity", Industrial);
-        TechDefinition computing = Tech("computing", Modern);
-
-        m_Ages = Make<AgeDatabase>();
-        m_Ages.Init(
-            Age("medieval", 750, 2, 0.5f, false),
-            Age("renaissance", 1450, 3, 0.75f, false),
-            Age("industrial", 1760, 3, 1f, true, new[] { m_Electricity }),
-            Age("modern", 1945, 3, 1.25f, true));
-        m_Techs = Make<TechDatabase>();
-        m_Techs.Init(commons, printing, m_Electricity, computing);
+        m_TestAges = new TestAges();
+        m_Ages = m_TestAges.Ages;
+        m_Techs = m_TestAges.Techs;
+        m_Electricity = m_TestAges["electricity"];
     }
 
     [TearDown]
     public void TearDown()
     {
+        m_TestAges.Dispose();
         foreach (Object o in m_Created) Object.DestroyImmediate(o);
         m_Created.Clear();
     }
@@ -48,25 +41,11 @@ public sealed class AgesSimulationTests
         return instance;
     }
 
-    private TechDefinition Tech(string id, int age)
-    {
-        TechDefinition tech = Make<TechDefinition>();
-        tech.Init(id, age, 10f);
-        return tech;
-    }
-
-    // Advancing is free and unconditional here: the advancement rules are TechSystemTests' job.
     private AgeDefinition Age(string id, int year, int maxLevel, float scale, bool power, TechDefinition[] starting = null)
     {
         AgeDefinition age = Make<AgeDefinition>();
         age.Init(id, year, maxLevel, scale, power, advanceCost: 1f, startingTechs: starting);
         return age;
-    }
-
-    private static void Advance(SimulationSystem sim)
-    {
-        Assert.IsTrue(sim.Tech.EnqueueAdvance(sim.Population.Population));
-        sim.Tech.Step(1f);
     }
 
     private static void SetTaxes(SimulationSystem sim, float tax)
@@ -182,7 +161,7 @@ public sealed class AgesSimulationTests
         var levels = new Dictionary<Vector2Int, byte>();
         foreach (Vector2Int cell in outdated) levels[cell] = grid.GetBuildingLevel(cell);
 
-        Advance(sim);
+        TestAges.Advance(sim);
         Assert.AreEqual(Renaissance, sim.Tech.CurrentAge);
         Assert.IsTrue(sim.Growth.IsOutdated(outdated[0]));
         SetTaxes(sim, 0.5f);    // no demand, so nothing grows: only redevelopment changes cells
