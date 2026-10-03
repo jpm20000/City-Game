@@ -70,6 +70,9 @@ Use throwaway SDK-style projects in the scratchpad — never in the repo. They c
 
 Run `dotnet build -v q -nologo 2>&1 | grep -E "error|Build succeeded" | sort -u`.
 
+## No Editor at all (cloud sessions): the sim harness
+`Tools/sim-harness/run.sh` builds the pure Grid + Simulation code and the Simulation EditMode tests with Mono and runs them with NUnitLite against stub `UnityEngine` / `UnityEditor` APIs (the asset tests read the real `.asset` YAML). The first run installs the toolchain (`setup.sh`). It reproduces the Editor's numbers exactly, so it is good for the pure-sim steps of a milestone (implement, test, tune, record numbers), but it does not compile `Assembly-CSharp` or run Play mode: say in the commit / step note that the tests ran in the harness and still need a Test Runner pass. Throwaway probes go in the scratchpad and in via `EXTRA="…/Probe.cs"`. Details: `Tools/sim-harness/README.md`.
+
 ## Waiting for a reload, and probe tests (added in M12)
 - After editing `.cs`, `.asset` or prefab files the bridge answers "Unity not detected" for roughly 30–75 s. A foreground `python -c "import time; time.sleep(40)"` waits fine (plain `sleep` is blocked); retry the RunCommand afterwards — a second short wait is normal after bigger edits.
 - Run **several filters in one call**: `new ExecutionSettings(new Filter { testMode = TestMode.EditMode, groupNames = new[] { "AgeBalanceTests" } }, new Filter { testMode = TestMode.EditMode, testNames = new[] { "TuneProbe.Probe" } })`. Print `r.Output` from `TestFinished` to see `TestContext.WriteLine` text.

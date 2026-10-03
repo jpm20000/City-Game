@@ -13,7 +13,7 @@ Design intent, balance formulas, the milestone roadmap (§12) and the systems re
 - **Unity MCP** is registered for Claude Code as `unity-mcp` (tools `mcp__unity-mcp__*`; `opencode.json` registers the same relay as `unity` for OpenCode). It only works while the Editor is open.
 - **Procedures live in project skills** (`.claude/skills/`, also read by OpenCode) — load the one that fits the task:
   - `milestone-workflow` — planning and implementing a roadmap milestone or step (M12–M19).
-  - `unity-test-loop` — RunCommand rules and quirks, running EditMode tests via MCP, offline compile checks, domain reloads.
+  - `unity-test-loop` — RunCommand rules and quirks, running EditMode tests via MCP, offline compile checks, the no-Editor sim harness (`Tools/sim-harness`), domain reloads.
   - `unity-playmode-check` — Play-mode checks, fast-forwarding, game-view / UI screenshots.
   - `virtual-input-playthrough` — UI-only play-throughs with a virtual mouse and keyboard (template driver included).
   - `scene-prefab-editing` — editing `Main.unity`, prefabs and assets from scripts without bad diffs.
