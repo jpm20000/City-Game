@@ -69,3 +69,10 @@ Use throwaway SDK-style projects in the scratchpad — never in the repo. They c
 2. **asmdef boundaries:** only `Scripts/Grid/**`, `Scripts/Simulation/**` and `Tests/EditMode/Simulation/**` + the `UnityEngine/*.dll` folder (it already contains `UnityEditor.CoreModule`, so tests using `AssetDatabase`/`SerializedObject` compile — **don't** also add `Managed/UnityEditor.dll`, it causes CS0433 duplicates) + `Library/PackageCache/com.unity.ext.nunit@*/net472/unity-custom/nunit.framework.dll`. Set `AssemblyName` to `CityBuilder.Simulation.Tests` so `InternalsVisibleTo` applies. These assemblies must not reference `Assembly-CSharp` types.
 
 Run `dotnet build -v q -nologo 2>&1 | grep -E "error|Build succeeded" | sort -u`.
+
+## Waiting for a reload, and probe tests (added in M12)
+- After editing `.cs`, `.asset` or prefab files the bridge answers "Unity not detected" for roughly 30–75 s. A foreground `python -c "import time; time.sleep(40)"` waits fine (plain `sleep` is blocked); retry the RunCommand afterwards — a second short wait is normal after bigger edits.
+- Run **several filters in one call**: `new ExecutionSettings(new Filter { testMode = TestMode.EditMode, groupNames = new[] { "AgeBalanceTests" } }, new Filter { testMode = TestMode.EditMode, testNames = new[] { "TuneProbe.Probe" } })`. Print `r.Output` from `TestFinished` to see `TestContext.WriteLine` text.
+- **Probe tests:** for tuning or timing, drop a `[Test, Explicit]` class under `Tests/EditMode/Simulation/` that prints a table (population, happiness breakdown, blockers, `Stopwatch` ms) and run it by name. Delete it and its `.meta` before committing (check `git status` for stray `TuneProbe.cs`).
+- `Stopwatch` is blocked in RunCommand scripts but fine inside test code (`System.Diagnostics.Stopwatch`).
+

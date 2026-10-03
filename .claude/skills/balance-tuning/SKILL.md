@@ -8,7 +8,7 @@ description: Tune City Game's simulation balance — BalanceConfig values, age/t
 ## Where the numbers live
 - `BalanceConfig` (`Scripts/Simulation/BalanceConfig.cs`): every sim tunable. **The code default and `Scriptables/Balance/BalanceConfig.asset` must hold the same value** — tests use `ScriptableObject.CreateInstance<BalanceConfig>()` defaults, the game uses the asset. Tag changed fields "(tuned, M1x)" in the tooltip with the reason.
 - Age/tech content (entry population, advance costs, tech costs and effects, starting money): the tables in `Tools/gen_age_content.py` — edit, run it, `AssetDatabase.Refresh()`. Research-building output and costs: the `Scriptables/Buildings/*.asset` definitions.
-- Current values and the reasoning behind them: `AGENTS.md` (Simulation, Services & power, Ages & research → Balance) and `Docs/GamePlan.md` §7.
+- Current values and the reasoning behind them: `Docs/GamePlan.md` §13 (Simulation, Services & power, Ages & research → Balance, Land value & pollution) and §7 (the original formulas, partly stale).
 
 ## Baselines that must not drift by accident
 - **The age-less sim** (`SimulationSystem` without age/tech databases) is the legacy baseline: `SimulationTests.RunSeededCity` numbers (e.g. 212 pop / 0.60 happiness at day 60 with the plant). Growth pace (`MaxGrowthPerDay`) is shared with it — fit new content to the pace rather than changing it, unless the plan decides to rebaseline.
@@ -26,3 +26,10 @@ description: Tune City Game's simulation balance — BalanceConfig values, age/t
 
 ## Debugging a stalled harness
 Look at the diagnostics line first: demand per zone, housing/jobs, cells per level and the `GrowthBlocker` counts. In M11g every "the game is too slow" turned out to be the harness (whole-map road upkeep, unreachable inner cells counted as free land, new land starving upgrades) until the diagnostics proved otherwise.
+
+## Keeping the harnesses honest (added in M12)
+- `SeededCity` and `EngagedCity` build their sources by hand: when a building asset or age gains a sim field (power supply, pollution, …) copy it into `SeededCity.Build` / `EngagedCity.LoadBuildings` (it reads the building assets through `SerializedObject`).
+- When a rule holds players back (e.g. the land-value gate), teach `EngagedCity` the response a player would make (it places a park for held homes) before judging the balance — otherwise the harness measures a player who ignores the game.
+- A run's `Diagnostics()` line lists the `GrowthBlocker` per zone and level; a new blocker that dominates it (e.g. `LowLandValue:10`) shows what the rule costs.
+- Current M12 numbers: seeded 24² city, day 60, 10% taxes, with plant: 212 pop, 0.62 happiness (0.70 with the two parks); 20% C/I taxes without parks stalls at ~22 pop. Industrial start (real content): 220 pop / 0.660. From Medieval: 86 / 62 / 63 days per age.
+

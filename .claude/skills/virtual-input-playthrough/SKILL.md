@@ -30,3 +30,11 @@ Every action goes through Input System events, so the EventSystem, `InputReader`
 
 ## Reporting
 End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; distinguish driver bugs (fix and rerun) from game bugs (fix in the game, add a test where the sim is involved).
+
+## Notes from the M12 play-through (UI-only, 0 failed checks)
+- Scenario shape that worked for a *rule* milestone: New City (Industrial, 64²) → road, drag zones, place the plant from the toolbar → skip days with the debug panel until the rule bites (a home held at level 2) → open the view by its toolbar button → select the cell and **read the SelectionPanel text** (`GetComponentsInChildren<TMP_Text>(false)` under `UI/SelectionPanel`, then `Contains(...)`) → apply the fix by clicking (park) → skip days → check the level rose → Keep via the panel → `V` cycles the views.
+- **Power runs out first.** A grown 64² test city fills one plant in ~90 days, and a home blocked by power looks like a failed rule: place a second plant by click before expecting an upgrade (`blocker PowerAtCapacity` in the log is the tell). Log `Power.Load/Supply` in `State()`.
+- Close the F1 debug panel before clicking the map — it covers the left of the screen — and open it again only for `Skip`.
+- Write the scenario as a `Run()` with `Check(...)` lines that log the numbers, run it once, fix the *driver* for anything that is not a game bug, and rerun; the log file plus `grep -q "devices restored"` is the completion signal.
+- The scenario here did not save, so the save slot was untouched; back it up first only if yours does.
+
