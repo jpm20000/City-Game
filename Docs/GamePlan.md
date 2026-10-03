@@ -814,7 +814,16 @@ two materials per prefab.
   `RequiredTech` on Park (Medieval "Commons") and Power Plant (Industrial "Electricity", granted to
   cities that start in Industrial). Toolbar hides locked
   defs and adds buttons when a tech unlocks them; `PlacementController` refuses locked defs.
-- **11e Visual slots.** `AgeVisualSet` + one asset per age with fallback styles only (tint +
+- **11e Visual slots — done (2026-10-03).** `AgeVisualSet` (runtime SO, matched to ages by Id) with
+  per zone × level prefab variants and a fallback style (tint blend, roof style default / pitched /
+  none, roof colour, height ×); four generated sets (Medieval timber + thatch gables, Renaissance
+  sandstone + terracotta, Industrial plain = today, Modern taller concrete / glass). `GrowthVisuals`
+  styles by built age, pools prefabs per prefab, pops on redevelopment, tints prefabs for info views
+  via shared materials. Player benchmark on the 96² stress city with mixed ages: 1.14 ms frames at
+  default zoom, 1.48 ms zoomed out, ~2 ms with an edit per frame (M10b: 1.1 / 1.5 / 2); sim tick
+  1.25 ms (was 0.5) because a quarter of that city is outdated and scanned for redevelopment each
+  tick. 131 EditMode tests green.
+  Original plan: `AgeVisualSet` + one asset per age with fallback styles only (tint +
   roof style + height ×, so each age reads differently on placeholder blocks); `GrowthVisuals`
   per-age style and prefab pooling; redevelopment pops like an upgrade. Player-build benchmark
   re-run (must stay ≈1–2 ms on the 96² stress city with mixed ages).
@@ -927,4 +936,4 @@ cosmetic carts/cars on busy roads (visual only).
 thumbnails, a tutorial for the first age, and a Windows player build.
 
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). M11 is planned in full above
-(steps 11a–11g); 11a–11d (tech core, ages in the sim, save v2 + migration, content) are done, next is 11e (visual slots).
+(steps 11a–11g); 11a–11e (tech core, ages in the sim, save v2 + migration, content, visual slots) are done, next is 11f (UI).
