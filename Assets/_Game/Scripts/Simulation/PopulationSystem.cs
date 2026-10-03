@@ -109,7 +109,9 @@ public sealed class PopulationSystem
             techBonus,
             services.HeritageBonus,
             -m_Config.WaterPenalty * cityWeight * services.UnwateredHousingShare,
-            -services.CrimePenalty);
+            -services.CrimePenalty,
+            -services.FirePenalty,
+            -services.HealthPenalty);
     }
 
     // Load / new game. Call RecountCapacity first so the derived worker/job stats are current.

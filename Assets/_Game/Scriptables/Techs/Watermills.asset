@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: watermills
   m_DisplayName: Watermills
-  m_Description: 'Water does the heavy work. Upkeep -10%.'
+  m_Description: 'Water does the heavy work. Upkeep -10%. Unlocks the Fire Engine House (hand pumps).'
   m_Age: 1
   m_Cost: 180
   m_Prerequisites: 

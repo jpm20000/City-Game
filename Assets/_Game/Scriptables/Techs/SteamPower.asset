@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: steam_power
   m_DisplayName: Steam Power
-  m_Description: 'Engines that never tire. Industrial demand +20%.'
+  m_Description: 'Engines that never tire. Industrial demand +20%. Unlocks the Fire Station (steam fire engines).'
   m_Age: 2
   m_Cost: 400
   m_Prerequisites: 

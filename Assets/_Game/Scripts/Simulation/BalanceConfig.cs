@@ -107,7 +107,7 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_HeritageHappinessCap = 0.06f;
 
     [Header("Civic services (M14)")]
-    [Tooltip("(M14) Civic needs (crime, later fire risk and sickness) are 0 up to this population...")]
+    [Tooltip("(M14) Civic needs (crime, fire risk, sickness) are 0 up to this population...")]
     [SerializeField] private int m_CivicFreePopulation = 100;
     [Tooltip("(M14) ...and reach full strength at this population (linear between).")]
     [SerializeField] private int m_CivicFullPopulation = 700;
@@ -119,6 +119,18 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_CrimePenaltyCap = 0.10f;
     [Tooltip("(M14) Land value lost per unit of crime.")]
     [SerializeField] private float m_LandValuePerCrime = 0.15f;
+    [Tooltip("(M14) Fire risk of a grown block without ages (and in ages whose FireRisk is 0), before the ramp and fire cover.")]
+    [SerializeField] private float m_FireRisk = 0.35f;
+    [Tooltip("(M14) Industrial blocks' fire risk x this.")]
+    [SerializeField] private float m_FireRiskIndustrialFactor = 1.5f;
+    [Tooltip("(M14) Happiness a home loses per unit of fire risk; the Fire term is the average over homes.")]
+    [SerializeField] private float m_FirePenalty = 0.10f;
+    [Tooltip("(M14) Cap on one home's fire-risk penalty.")]
+    [SerializeField] private float m_FirePenaltyCap = 0.06f;
+    [Tooltip("(M14) Happiness a home without any health care loses at full ramp (x (1 - health cover)).")]
+    [SerializeField] private float m_HealthPenalty = 0.08f;
+    [Tooltip("(M14) Research points per day per resident x the education cover at their home.")]
+    [SerializeField] private float m_ResearchPerEducatedResident = 0.01f;
 
     [Header("Research & ages")]
     [Tooltip("(tuned, M11g) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs). 0.25 puts each age at ~60-90 days of engaged play (AgeBalanceTests).")]
@@ -201,6 +213,12 @@ public sealed class BalanceConfig : ScriptableObject
     public float CrimePenalty => m_CrimePenalty;
     public float CrimePenaltyCap => m_CrimePenaltyCap;
     public float LandValuePerCrime => m_LandValuePerCrime;
+    public float FireRisk => m_FireRisk;
+    public float FireRiskIndustrialFactor => m_FireRiskIndustrialFactor;
+    public float FirePenalty => m_FirePenalty;
+    public float FirePenaltyCap => m_FirePenaltyCap;
+    public float HealthPenalty => m_HealthPenalty;
+    public float ResearchPerEducatedResident => m_ResearchPerEducatedResident;
 
     public float ResearchPerCommercialJob => m_ResearchPerCommercialJob;
     public int RedevelopPerDay => m_RedevelopPerDay;

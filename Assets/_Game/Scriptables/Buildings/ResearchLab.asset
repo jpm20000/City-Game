@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79acbc5bd48b8f947ae8ae28bc4213ac, type: 3}
+  m_Name: ResearchLab
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingDefinition
+  m_Id: research_lab
+  m_DisplayName: Research Lab
+  m_Category: 2
+  m_Icon: {fileID: 0}
+  m_Prefab: {fileID: 1281796176025915936, guid: 16fbd50595b45bb0bb6820f197024ea7, type: 3}
+  m_Size: {x: 2, y: 2}
+  m_Cost: 10000
+  m_UpkeepPerDay: 50
+  m_HousingCapacity: 0
+  m_JobsProvided: 0
+  m_HappinessEffect: 0
+  m_ZoneRestriction: 0
+  m_Height: 0.1
+  m_CoverageRadius: 0
+  m_PowerSupply: 0
+  m_RequiredTech: computing
+  m_ResearchPerDay: 12
+  m_Pollution: 0
+  m_PollutionRadius: 0
+  m_WaterSupply: 0
+  m_WaterRadius: 0
+  m_ObsoleteAge: 
+  m_CivicKind: 4
+  m_CivicRadius: 8
+  m_CivicStrength: 1

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: computing
   m_DisplayName: Computing
-  m_Description: 'Machines that calculate. Research +30%.'
+  m_Description: 'Machines that calculate. Research +30%. Unlocks the Research Lab.'
   m_Age: 3
   m_Cost: 1000
   m_Prerequisites: 

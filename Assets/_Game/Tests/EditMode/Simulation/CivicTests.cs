@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 
-// M14a: civic cover (CivicCoverage), crime (CivicSystem), the Crime happiness term and crime in land value.
+// M14: civic cover (CivicCoverage), crime, fire risk and sickness (CivicSystem), their happiness terms,
+// crime in land value and research from educated residents.
 public sealed class CivicTests
 {
     private readonly List<Object> m_Created = new();
@@ -217,5 +218,99 @@ public sealed class CivicTests
         Assert.Less(sim.Population.Happiness.Crime, 0f);
         Assert.Greater(sim.Population.Happiness.Crime, -0.04f);
         Assert.AreEqual(-stats.CrimePenalty, sim.Population.Happiness.Crime, 0.01f);
+    }
+
+    // --- M14b: fire risk, sickness, education ---
+
+    private AgeDatabase AgesWithFireRisk(float medieval)
+    {
+        AgeDefinition a = Make<AgeDefinition>(), b = Make<AgeDefinition>();
+        a.Init("timber", 750, fireRisk: medieval);
+        b.Init("brick", 1450);   // 0 = BalanceConfig.FireRisk
+        AgeDatabase ages = Make<AgeDatabase>();
+        ages.Init(a, b);
+        return ages;
+    }
+
+    [Test]
+    public void FireRisk_FollowsBuiltAge_IndustryAndFireCover()
+    {
+        AgeDatabase ages = AgesWithFireRisk(0.6f);
+        Vector2Int timberHome = new Vector2Int(2, 2), timberWorks = new Vector2Int(3, 2), brickHome = new Vector2Int(4, 2);
+        Grow(timberHome, ZoneType.Residential, 1);
+        Grow(timberWorks, ZoneType.Industrial, 1);
+        Grow(brickHome, ZoneType.Residential, 1);
+        m_Grid.SetBuiltAge(brickHome, 1);
+        var civic = new CivicSystem(m_Grid, m_Config, population: () => m_Population, ages: ages);
+
+        Assert.AreEqual(0.6f, civic.GetFireRisk(timberHome), 1e-5f);
+        Assert.AreEqual(0.6f * m_Config.FireRiskIndustrialFactor, civic.GetFireRisk(timberWorks), 1e-5f);
+        Assert.AreEqual(m_Config.FireRisk, civic.GetFireRisk(brickHome), 1e-5f, "an age without its own risk uses the config's");
+        Assert.AreEqual(0f, civic.GetFireRisk(new Vector2Int(9, 9)), "empty land doesn't burn");
+
+        civic.SetSources(new[] { Station(new Vector2Int(2, 4), ServiceKind.Fire, 3, 0.75f) });
+        Assert.AreEqual(0.6f * 0.25f, civic.GetFireRisk(timberHome), 1e-5f);
+
+        m_Population = m_Config.CivicFreePopulation;
+        Assert.AreEqual(0f, civic.GetFireRisk(timberWorks), "small towns don't worry about fire");
+    }
+
+    [Test]
+    public void Sickness_OnlyAtHomes_CutByHealthCover()
+    {
+        Vector2Int home = new Vector2Int(2, 2), shop = new Vector2Int(3, 2);
+        Grow(home, ZoneType.Residential, 3);
+        Grow(shop, ZoneType.Commercial, 3);
+        CivicSystem civic = Civic();
+
+        Assert.AreEqual(1f, civic.GetSickness(home), 1e-6f);
+        Assert.AreEqual(0f, civic.GetSickness(shop));
+        civic.SetSources(new[] { Station(new Vector2Int(2, 5), ServiceKind.Health, 4, 0.85f) });
+        Assert.AreEqual(0.15f, civic.GetSickness(home), 1e-5f);
+        m_Population = (m_Config.CivicFreePopulation + m_Config.CivicFullPopulation) / 2;
+        Assert.AreEqual(0.075f, civic.GetSickness(home), 1e-5f);
+    }
+
+    [Test]
+    public void FireAndHealthPenalties_AreHousingWeighted_FireCappedPerHome()
+    {
+        Assert.AreEqual(m_Config.FirePenaltyCap, ServiceStats.FirePenaltyAt(m_Config, 1f), 1e-6f);
+        Assert.AreEqual(0.35f * m_Config.FirePenalty, ServiceStats.FirePenaltyAt(m_Config, 0.35f), 1e-6f);
+        Assert.AreEqual(m_Config.HealthPenalty, ServiceStats.HealthPenaltyAt(m_Config, 1f), 1e-6f);
+
+        // A level-3 home (16) with no care and a level-1 home (4) with full health and fire cover.
+        Grow(new Vector2Int(2, 2), ZoneType.Residential, 3);
+        Grow(new Vector2Int(12, 12), ZoneType.Residential, 1);
+        CivicSystem civic = Civic(Station(new Vector2Int(12, 10), ServiceKind.Health, 3, 1f),
+            Station(new Vector2Int(12, 10), ServiceKind.Fire, 3, 1f));
+        ServiceStats stats = ServiceStats.Measure(m_Grid, m_Config, new CoverageSystem(16, 16), new PowerSystem(m_Grid, m_Config),
+            countPower: false, civic: civic);
+
+        Assert.AreEqual(16f * m_Config.HealthPenalty / 20f, stats.HealthPenalty, 1e-5f);
+        Assert.AreEqual(16f * m_Config.FireRisk * m_Config.FirePenalty / 20f, stats.FirePenalty, 1e-5f);
+    }
+
+    [Test]
+    public void EducatedResidents_EarnResearch_ThroughTheMultiplier()
+    {
+        using var ages = new TestAges();
+        for (int x = 0; x < 8; x++)
+        {
+            m_Grid.SetRoad(new Vector2Int(x, 0), true);
+            Grow(new Vector2Int(x, 1), ZoneType.Residential, 1);
+            m_Grid.SetBuiltAge(new Vector2Int(x, 1), TestAges.Industrial);
+        }
+        var sim = new SimulationSystem(m_Grid, new RoadNetwork(m_Grid), m_Config, ages.Ages, ages.Techs);
+        sim.Tech.StartNew(TestAges.Industrial);
+        // Half-strength education reaching x 0..3: half of the housing at 0.8 -> share 0.4.
+        sim.Sources = new[] { Station(new Vector2Int(1, 3), ServiceKind.Education, 2, 0.8f) };
+        sim.Restore(0f, 0f, 0f, 0.1f, 0.1f, 0.1f, 300, 0.7f);
+
+        ResearchBreakdown research = sim.ResearchBreakdown();
+        Assert.AreEqual(300 * 0.4f * m_Config.ResearchPerEducatedResident, research.Education, 1e-4f);
+        Assert.AreEqual((research.Commercial + research.Buildings + research.Education) * research.Multiplier, sim.ResearchIncome(), 1e-5f);
+
+        var ageless = new SimulationSystem(new GridData(8, 8), new RoadNetwork(new GridData(8, 8)), m_Config);
+        Assert.AreEqual(0f, ageless.ResearchIncome(), "no research without ages");
     }
 }

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a81a50374d8fd1488dba7cf9e9b874e, type: 3}
+  m_Name: TownWatch
+  m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
+  m_Id: town_watch
+  m_DisplayName: Town Watch
+  m_Description: 'Watchmen walk the streets and ring the fire bell. Unlocks the Watch House and the Bucket Brigade.'
+  m_Age: 0
+  m_Cost: 40
+  m_Prerequisites: 
+  - {fileID: 11400000, guid: fac13a93ca5e5a8083fc536a4a192725, type: 2}
+  m_Effects: []

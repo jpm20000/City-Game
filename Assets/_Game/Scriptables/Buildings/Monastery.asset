@@ -29,3 +29,11 @@ MonoBehaviour:
   m_PowerSupply: 0
   m_RequiredTech: monasticism
   m_ResearchPerDay: 3
+  m_Pollution: 0
+  m_PollutionRadius: 0
+  m_WaterSupply: 0
+  m_WaterRadius: 0
+  m_ObsoleteAge: 
+  m_CivicKind: 4
+  m_CivicRadius: 5
+  m_CivicStrength: 0.4

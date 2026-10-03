@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79acbc5bd48b8f947ae8ae28bc4213ac, type: 3}
+  m_Name: FireStation
+  m_EditorClassIdentifier: Assembly-CSharp::BuildingDefinition
+  m_Id: fire_station
+  m_DisplayName: Fire Station
+  m_Category: 2
+  m_Icon: {fileID: 0}
+  m_Prefab: {fileID: 3620739439035958262, guid: e83c3e6737fb5d80ad29e17f95f8575a, type: 3}
+  m_Size: {x: 2, y: 2}
+  m_Cost: 4000
+  m_UpkeepPerDay: 30
+  m_HousingCapacity: 0
+  m_JobsProvided: 0
+  m_HappinessEffect: 0
+  m_ZoneRestriction: 0
+  m_Height: 0.1
+  m_CoverageRadius: 0
+  m_PowerSupply: 0
+  m_RequiredTech: steam_power
+  m_ResearchPerDay: 0
+  m_Pollution: 0
+  m_PollutionRadius: 0
+  m_WaterSupply: 0
+  m_WaterRadius: 0
+  m_ObsoleteAge: 
+  m_CivicKind: 2
+  m_CivicRadius: 8
+  m_CivicStrength: 1

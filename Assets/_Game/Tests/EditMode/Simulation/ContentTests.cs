@@ -49,7 +49,7 @@ public sealed class ContentTests
         CollectionAssert.AreEqual(new[] { WaterRule.Coverage, WaterRule.Coverage, WaterRule.Piped, WaterRule.Piped },
             new[] { m_Ages[0].Water, m_Ages[1].Water, m_Ages[2].Water, m_Ages[3].Water }, "wells, then piped water (M13)");
         Assert.AreEqual(AgeRules.Legacy.Water, m_Ages[m_Ages.Legacy].Rules.Water, "Industrial = the age-less rules");
-        Assert.AreEqual(32, m_Techs.Techs.Count);   // + Aqueducts, Waterworks (M13)
+        Assert.AreEqual(36, m_Techs.Techs.Count);   // + Aqueducts, Waterworks (M13); Town Watch, Herbalism, Universities, Antibiotics (M14)
     }
 
     // Starting in any age, something can be researched right away.
@@ -160,5 +160,55 @@ public sealed class ContentTests
         Assert.AreEqual("academies", required["academy"]);
         Assert.AreEqual(3f, research["monastery"]);
         Assert.AreEqual(5f, research["academy"]);
+    }
+
+    // M14: each civic line has exactly the planned building per age (an age is its RequiredTech's age),
+    // every civic building has a reach, a strength in (0, 1] and a reachable tech, and strengths rise
+    // with age within a line. Education buildings also produce research.
+    [Test]
+    public void CivicLines_HaveOneBuildingPerPlannedAge_GettingStronger()
+    {
+        var expected = new Dictionary<ServiceKind, string[]>
+        {
+            [ServiceKind.Order] = new[] { "watch_house", "constabulary", "police_station", null },
+            [ServiceKind.Fire] = new[] { "bucket_brigade", "fire_engine_house", "fire_station", null },
+            [ServiceKind.Health] = new[] { "apothecary", null, "hospital", "medical_centre" },
+            [ServiceKind.Education] = new[] { "monastery", "academy", "university", "research_lab" },
+        };
+        var found = new Dictionary<ServiceKind, string[]>();
+        var strength = new Dictionary<string, float>();
+        var database = AssetDatabase.LoadAssetAtPath<ScriptableObject>(BuildingDatabasePath);
+        SerializedProperty entries = new SerializedObject(database).FindProperty("m_Entries");
+        for (int i = 0; i < entries.arraySize; i++)
+        {
+            var so = new SerializedObject(entries.GetArrayElementAtIndex(i).objectReferenceValue);
+            var kind = (ServiceKind)so.FindProperty("m_CivicKind").intValue;
+            if (kind == ServiceKind.None) continue;
+            string id = so.FindProperty("m_Id").stringValue;
+            TechDefinition tech = m_Techs.GetById(so.FindProperty("m_RequiredTech").stringValue);
+            Assert.IsNotNull(tech, $"{id}: civic buildings need a tech");
+            Assert.Greater(so.FindProperty("m_CivicRadius").intValue, 0, $"{id} reach");
+            float s = so.FindProperty("m_CivicStrength").floatValue;
+            Assert.That(s, Is.GreaterThan(0f).And.LessThanOrEqualTo(1f), $"{id} strength");
+            Assert.IsNotNull(so.FindProperty("m_Prefab").objectReferenceValue, $"{id} prefab");
+            if (kind == ServiceKind.Education) Assert.Greater(so.FindProperty("m_ResearchPerDay").floatValue, 0f, $"{id} research");
+
+            if (!found.TryGetValue(kind, out string[] perAge)) found[kind] = perAge = new string[m_Ages.Count];
+            Assert.IsNull(perAge[tech.Age], $"two {kind} buildings in age {tech.Age}: {perAge[tech.Age]} and {id}");
+            perAge[tech.Age] = id;
+            strength[id] = s;
+        }
+
+        foreach (KeyValuePair<ServiceKind, string[]> line in expected)
+        {
+            CollectionAssert.AreEqual(line.Value, found[line.Key], $"{line.Key} line");
+            float last = 0f;
+            foreach (string id in line.Value)
+            {
+                if (id == null) continue;
+                Assert.Greater(strength[id], last, $"{id} must be stronger than the line's earlier tiers");
+                last = strength[id];
+            }
+        }
     }
 }

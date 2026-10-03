@@ -9,6 +9,7 @@ public sealed class SimulationSystem
     private readonly GridData m_Grid;
     private readonly BalanceConfig m_Config;
     private IReadOnlyList<ServiceSource> m_Sources = Array.Empty<ServiceSource>();
+    private ServiceStats m_LastServices;    // measured in the last Tick / Restore (education share for research)
 
     public EconomySystem Economy { get; }
     public PopulationSystem Population { get; }
@@ -20,7 +21,7 @@ public sealed class SimulationSystem
     public CoverageSystem Coverage { get; }
     public PollutionSystem Pollution { get; }
     public LandValueSystem LandValue { get; }
-    // Civic service cover and the needs it meets: crime (M14).
+    // Civic service cover and the needs it meets: crime, fire risk, sickness, education (M14).
     public CivicSystem Civic { get; }
 
     // Research and the current age; null when the sim was built without age/tech databases.
@@ -72,7 +73,7 @@ public sealed class SimulationSystem
         Water = new WaterSystem(grid, config, Capacity, () => Rules.Water);
         Coverage = new CoverageSystem(grid.Width, grid.Height);
         Pollution = new PollutionSystem(grid, config, Capacity, ages, () => TechModifiers);
-        Civic = new CivicSystem(grid, config, Capacity, () => Population.Population);
+        Civic = new CivicSystem(grid, config, Capacity, () => Population.Population, ages);
         LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic);
         Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water);
         grid.OnResized += () =>
@@ -89,15 +90,19 @@ public sealed class SimulationSystem
             Civic);
     }
 
-    // Research points earned per day at the current population: filled commercial jobs plus
-    // research buildings, times the researched techs' multiplier. 0 without ages.
-    public float ResearchIncome()
+    // Research points earned per day at the current population: filled commercial jobs, research
+    // buildings and educated residents (M14: population x the education cover measured at homes in the
+    // last tick), times the researched techs' multiplier. 0 without ages.
+    public float ResearchIncome() => ResearchBreakdown().Total;
+
+    public ResearchBreakdown ResearchBreakdown()
     {
-        if (Tech == null) return 0f;
+        if (Tech == null) return default;
         int jobs = Population.Jobs;
         float filledCommercial = jobs > 0 ? (float)Population.CommercialJobs * Population.Employed / jobs : 0f;
-        return (filledCommercial * m_Config.ResearchPerCommercialJob + Modifiers.ResearchPerDay)
-            * Tech.Modifiers.ResearchMultiplier;
+        return new ResearchBreakdown(filledCommercial * m_Config.ResearchPerCommercialJob, Modifiers.ResearchPerDay,
+            Population.Population * m_LastServices.EducatedShare * m_Config.ResearchPerEducatedResident,
+            Tech.Modifiers.ResearchMultiplier);
     }
 
     // Load / new game: sets persisted state and recomputes derived stats (capacity, employment,
@@ -109,7 +114,8 @@ public sealed class SimulationSystem
         Economy.Restore(money, incomePerDay, expensePerDay, taxResidential, taxCommercial, taxIndustrial);
         Population.RecountCapacity(m_Grid, Modifiers);
         Population.Restore(population, happiness);
-        Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, MeasureServices(),
+        m_LastServices = MeasureServices();
+        Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, m_LastServices,
             TechModifiers.HappinessBonus);
         Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial, TechModifiers);
     }
@@ -125,7 +131,8 @@ public sealed class SimulationSystem
         Growth.Apply(Demand.Snapshot);
 
         Population.RecountCapacity(m_Grid, modifiers);
-        Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, MeasureServices(),
+        m_LastServices = MeasureServices();
+        Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, m_LastServices,
             tech.HappinessBonus);
 
         float income = Population.Employed * m_Config.IncomePerWorker * Economy.TaxResidential

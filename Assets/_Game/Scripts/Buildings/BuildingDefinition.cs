@@ -34,6 +34,12 @@ public sealed class BuildingDefinition : ScriptableObject
     [SerializeField] private int m_WaterRadius;
     [Tooltip("Age Id from which this building can no longer be built (M13, e.g. wells once water is piped); empty = never. Placed ones stay.")]
     [SerializeField] private string m_ObsoleteAge = "";
+    [Tooltip("Civic service line (M14): order, fire, health or education; None = not a civic building.")]
+    [SerializeField] private ServiceKind m_CivicKind;
+    [Tooltip("Cells its civic service reaches (Chebyshev distance from the footprint; M14).")]
+    [SerializeField] private int m_CivicRadius;
+    [Tooltip("How well it covers a cell in reach, 0..1 (M14); newer tiers are stronger.")]
+    [SerializeField] private float m_CivicStrength;
 
     public string Id => m_Id;
     public string DisplayName => m_DisplayName;
@@ -57,4 +63,7 @@ public sealed class BuildingDefinition : ScriptableObject
     public int WaterSupply => m_WaterSupply;
     public int WaterRadius => m_WaterRadius;
     public string ObsoleteAge => m_ObsoleteAge;
+    public ServiceKind CivicKind => m_CivicKind;
+    public int CivicRadius => m_CivicRadius;
+    public float CivicStrength => m_CivicStrength;
 }

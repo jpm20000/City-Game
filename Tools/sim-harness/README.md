@@ -21,7 +21,8 @@ milestone done.
   and `SerializedObject` / `SerializedProperty`, backed by the real `.asset` YAML and `.meta` GUIDs.
   Simulation types are filled by reflection (primitive arrays are Unity's little-endian hex);
   `Assembly-CSharp` types (`BuildingDefinition`, `AgeVisualSet`) load as `YamlAsset` and are read
-  through `SerializedObject`. Fields an older asset lacks read as defaults, like Unity.
+  through `SerializedObject`. Fields an older asset lacks read as defaults, like Unity. References to other
+  files (prefabs, materials) load as placeholder objects, so null checks on them work.
 
 **Fidelity:** checked against M13's recorded Editor numbers: from Medieval 86 / 62 / 69 days (Modern on
 day 217, 9 wells, min happiness 0.64) and the Industrial-start baseline 220 / 0.660 come out identical.

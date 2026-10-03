@@ -564,6 +564,7 @@ public sealed class PlacementController : MonoBehaviour
                 string problem = FootprintProblem(cell, m_Selected.Size, m_Rotation);
                 if (!m_GameManager.IsUnlocked(m_Selected)) SetHint($"Locked — research {m_GameManager.RequiredTechName(m_Selected)}", false);
                 else if (m_GameManager.IsObsolete(m_Selected)) SetHint($"Obsolete in the {m_GameManager.ObsoleteAgeName(m_Selected)}", false);
+                else if (m_GameManager.IsOutdated(m_Selected)) SetHint($"Outdated — build the {m_GameManager.ReplacementFor(m_Selected).DisplayName}", false);
                 else if (problem != null) SetHint(problem, false);
                 else if (!economy.CanAfford(m_Selected.Cost)) SetHint($"Need ${m_Selected.Cost:N0}", false);
                 else SetHint($"{m_Selected.DisplayName}  ${m_Selected.Cost:N0}   [R] rotate", true);

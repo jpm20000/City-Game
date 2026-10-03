@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: public_sanitation
   m_DisplayName: Public Sanitation
-  m_Description: 'Sewers and clean water. Happiness +3%. Unlocks the Pumping Station.'
+  m_Description: 'Sewers and clean water. Happiness +3%. Unlocks the Pumping Station and the Hospital.'
   m_Age: 2
   m_Cost: 450
   m_Prerequisites: 

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: civic_planning
   m_DisplayName: Civic Planning
-  m_Description: 'Squares, straight streets and order. Happiness +3%.'
+  m_Description: 'Squares, straight streets and order. Happiness +3%. Unlocks the Constabulary.'
   m_Age: 1
   m_Cost: 260
   m_Prerequisites: 

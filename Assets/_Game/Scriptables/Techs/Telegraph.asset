@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: telegraph
   m_DisplayName: Telegraph
-  m_Description: 'News at the speed of light. Research +20%.'
+  m_Description: 'News at the speed of light. Research +20%. Unlocks the Police Station (call boxes).'
   m_Age: 2
   m_Cost: 450
   m_Prerequisites: 

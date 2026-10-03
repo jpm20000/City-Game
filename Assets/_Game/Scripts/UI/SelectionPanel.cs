@@ -139,7 +139,27 @@ public sealed class SelectionPanel : MonoBehaviour
             float rp = def.ResearchPerDay * m_GameManager.Simulation.TechModifiers.ResearchMultiplier;
             Line($"Research  +{rp:0.#} RP / day");
         }
+        if (def.CivicKind != ServiceKind.None && def.CivicRadius > 0)
+        {
+            Line($"{CivicLine(def.CivicKind)} within {def.CivicRadius} cells, strength {def.CivicStrength:P0}.");
+            BuildingDefinition replacement = m_GameManager.ReplacementFor(def);
+            if (replacement != null)
+            {
+                Line($"<color=#F2C14E>Outdated</color> — replace with the {replacement.DisplayName} (strength {replacement.CivicStrength:P0}, reaches {replacement.CivicRadius} cells).");
+            }
+        }
         m_Action = Action.Demolish;
+    }
+
+    private static string CivicLine(ServiceKind kind)
+    {
+        switch (kind)
+        {
+            case ServiceKind.Order: return "<color=#5B8DEF>Keeps order</color> (less crime)";
+            case ServiceKind.Fire: return "<color=#F2554A>Fights fires</color> (less fire risk)";
+            case ServiceKind.Health: return "<color=#59D966>Cares for the sick</color>";
+            default: return "<color=#B07AD8>Educates residents</color> (more research)";
+        }
     }
 
     private void DescribePlant(BuildingInstance building)

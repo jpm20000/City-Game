@@ -18,6 +18,12 @@ using Object = UnityEngine.Object;
 // M13: in the well ages a block no well reaches gets one in its middle; in the piped ages water
 // towers / pumping stations are built like plants (the biggest unlocked one) whenever water runs short,
 // and a block whose middle holds a well gets a fountain instead of a park.
+// M14: outdated civic tiers (a newer building of the same line is buildable) are never built, as in the
+// game; each day a line whose happiness term (crime, fire risk, sickness) costs more than CivicTrigger
+// gets its best buildable building where uncovered homes pay the most (block middles for buildings up to
+// 2x2, a service block otherwise) if that removes enough of the loss, unless a new plant or tower is
+// wanted or the day's surplus wouldn't cover the building's upkeep. Techs leading to a needed line are
+// researched first, and research buildings past the first wait for the surplus to carry their upkeep.
 // Building numbers come from the BuildingDatabase asset through SerializedObject, because
 // BuildingDefinition lives in Assembly-CSharp, which test assemblies can't reference.
 internal sealed class EngagedCity
@@ -41,6 +47,9 @@ internal sealed class EngagedCity
         public int WaterSupply;
         public int WaterRadius;
         public string RequiredTech;
+        public ServiceKind CivicKind;
+        public int CivicRadius;
+        public float CivicStrength;
     }
 
     private readonly BalanceConfig m_Config;
@@ -106,6 +115,9 @@ internal sealed class EngagedCity
                 WaterSupply = so.FindProperty("m_WaterSupply").intValue,
                 WaterRadius = so.FindProperty("m_WaterRadius").intValue,
                 RequiredTech = so.FindProperty("m_RequiredTech").stringValue,
+                CivicKind = (ServiceKind)so.FindProperty("m_CivicKind").intValue,
+                CivicRadius = so.FindProperty("m_CivicRadius").intValue,
+                CivicStrength = so.FindProperty("m_CivicStrength").floatValue,
             };
             m_Buildings[b.Id] = b;
         }
@@ -268,6 +280,7 @@ internal sealed class EngagedCity
         }
         if (tech.Active != null) return;
 
+        m_Wanted = WantedTechs();
         TechDefinition best = null;
         foreach (TechDefinition t in Techs.Techs)
         {
@@ -277,14 +290,38 @@ internal sealed class EngagedCity
         if (best != null) tech.SetActive(best);
     }
 
-    // Lower is sooner: current-age techs by cost; techs gating a building (power, water, research) first.
+    private HashSet<TechDefinition> m_Wanted = new();
+
+    // Techs gating a building the player wants now (power, water, research, or M14 a civic line whose
+    // happiness term costs more than CivicTrigger), plus their unresearched prerequisites.
+    private HashSet<TechDefinition> WantedTechs()
+    {
+        var wanted = new HashSet<TechDefinition>();
+        var stack = new Stack<TechDefinition>();
+        foreach (Building b in m_Buildings.Values)
+        {
+            if (string.IsNullOrEmpty(b.RequiredTech)) continue;
+            if (!(b.Supply > 0 || b.WaterSupply > 0 || b.Research > 0f || NeedsLine(b.CivicKind))) continue;
+            TechDefinition t = Techs.GetById(b.RequiredTech);
+            if (t != null && !Sim.Tech.IsResearched(t)) stack.Push(t);
+        }
+        while (stack.Count > 0)
+        {
+            TechDefinition t = stack.Pop();
+            if (!wanted.Add(t)) continue;
+            foreach (TechDefinition p in t.Prerequisites)
+            {
+                if (p != null && !Sim.Tech.IsResearched(p)) stack.Push(p);
+            }
+        }
+        return wanted;
+    }
+
+    // Lower is sooner: current-age techs by cost; wanted techs (WantedTechs) first.
     private float Priority(TechDefinition t)
     {
         float cost = t.Cost;
-        foreach (Building b in m_Buildings.Values)
-        {
-            if (b.RequiredTech == t.Id && (b.Supply > 0 || b.WaterSupply > 0 || b.Research > 0f)) cost *= 0.25f;
-        }
+        if (m_Wanted.Contains(t)) cost *= 0.25f;
         return t.Age == Sim.Tech.CurrentAge ? cost : cost * 4f;
     }
 
@@ -294,6 +331,27 @@ internal sealed class EngagedCity
         TechDefinition t = Techs.GetById(b.RequiredTech);
         return t != null && Sim.Tech.IsResearched(t);
     }
+
+    // M14, as GameManager.ReplacementFor: a civic building is outdated once a building of the same
+    // line from a later age (its RequiredTech's age) is unlocked.
+    private bool Outdated(Building b)
+    {
+        if (b.CivicKind == ServiceKind.None) return false;
+        int age = TierAge(b);
+        foreach (Building other in m_Buildings.Values)
+        {
+            if (other.CivicKind == b.CivicKind && TierAge(other) > age && Unlocked(other)) return true;
+        }
+        return false;
+    }
+
+    private int TierAge(Building b)
+    {
+        TechDefinition t = string.IsNullOrEmpty(b.RequiredTech) ? null : Techs.GetById(b.RequiredTech);
+        return t != null ? t.Age : -1;
+    }
+
+    private bool CanBuild(Building b) => Unlocked(b) && !Outdated(b);
 
     // M13: while power or piped water is short of what the city draws, the player saves for the
     // plant / tower and buys nothing else (no parks, no new blocks), or the utility never gets built.
@@ -307,9 +365,11 @@ internal sealed class EngagedCity
         bool saving = SavingForUtilities;
         foreach (Building b in m_Buildings.Values)
         {
-            if (b.Id == "house" || !Unlocked(b)) continue;   // House is placed by growth, not here
+            if (b.Id == "house" || !CanBuild(b)) continue;   // House is placed by growth, not here
             if (saving && b.Supply <= 0 && b.WaterSupply <= 0) continue;
             int want = 0;
+            // M14: after the first research building, another only when the day's surplus carries its upkeep.
+            if (b.Research > 0f && ResearchBuildings() > 0 && Sim.Economy.IncomePerDay - Sim.Economy.ExpensePerDay < b.Upkeep) continue;
             if (b.Research > 0f) want = 1 + population / 800;
             else if (b.Radius > 0 && b.WaterRadius == 0) want = 1 + population / 150;   // parks (fountains: RaiseLandValue)
             else if (b.Supply > 0) want = Sim.Rules.UpgradesNeedPower && NeedsPower(b) ? Count(b.Id) + 1 : Count(b.Id);
@@ -320,6 +380,145 @@ internal sealed class EngagedCity
         }
         DigWells();
         if (!saving) RaiseLandValue();
+        if (!saving && !UtilityPending()) PlaceCivic();
+    }
+
+    // M14: a new plant or tower is wanted (supply nearly used up); civic upkeep waits until it's built.
+    private bool UtilityPending()
+    {
+        if (Sim.Water.Mode == WaterRule.Piped && NeedsWater()) return true;
+        if (!Sim.Rules.UpgradesNeedPower) return false;
+        foreach (Building b in m_Buildings.Values)
+        {
+            if (b.Supply > 0 && CanBuild(b) && NeedsPower(b)) return true;
+        }
+        return false;
+    }
+
+    // M14: a line is worth a building once its happiness term costs more than this.
+    private const float CivicTrigger = 0.01f;
+
+    private static readonly ServiceKind[] s_NeedLines = { ServiceKind.Order, ServiceKind.Fire, ServiceKind.Health };
+
+    private int ResearchBuildings()
+    {
+        int count = 0;
+        foreach (Building b in m_Buildings.Values)
+        {
+            if (b.Research > 0f) count += Count(b.Id);
+        }
+        return count;
+    }
+
+    private bool NeedsLine(ServiceKind line) => LineTerm(line) <= -CivicTrigger;
+
+    // The line's (signed) happiness term; 0 for education and non-civic buildings.
+    private float LineTerm(ServiceKind line)
+    {
+        HappinessBreakdown happiness = Sim.Population.Happiness;
+        return line == ServiceKind.Order ? happiness.Crime
+            : line == ServiceKind.Fire ? happiness.Fire
+            : line == ServiceKind.Health ? happiness.Health
+            : 0f;
+    }
+
+    private void PlaceCivic()
+    {
+        foreach (ServiceKind line in s_NeedLines)
+        {
+            if (!NeedsLine(line)) continue;
+            if (!TryFind(b => b.CivicKind == line && !Outdated(b), out Building best)) continue;
+            if (Sim.Economy.Money - best.Cost < Cushion) continue;
+            if (Sim.Economy.IncomePerDay - Sim.Economy.ExpensePerDay < best.Upkeep) continue;   // can't carry its upkeep
+            PlaceCivic(best);
+        }
+    }
+
+    // A building is only worth it when it removes at least this much of the city's happiness loss.
+    private const float CivicMinGain = 0.002f;
+
+    // Candidate spots: the free middle of every block with homes paying for this line (buildings up to
+    // 2x2), or the next service block (bigger ones). The spot whose reach removes the most happiness loss
+    // wins: per grown cell, its penalty x the share of it the new cover takes away (cover never stacks).
+    private void PlaceCivic(Building b)
+    {
+        var candidates = new List<Vector2Int>();
+        bool middle = b.Size.x <= 2 && b.Size.y <= 2;
+        if (middle)
+        {
+            var blocks = new HashSet<Vector2Int>();
+            foreach (Vector2Int cell in m_ZonedCells)
+            {
+                if (Penalty(b.CivicKind, Sim.Civic.Explain(cell)) <= 0f || !blocks.Add(BlockOf(cell))) continue;
+                Vector2Int? spot = MiddleSpot(BlockOf(cell), b.Size);
+                if (spot != null) candidates.Add(spot.Value);
+            }
+        }
+        // Bigger buildings take an already open service block. Service slots stay for parks, plants
+        // and research buildings, and civic buildings never open blocks themselves: reaching the next
+        // service block can mean paying for a dozen blocks of roads.
+        if (!middle && m_FreeBlocks.Count > 0) candidates.Add(m_FreeBlocks[0]);
+
+        Vector2Int best = default;
+        float bestGain = CivicMinGain * Mathf.Max(Sim.Population.Housing, 1);
+        bool found = false;
+        foreach (Vector2Int origin in candidates)
+        {
+            float gain = Gain(b, origin);
+            if (gain <= bestGain) continue;
+            best = origin;
+            bestGain = gain;
+            found = true;
+        }
+        if (!found) return;
+        if (!middle) m_FreeBlocks.Remove(best);
+        PlaceAt(b, best);
+    }
+
+    // The happiness loss (x capacity) the building would remove at this origin.
+    private float Gain(Building b, Vector2Int origin)
+    {
+        float scale = b.CivicKind == ServiceKind.Order ? m_Config.CrimePenalty
+            : b.CivicKind == ServiceKind.Fire ? m_Config.FirePenalty
+            : m_Config.HealthPenalty;
+        float gain = 0f;
+        int r = b.CivicRadius;
+        for (int y = origin.y - r; y < origin.y + b.Size.y + r; y++)
+        {
+            for (int x = origin.x - r; x < origin.x + b.Size.x + r; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!Grid.InBounds(cell) || Grid.GetZone(cell) == ZoneType.None) continue;
+                int capacity = Sim.Capacity.CapacityOf(Grid, cell);
+                if (capacity == 0 || (b.CivicKind != ServiceKind.Order && Grid.GetZone(cell) != ZoneType.Residential)) continue;
+                CivicBreakdown civic = Sim.Civic.Explain(cell);
+                float cover = Cover(b.CivicKind, civic);
+                if (cover >= b.CivicStrength || cover >= 1f) continue;
+                gain += capacity * Penalty(b.CivicKind, civic) * (b.CivicStrength - cover) / (1f - cover) * scale;
+            }
+        }
+        return gain;
+    }
+
+    private static float Penalty(ServiceKind kind, CivicBreakdown civic) =>
+        kind == ServiceKind.Order ? civic.Crime : kind == ServiceKind.Fire ? civic.FireRisk : civic.Sickness;
+
+    private static float Cover(ServiceKind kind, CivicBreakdown civic) =>
+        kind == ServiceKind.Order ? civic.Order : kind == ServiceKind.Fire ? civic.Fire : civic.Health;
+
+    // Where a building up to 2x2 fits in a block's 2x2 middle (never zoned: no road access), or null.
+    private Vector2Int? MiddleSpot(Vector2Int block, Vector2Int size)
+    {
+        foreach (Vector2Int offset in s_MiddleCells)
+        {
+            Vector2Int origin = block + offset;
+            if (origin.x + size.x > block.x + 3 || origin.y + size.y > block.y + 3) continue;
+            if (!Grid.CanPlace(origin, size, 0)) continue;
+            bool clear = true;
+            foreach (Vector2Int cell in Grid.GetFootprint(origin, size, 0)) clear &= Grid.GetZone(cell) == ZoneType.None;
+            if (clear) return origin;
+        }
+        return null;
     }
 
     private Vector2Int BlockOf(Vector2Int cell)
@@ -344,7 +543,7 @@ internal sealed class EngagedCity
     {
         foreach (Building b in m_Buildings.Values)
         {
-            if (match(b) && Unlocked(b)) { found = b; return true; }
+            if (match(b) && CanBuild(b)) { found = b; return true; }
         }
         found = default;
         return false;
@@ -479,10 +678,11 @@ internal sealed class EngagedCity
         m_Modifiers.UpkeepPerDay += b.Upkeep;
         m_Modifiers.ResearchPerDay += b.Research;
         Sim.Modifiers = m_Modifiers;
-        if (b.Radius > 0 || b.Supply > 0 || b.Pollution > 0f || b.WaterSupply > 0 || b.WaterRadius > 0)
+        if (b.Radius > 0 || b.Supply > 0 || b.Pollution > 0f || b.WaterSupply > 0 || b.WaterRadius > 0
+            || (b.CivicKind != ServiceKind.None && b.CivicRadius > 0))
         {
             m_Sources.Add(new ServiceSource(origin, b.Size, b.Radius, b.Supply, b.Pollution, b.PollutionRadius,
-                b.WaterSupply, b.WaterRadius));
+                b.WaterSupply, b.WaterRadius, b.CivicKind, b.CivicRadius, b.CivicStrength));
             Sim.Sources = m_Sources.ToArray();
         }
         m_Placed[b.Id] = Count(b.Id) + 1;

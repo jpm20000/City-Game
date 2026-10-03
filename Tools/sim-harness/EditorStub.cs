@@ -164,7 +164,17 @@ namespace Harness
         {
             if (string.IsNullOrEmpty(path)) return null;
             if (s_Loaded.TryGetValue(path, out Object cached)) return cached;
-            if (!path.EndsWith(".asset") || !File.Exists(Root + path)) return null;
+            if (!File.Exists(Root + path)) return null;
+            if (!path.EndsWith(".asset"))
+            {
+                // Prefabs, materials, textures: only their existence matters to the tests.
+                var other = (YamlAsset)Activator.CreateInstance(typeof(YamlAsset), true);
+                other.ClassName = Path.GetExtension(path);
+                other.Data = new Dictionary<string, object>();
+                other.name = Path.GetFileNameWithoutExtension(path);
+                s_Loaded[path] = other;
+                return other;
+            }
             Dictionary<string, object> data = Yaml.ParseAsset(Root + path);
             string cls = ScriptClass(data);
             Type type = cls == null ? null : typeof(Assets).Assembly.GetTypes().FirstOrDefault(t => t.Name == cls && typeof(ScriptableObject).IsAssignableFrom(t));

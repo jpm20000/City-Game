@@ -73,6 +73,12 @@ MonoBehaviour:
   m_CrimePenalty: 0.15
   m_CrimePenaltyCap: 0.1
   m_LandValuePerCrime: 0.15
+  m_FireRisk: 0.35
+  m_FireRiskIndustrialFactor: 1.5
+  m_FirePenalty: 0.1
+  m_FirePenaltyCap: 0.06
+  m_HealthPenalty: 0.08
+  m_ResearchPerEducatedResident: 0.01
   m_ResearchPerCommercialJob: 0.25
   m_RedevelopPerDay: 3
   m_ResearchQueueMax: 5

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: academies
   m_DisplayName: Academies
-  m_Description: 'Halls of scholarship. Unlocks the Academy, which produces research.'
+  m_Description: 'Halls of scholarship. Unlocks the Academy, which produces research and educates the homes around it.'
   m_Age: 1
   m_Cost: 250
   m_Prerequisites: 

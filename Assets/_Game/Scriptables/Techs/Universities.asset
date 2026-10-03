@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a81a50374d8fd1488dba7cf9e9b874e, type: 3}
+  m_Name: Universities
+  m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
+  m_Id: universities
+  m_DisplayName: Universities
+  m_Description: 'Research universities. Unlocks the University, which produces research and educates the homes around it.'
+  m_Age: 2
+  m_Cost: 500
+  m_Prerequisites: 
+  - {fileID: 11400000, guid: 6b2ca2286bce547b8d2b7c79070cf616, type: 2}
+  - {fileID: 11400000, guid: 45393a9fb1425dd6bab2c48a01edfbfa, type: 2}
+  m_Effects: []

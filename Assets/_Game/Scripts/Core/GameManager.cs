@@ -115,8 +115,38 @@ public sealed class GameManager : MonoBehaviour
         return age >= 0 && Simulation.Tech.CurrentAge >= age;
     }
 
-    // Unlocked and not obsolete: the toolbar shows it and the placement tool accepts it.
-    public bool CanBuild(BuildingDefinition def) => IsUnlocked(def) && !IsObsolete(def);
+    // Unlocked, not obsolete and not outdated: the toolbar shows it and the placement tool accepts it.
+    public bool CanBuild(BuildingDefinition def) => IsUnlocked(def) && !IsObsolete(def) && ReplacementFor(def) == null;
+
+    // The civic building that supersedes this one (M14): the latest-age building of the same line
+    // that is unlocked and not obsolete, if it comes from a later age than this one. A building's age
+    // is its RequiredTech's age. Null for non-civic buildings, without age data, or when nothing newer
+    // can be built yet. Placed copies keep working; the panel suggests the replacement.
+    public BuildingDefinition ReplacementFor(BuildingDefinition def)
+    {
+        if (def == null || def.CivicKind == ServiceKind.None || Simulation?.Tech == null || m_BuildingDatabase == null) return null;
+        BuildingDefinition best = null;
+        int bestAge = TierAge(def);
+        foreach (BuildingDefinition other in m_BuildingDatabase.Entries)
+        {
+            if (other == null || other == def || other.CivicKind != def.CivicKind) continue;
+            int age = TierAge(other);
+            if (age <= bestAge || !IsUnlocked(other) || IsObsolete(other)) continue;
+            best = other;
+            bestAge = age;
+        }
+        return best;
+    }
+
+    public bool IsOutdated(BuildingDefinition def) => ReplacementFor(def) != null;
+
+    // The age of the tech that unlocks a building (-1 when it needs none).
+    private int TierAge(BuildingDefinition def)
+    {
+        if (string.IsNullOrEmpty(def.RequiredTech)) return -1;
+        TechDefinition tech = Simulation.Tech.Techs.GetById(def.RequiredTech);
+        return tech != null ? tech.Age : -1;
+    }
 
     // Display name of the age a building became obsolete in, or null.
     public string ObsoleteAgeName(BuildingDefinition def)
@@ -197,7 +227,8 @@ public sealed class GameManager : MonoBehaviour
 
     private static bool IsSource(BuildingDefinition def)
     {
-        return def.CoverageRadius > 0 || def.PowerSupply > 0 || def.Pollution > 0f || def.WaterSupply > 0 || def.WaterRadius > 0;
+        return def.CoverageRadius > 0 || def.PowerSupply > 0 || def.Pollution > 0f || def.WaterSupply > 0 || def.WaterRadius > 0
+            || (def.CivicKind != ServiceKind.None && def.CivicRadius > 0);
     }
 
     private void RebuildSources()
@@ -207,7 +238,8 @@ public sealed class GameManager : MonoBehaviour
         {
             BuildingDefinition def = b.Definition;
             m_Sources.Add(new ServiceSource(b.Origin, CellUtils.EffectiveSize(def.Size, b.Rotation),
-                def.CoverageRadius, def.PowerSupply, def.Pollution, def.PollutionRadius, def.WaterSupply, def.WaterRadius));
+                def.CoverageRadius, def.PowerSupply, def.Pollution, def.PollutionRadius, def.WaterSupply, def.WaterRadius,
+                def.CivicKind, def.CivicRadius, def.CivicStrength));
         }
         Simulation.Sources = m_Sources;
         m_PowerDirty = true;
