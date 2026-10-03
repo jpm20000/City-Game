@@ -5,7 +5,7 @@ using System.Text;
 using UnityEngine;
 
 // Development builds only: launch the player with -perfBenchmark to build a fully grown 96x96 city
-// (roads every 5 cells, every block level 3), time frames in a few scenarios and write the results
+// (roads every 5 cells, every block level 3, built ages mixed across every age), time frames in a few scenarios and write the results
 // to <persistentDataPath>/perf_benchmark.txt, then quit. Uses NewCity (in memory) and never saves.
 public sealed class PerfBenchmark : MonoBehaviour
 {
@@ -41,7 +41,7 @@ public sealed class PerfBenchmark : MonoBehaviour
         gameManager.Clock.SetSpeed(GameSpeed.Paused);
         saveGame.NewCity(new Vector2Int(k_MapSize, k_MapSize));
         float buildStart = Time.realtimeSinceStartup;
-        BuildCity(gameManager.Grid);
+        BuildCity(gameManager.Grid, gameManager.Ages != null ? gameManager.Ages.Count : 1);
         float buildMs = (Time.realtimeSinceStartup - buildStart) * 1000f;
         for (int i = 0; i < 30; i++) yield return null;
 
@@ -147,7 +147,8 @@ public sealed class PerfBenchmark : MonoBehaviour
             + $" | medians: main thread {m_CpuSamples[k_Frames / 2]:F2}, render thread {m_RenderSamples[k_Frames / 2]:F2}, GPU {m_GpuSamples[k_Frames / 2]:F2}");
     }
 
-    private static void BuildCity(GridData grid)
+    // Blocks of 4x4 cells share a built age, cycling through every age, so all age styles are drawn.
+    private static void BuildCity(GridData grid, int ageCount)
     {
         for (int y = 0; y < grid.Height; y++)
         {
@@ -164,6 +165,7 @@ public sealed class PerfBenchmark : MonoBehaviour
                 if (grid.IsRoad(cell)) continue;
                 int block = (x / 5 + y / 5) % 3;
                 grid.SetZone(cell, block == 0 ? ZoneType.Residential : block == 1 ? ZoneType.Commercial : ZoneType.Industrial);
+                grid.SetBuiltAge(cell, (byte)((x / 5 * 7 + y / 5 * 3) % ageCount));
                 grid.SetBuildingLevel(cell, 3);
             }
         }

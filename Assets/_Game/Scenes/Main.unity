@@ -249,6 +249,11 @@ MonoBehaviour:
   m_HeightJitter: 0.15
   m_PopDuration: 0.35
   m_PopStartScale: 0.6
+  m_AgeVisuals:
+  - {fileID: 11400000, guid: 520be8f7cc275641b6797a86471dd385, type: 2}
+  - {fileID: 11400000, guid: c11379c4cc5e5be0b98b1805455b17a2, type: 2}
+  - {fileID: 11400000, guid: f90428bf08f75f5bbf63a550b4149399, type: 2}
+  - {fileID: 11400000, guid: 58a4d7f8803b5ddea87036d8d1a01b03, type: 2}
 --- !u!114 &189747474
 MonoBehaviour:
   m_ObjectHideFlags: 0

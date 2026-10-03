@@ -8,6 +8,7 @@ GUID_AGE_DEF = "a13593af433dd8440a3d802b066bb1d8"
 GUID_AGE_DB = "241edd6ee45d45b4fa2b67e623070894"
 GUID_TECH_DEF = "4a81a50374d8fd1488dba7cf9e9b874e"
 GUID_TECH_DB = "a6bee4b53f8793c4b9cc00b60f5ad9a0"
+GUID_VISUAL_SET = "e8eec815828e415cad1c610865718a24"   # Scripts/Buildings/AgeVisualSet.cs (Assembly-CSharp)
 NS = uuid.UUID("6f1c0e52-8d0a-4c3a-9a51-3c1d2b7e9f10")
 
 def guid(name):
@@ -19,12 +20,12 @@ def ref(g):
 def q(text):
     return "'" + text.replace("'", "''") + "'"
 
-def header(script_guid, name, cls):
+def header(script_guid, name, cls, assembly="CityBuilder.Simulation"):
     return ("%%YAML 1.1\n%%TAG !u! tag:unity3d.com,2011:\n--- !u!114 &11400000\nMonoBehaviour:\n"
             "  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n"
             "  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 0}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n"
             "  m_Script: {fileID: 11500000, guid: %s, type: 3}\n  m_Name: %s\n"
-            "  m_EditorClassIdentifier: CityBuilder.Simulation::%s\n") % (script_guid, name, cls)
+            "  m_EditorClassIdentifier: %s::%s\n") % (script_guid, name, assembly, cls)
 
 def write(path, text, g):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -123,5 +124,50 @@ text = header(GUID_TECH_DB, "TechDatabase", "TechDatabase")
 text += "  m_Techs:%s\n" % array([ref(tech_guid[t[1]]) for t in TECHS])
 write(os.path.join(ROOT, "Techs", "TechDatabase.asset"), text, guid("tech_database"))
 
-print("ages", len(AGES), "techs", len(TECHS))
+# --- Age visual sets (M11e): fallback styles for the placeholder blocks, per zone and level 1..3. ---
+# (tint rgba: body = zone colour blended toward rgb by a; roof: 0 Default, 1 Pitched, 2 None;
+#  roof colour rgba, a = 0 -> shaded body colour; height multiplier). No prefabs yet (M18).
+def style(tint, roof, roof_color, height):
+    return (tint, roof, roof_color, height)
+
+PLAIN = style((0, 0, 0, 0), 0, (0, 0, 0, 0), 1.0)
+TIMBER, THATCH, DARK_WOOD = (0.80, 0.70, 0.52, 0.55), (0.62, 0.50, 0.30, 1), (0.40, 0.28, 0.20, 1)
+SANDSTONE, TERRACOTTA, BRICK = (0.88, 0.80, 0.64, 0.40), (0.70, 0.38, 0.26, 1), (0.66, 0.40, 0.32, 0.40)
+CONCRETE, GLASS, STEEL = (0.70, 0.76, 0.82, 0.30), (0.55, 0.70, 0.85, 0.40), (0.72, 0.74, 0.76, 0.35)
+NONE = (0, 0, 0, 0)
+
+VISUALS = [
+    # asset, age id, residential L1-3, commercial L1-3, industrial L1-3
+    ("MedievalVisuals", "medieval",
+     [style(TIMBER, 1, THATCH, 0.90), style(TIMBER, 1, THATCH, 0.80), style(TIMBER, 1, THATCH, 0.75)],
+     [style(TIMBER, 1, DARK_WOOD, 0.85), style(TIMBER, 1, DARK_WOOD, 0.80), style(TIMBER, 1, DARK_WOOD, 0.75)],
+     [style((0.62, 0.52, 0.40, 0.5), 1, (0.35, 0.30, 0.26, 1), 0.90)] * 3),
+    ("RenaissanceVisuals", "renaissance",
+     [style(SANDSTONE, 1, TERRACOTTA, 0.95), style(SANDSTONE, 1, TERRACOTTA, 0.90), style(SANDSTONE, 1, TERRACOTTA, 0.85)],
+     [style(SANDSTONE, 1, TERRACOTTA, 1.0), style(SANDSTONE, 1, TERRACOTTA, 0.95), style(SANDSTONE, 0, NONE, 0.90)],
+     [style(BRICK, 1, (0.40, 0.30, 0.28, 1), 1.0)] * 3),
+    ("IndustrialVisuals", "industrial", [PLAIN] * 3, [PLAIN] * 3, [PLAIN] * 3),
+    ("ModernVisuals", "modern",
+     [style(CONCRETE, 0, NONE, 1.0), style(CONCRETE, 0, NONE, 1.15), style(CONCRETE, 0, NONE, 1.30)],
+     [style(GLASS, 0, NONE, 1.0), style(GLASS, 0, NONE, 1.20), style(GLASS, 0, NONE, 1.40)],
+     [style(STEEL, 0, NONE, 1.0)] * 3),
+]
+
+def color(c):
+    return "{r: %s, g: %s, b: %s, a: %s}" % tuple(c)
+
+def styles(field, entries):
+    out = "  %s:\n" % field
+    for tint, roof, roof_color, height in entries:
+        out += "  - Prefabs: []\n    Tint: %s\n    Roof: %d\n    RoofColor: %s\n    HeightScale: %s\n" % (
+            color(tint), roof, color(roof_color), height)
+    return out
+
+for asset, age_id, residential, commercial, industrial in VISUALS:
+    text = header(GUID_VISUAL_SET, asset, "AgeVisualSet", "Assembly-CSharp")
+    text += "  m_AgeId: %s\n" % age_id
+    text += styles("m_Residential", residential) + styles("m_Commercial", commercial) + styles("m_Industrial", industrial)
+    write(os.path.join(ROOT, "Ages", "Visuals", asset + ".asset"), text, guid("visuals_" + age_id))
+
+print("ages", len(AGES), "techs", len(TECHS), "visual sets", len(VISUALS))
 print("AgeDatabase guid", guid("age_database"), "TechDatabase guid", guid("tech_database"))

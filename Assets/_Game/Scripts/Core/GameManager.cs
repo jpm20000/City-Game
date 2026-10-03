@@ -60,7 +60,7 @@ public sealed class GameManager : MonoBehaviour
             Simulation.Tech.AgeAdvanced += HandleAgeAdvanced;
         }
 
-        if (m_GrowthVisuals != null) m_GrowthVisuals.Init(Grid);
+        if (m_GrowthVisuals != null) m_GrowthVisuals.Init(Grid, Ages);
 
         if (m_Time != null)
         {

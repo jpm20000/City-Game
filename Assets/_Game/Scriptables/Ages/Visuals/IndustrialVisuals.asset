@@ -1,0 +1,63 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8eec815828e415cad1c610865718a24, type: 3}
+  m_Name: IndustrialVisuals
+  m_EditorClassIdentifier: Assembly-CSharp::AgeVisualSet
+  m_AgeId: industrial
+  m_Residential:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0
+  m_Commercial:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0
+  m_Industrial:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1.0

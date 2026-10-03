@@ -92,6 +92,40 @@ public sealed class ContentTests
         Assert.AreEqual(m_Techs.Techs.Count, tech.ResearchedCount);
     }
 
+    // AgeVisualSet (M11e) lives in Assembly-CSharp too, so it is found by type name and read through
+    // SerializedObject. Every age needs exactly one set; Industrial's must be plain so the Industrial
+    // age looks exactly like the pre-ages game.
+    [Test]
+    public void EveryAge_HasOneVisualSet_AndIndustrialIsPlain()
+    {
+        var sets = new Dictionary<string, SerializedObject>();
+        foreach (string guid in AssetDatabase.FindAssets("t:AgeVisualSet"))
+        {
+            var so = new SerializedObject(AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid)));
+            string ageId = so.FindProperty("m_AgeId").stringValue;
+            Assert.IsTrue(m_Ages.IndexOf(ageId) >= 0, $"visual set for unknown age '{ageId}'");
+            Assert.IsFalse(sets.ContainsKey(ageId), $"two visual sets for '{ageId}'");
+            sets[ageId] = so;
+        }
+        for (int i = 0; i < m_Ages.Count; i++) Assert.IsTrue(sets.ContainsKey(m_Ages[i].Id), $"no visual set for '{m_Ages[i].Id}'");
+
+        SerializedObject industrial = sets["industrial"];
+        foreach (string zone in new[] { "m_Residential", "m_Commercial", "m_Industrial" })
+        {
+            SerializedProperty levels = industrial.FindProperty(zone);
+            Assert.AreEqual(3, levels.arraySize, zone);
+            for (int level = 0; level < 3; level++)
+            {
+                SerializedProperty style = levels.GetArrayElementAtIndex(level);
+                Assert.AreEqual(0f, style.FindPropertyRelative("Tint").colorValue.a, $"{zone} L{level + 1} tint");
+                Assert.AreEqual(0, style.FindPropertyRelative("Roof").enumValueIndex, $"{zone} L{level + 1} roof");
+                Assert.AreEqual(0f, style.FindPropertyRelative("RoofColor").colorValue.a, $"{zone} L{level + 1} roof colour");
+                Assert.AreEqual(1f, style.FindPropertyRelative("HeightScale").floatValue, $"{zone} L{level + 1} height");
+                Assert.AreEqual(0, style.FindPropertyRelative("Prefabs").arraySize, $"{zone} L{level + 1} prefabs");
+            }
+        }
+    }
+
     // BuildingDefinition lives in Assembly-CSharp, which test assemblies can't reference, so its
     // fields are read through SerializedObject.
     [Test]
