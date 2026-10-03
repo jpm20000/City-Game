@@ -15,6 +15,7 @@ public sealed class InputReader : MonoBehaviour
     private InputAction m_RotateAction;
     private InputAction m_DemolishAction;
     private InputAction m_RoadToolAction;
+    private InputAction m_PipeToolAction;
     private InputAction m_SpeedDeltaAction;
     private InputAction m_DebugToggleAction;
     private InputAction m_QuickSaveAction;
@@ -30,6 +31,7 @@ public sealed class InputReader : MonoBehaviour
     public bool RotatePressed => m_RotateAction.WasPressedThisFrame();
     public bool DemolishPressed => m_DemolishAction.WasPressedThisFrame();
     public bool RoadToolPressed => m_RoadToolAction.WasPressedThisFrame();
+    public bool PipeToolPressed => m_PipeToolAction.WasPressedThisFrame();
     public bool DebugTogglePressed => m_DebugToggleAction.WasPressedThisFrame();
     public bool QuickSavePressed => m_QuickSaveAction.WasPressedThisFrame();
     public bool QuickLoadPressed => m_QuickLoadAction.WasPressedThisFrame();
@@ -55,6 +57,7 @@ public sealed class InputReader : MonoBehaviour
         m_RotateAction = m_Map.FindAction("Rotate", throwIfNotFound: true);
         m_DemolishAction = m_Map.FindAction("Demolish", throwIfNotFound: true);
         m_RoadToolAction = m_Map.FindAction("RoadTool", throwIfNotFound: true);
+        m_PipeToolAction = m_Map.FindAction("PipeTool", throwIfNotFound: true);
         m_SpeedDeltaAction = m_Map.FindAction("SpeedDelta", throwIfNotFound: true);
         m_DebugToggleAction = m_Map.FindAction("DebugToggle", throwIfNotFound: true);
         m_QuickSaveAction = m_Map.FindAction("QuickSave", throwIfNotFound: true);

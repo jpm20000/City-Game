@@ -115,6 +115,8 @@ public sealed class SaveMigrationTests
             if (data.Levels[i] > 0) grown++;
         }
         Assert.AreEqual(40, grown);
+        Assert.AreEqual(24 * 24, data.Pipes.Length, "v2 -> v3 adds an empty pipe layer");
+        Assert.IsTrue(System.Array.TrueForAll(data.Pipes, p => p == 0));
         Assert.AreEqual(1, data.Buildings.Count);
         Assert.AreEqual("park", data.Buildings[0].Id);
     }
@@ -178,6 +180,25 @@ public sealed class SaveMigrationTests
         {
             Assert.AreEqual(data.Levels[i] > 0 ? TestAges.Industrial : 0, data.BuiltAges[i]);
         }
+    }
+
+    // --- v2 -> v3 (M13) ---
+
+    [Test]
+    public void V2Save_MigratesToV3_WithNoPipes()
+    {
+        var grid = new GridData(24, 24);
+        SimulationSystem sim = SeededCity.Run(grid, m_Config, 20);
+        SaveData saved = SaveSystem.Capture(grid, sim);
+        saved.Version = 2;
+        saved.Pipes = null;
+
+        SaveData data = Read(SaveSystem.ToJson(saved), withAges: false);
+
+        Assert.AreEqual(3, data.Version);
+        Assert.AreEqual(24 * 24, data.Pipes.Length);
+        Assert.IsTrue(System.Array.TrueForAll(data.Pipes, p => p == 0));
+        CollectionAssert.AreEqual(saved.Levels, data.Levels, "nothing else changes");
     }
 
     // --- v2 round trip ---

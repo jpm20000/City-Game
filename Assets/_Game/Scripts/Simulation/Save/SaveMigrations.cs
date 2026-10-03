@@ -22,6 +22,11 @@ public static class SaveMigrations
             V1ToV2(data);
             data.Version = 2;
         }
+        if (data.Version == 2)
+        {
+            V2ToV3(data);
+            data.Version = 3;
+        }
 
         data.Buildings ??= new();
         data.Researched ??= new();
@@ -63,6 +68,12 @@ public static class SaveMigrations
         data.ResearchQueue = new List<string>();
         data.BuiltAges = new byte[count];
         data.Historic = new byte[count];
+    }
+
+    // v3 adds water pipes (M13). Older cities had none: roads carry the water.
+    private static void V2ToV3(SaveData data)
+    {
+        data.Pipes = new byte[Math.Max(0, data.Width * data.Height)];
     }
 
     // A city saved without ages played by today's rules: it becomes an Industrial city with every

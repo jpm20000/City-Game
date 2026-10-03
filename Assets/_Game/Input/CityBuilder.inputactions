@@ -87,6 +87,16 @@
                     "priority": 0
                 },
                 {
+                    "name": "PipeTool",
+                    "type": "Button",
+                    "id": "182906c1-12b7-5c48-b4e2-132245c6294c",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
                     "name": "SpeedDelta",
                     "type": "Value",
                     "id": "33c81250-7960-4652-a87a-48ac754b71c6",
@@ -329,6 +339,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "RoadTool",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "c37a095a-c9b7-5ded-b5ca-fec17f3897c2",
+                    "path": "<Keyboard>/p",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "PipeTool",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

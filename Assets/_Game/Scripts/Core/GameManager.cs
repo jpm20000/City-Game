@@ -156,6 +156,21 @@ public sealed class GameManager : MonoBehaviour
         }
     }
 
+    // Whether the pipe tool is available (M13): once a piped water source can be built (Waterworks).
+    // Always true without age data.
+    public bool PipesUnlocked
+    {
+        get
+        {
+            if (Simulation == null || Simulation.Tech == null || m_BuildingDatabase == null) return true;
+            foreach (BuildingDefinition def in m_BuildingDatabase.Entries)
+            {
+                if (def != null && def.WaterSupply > 0 && IsUnlocked(def)) return true;
+            }
+            return false;
+        }
+    }
+
     // Display name of the current age, or null without age data.
     public string CurrentAgeName => Simulation?.Tech?.CurrentAgeDefinition.DisplayName;
 

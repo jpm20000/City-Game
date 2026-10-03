@@ -7,7 +7,7 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 2;
+    public const int CurrentVersion = 3;
     public const int NoAge = -1;
 
     public int Version = CurrentVersion;
@@ -42,6 +42,9 @@ public sealed class SaveData
     public List<string> ResearchQueue = new();
     public byte[] BuiltAges;
     public byte[] Historic;
+
+    // v3 (M13): water pipes (1 = pipe under the cell).
+    public byte[] Pipes;
 
     public List<BuildingRecord> Buildings = new();
 }

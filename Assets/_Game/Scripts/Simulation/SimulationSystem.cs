@@ -126,7 +126,8 @@ public sealed class SimulationSystem
         float income = Population.Employed * m_Config.IncomePerWorker * Economy.TaxResidential
             + Population.CommercialJobs * m_Config.IncomePerCommercialJob * Economy.TaxCommercial
             + Population.IndustrialJobs * m_Config.IncomePerIndustrialJob * Economy.TaxIndustrial;
-        float expense = (modifiers.UpkeepPerDay + m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay) * tech.UpkeepMultiplier;
+        float expense = (modifiers.UpkeepPerDay + m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay
+            + m_Grid.CountPipes() * m_Config.PipeUpkeepPerDay) * tech.UpkeepMultiplier;
         Economy.ApplyDay(income, expense);
 
         Tech?.Step(ResearchIncome());

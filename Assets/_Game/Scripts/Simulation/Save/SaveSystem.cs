@@ -34,6 +34,7 @@ public static class SaveSystem
             Levels = grid.ExportLevels(),
             BuiltAges = grid.ExportBuiltAges(),
             Historic = grid.ExportHistoric(),
+            Pipes = grid.ExportPipes(),
         };
         TechSystem tech = sim.Tech;
         if (tech != null)
@@ -69,6 +70,7 @@ public static class SaveSystem
             Levels = new byte[count],
             BuiltAges = new byte[count],
             Historic = new byte[count],
+            Pipes = new byte[count],
         };
         if (ages != null && techs != null)
         {
@@ -89,7 +91,7 @@ public static class SaveSystem
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (grid == null) throw new ArgumentNullException(nameof(grid));
         if (data.Width != grid.Width || data.Height != grid.Height) grid.Resize(data.Width, data.Height);
-        grid.Import(data.Zones, data.Roads, data.Levels, data.BuiltAges, data.Historic);
+        grid.Import(data.Zones, data.Roads, data.Levels, data.BuiltAges, data.Historic, data.Pipes);
     }
 
     // Step 2, after the grid is restored and SimulationSystem.Modifiers/Sources reflect placed buildings.
@@ -162,7 +164,7 @@ public static class SaveSystem
 
         int count = data.Width * data.Height;
         if (data.Zones?.Length != count || data.Roads?.Length != count || data.Levels?.Length != count
-            || data.BuiltAges?.Length != count || data.Historic?.Length != count)
+            || data.BuiltAges?.Length != count || data.Historic?.Length != count || data.Pipes?.Length != count)
         {
             error = "Save file has missing or mismatched map data.";
             data = null;

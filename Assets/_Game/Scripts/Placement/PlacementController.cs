@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 
 public sealed class PlacementController : MonoBehaviour
 {
-    public enum Mode { None, Road, Building, Demolish, Zone }
+    public enum Mode { None, Road, Building, Demolish, Zone, Pipe }
 
     private const int k_BuildingsMask = 1 << 9;
     private const float k_RaycastHeight = 50f;
@@ -26,6 +26,8 @@ public sealed class PlacementController : MonoBehaviour
     private int m_Rotation;
     private ZoneType m_ZoneBrush;
     private Vector2Int? m_SelectedCell;
+    private bool m_PipeErasing;     // this drag removes pipes (it started on one)
+    private bool m_PipeFundsWarned; // one "not enough money" per drag
     private readonly Dictionary<int, BuildingInstance> m_Buildings = new();
 
     public Mode CurrentMode => m_Mode;
@@ -88,6 +90,13 @@ public sealed class PlacementController : MonoBehaviour
     public void SelectRoad()
     {
         SetMode(Mode.Road);
+    }
+
+    // M13: water pipes. Drag to lay; a drag that starts on a pipe removes pipes. Needs Waterworks.
+    public void SelectPipe()
+    {
+        if (!m_GameManager.PipesUnlocked) return;
+        SetMode(Mode.Pipe);
     }
 
     // ZoneType.None erases zoning.
@@ -155,6 +164,10 @@ public sealed class PlacementController : MonoBehaviour
         {
             SetMode(m_Mode == Mode.Road ? Mode.None : Mode.Road);
         }
+        else if (m_InputReader.PipeToolPressed && m_GameManager.PipesUnlocked)
+        {
+            SetMode(m_Mode == Mode.Pipe ? Mode.None : Mode.Pipe);
+        }
         else if (m_InputReader.DemolishPressed)
         {
             SetMode(m_Mode == Mode.Demolish ? Mode.None : Mode.Demolish);
@@ -190,11 +203,17 @@ public sealed class PlacementController : MonoBehaviour
     {
         if (IsPointerOverUI()) return;
 
-        // Zoning paints while the button is held; other tools act once per click.
-        bool active = m_Mode == Mode.Zone ? m_InputReader.ConfirmHeld : m_InputReader.ConfirmPressed;
+        // Zoning and pipes paint while the button is held; other tools act once per click.
+        bool painting = m_Mode == Mode.Zone || m_Mode == Mode.Pipe;
+        bool active = painting ? m_InputReader.ConfirmHeld : m_InputReader.ConfirmPressed;
         if (!active) return;
 
         Vector2Int cell = GetMouseCell();
+        if (m_Mode == Mode.Pipe && m_InputReader.ConfirmPressed)
+        {
+            m_PipeErasing = m_GridData.InBounds(cell) && m_GridData.IsPipe(cell);
+            m_PipeFundsWarned = false;
+        }
 
         if (m_Mode == Mode.None)
         {
@@ -218,7 +237,30 @@ public sealed class PlacementController : MonoBehaviour
             case Mode.Zone:
                 TryZone(cell);
                 break;
+            case Mode.Pipe:
+                TryPipe(cell);
+                break;
         }
+    }
+
+    private void TryPipe(Vector2Int cell)
+    {
+        if (m_PipeErasing)
+        {
+            m_GridData.SetPipe(cell, false);   // no refund, like demolishing
+            return;
+        }
+        if (m_GridData.IsRoad(cell) || m_GridData.IsPipe(cell)) return;
+
+        int cost = m_GameManager.Balance.PipeCost;
+        if (!m_GameManager.Economy.Spend(cost))
+        {
+            if (!m_PipeFundsWarned) GameEvents.RaiseInsufficientFunds(cost);
+            m_PipeFundsWarned = true;
+            return;
+        }
+        m_GridData.SetPipe(cell, true);
+        GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
     }
 
     private bool TrySpend(float cost)
@@ -535,6 +577,18 @@ public sealed class PlacementController : MonoBehaviour
                 else if (building != null) SetHint($"Demolish {building.Definition.DisplayName} (no refund)", true);
                 else if (m_GridData.GetBuildingLevel(cell) > 0) SetHint("Demolish grown building", true);
                 else SetHint(string.Empty, false);   // nothing here: red ghost, no label
+                break;
+            }
+
+            case Mode.Pipe:
+            {
+                int cost = m_GameManager.Balance.PipeCost;
+                bool dragging = m_InputReader.ConfirmHeld;
+                if (dragging ? m_PipeErasing : m_GridData.IsPipe(cell)) SetHint(m_GridData.IsPipe(cell) ? "Remove pipe" : "Drag to remove pipes", true);
+                else if (m_GridData.IsRoad(cell)) SetHint("Roads carry water already", false);
+                else if (m_GridData.IsPipe(cell)) SetHint("Pipe", true);
+                else if (!economy.CanAfford(cost)) SetHint($"Need ${cost:N0}", false);
+                else SetHint($"Pipe  ${cost:N0}  — drag to lay", true);
                 break;
             }
 

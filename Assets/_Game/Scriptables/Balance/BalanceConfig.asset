@@ -53,6 +53,8 @@ MonoBehaviour:
   m_IncomePerCommercialJob: 12
   m_IncomePerIndustrialJob: 12
   m_WaterPerCapacity: 1
+  m_PipeCost: 5
+  m_PipeUpkeepPerDay: 0.02
   m_IndustrialPollution: 0.25
   m_PollutionRadius: 3
   m_LandValueBase: 0.5

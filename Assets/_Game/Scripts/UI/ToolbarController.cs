@@ -12,6 +12,8 @@ public sealed class ToolbarController : MonoBehaviour
 
     [Header("Fixed tools")]
     [SerializeField] private ToolButton m_RoadButton;
+    [Tooltip("(M13) Water pipes; hidden until Waterworks.")]
+    [SerializeField] private ToolButton m_PipeButton;
     [SerializeField] private ToolButton m_ResidentialButton;
     [SerializeField] private ToolButton m_CommercialButton;
     [SerializeField] private ToolButton m_IndustrialButton;
@@ -34,12 +36,30 @@ public sealed class ToolbarController : MonoBehaviour
     [SerializeField] private float m_BuildingButtonWidth = 104f;
     [SerializeField] private float m_MinBuildingButtonWidth = 80f;
     [SerializeField] private int m_FullWidthBuildings = 5;
+    [Tooltip("(M13) Space kept free at each screen edge before the toolbar scales down to fit.")]
+    [SerializeField] private float m_ScreenMargin = 8f;
 
     [Header("Tooltip")]
     [SerializeField] private GameObject m_TooltipRoot;
     [SerializeField] private TMP_Text m_TooltipText;
 
     private readonly Dictionary<BuildingDefinition, ToolButton> m_BuildingButtons = new();
+    private float m_FittedWidth = -1f;
+
+    // M13: the toolbar keeps gaining buttons; when it is wider than the screen (minus a margin) it
+    // scales down to fit instead of running off both edges.
+    private void LateUpdate()
+    {
+        var rect = (RectTransform)transform;
+        var parent = rect.parent as RectTransform;
+        if (parent == null) return;
+        float width = rect.rect.width;
+        if (Mathf.Approximately(width, m_FittedWidth)) return;
+        m_FittedWidth = width;
+        float available = parent.rect.width - 2f * m_ScreenMargin;
+        float scale = width > available && width > 0f ? available / width : 1f;
+        rect.localScale = new Vector3(scale, scale, 1f);
+    }
 
     private void Start()
     {
@@ -49,6 +69,10 @@ public sealed class ToolbarController : MonoBehaviour
         Bind(m_RoadButton, "Road", $"${roadCost}", Color.clear,
             $"Road  [B]\nLay road from the map edge. ${roadCost} each, $1/day upkeep.",
             () => Toggle(PlacementController.Mode.Road, m_Placement.SelectRoad));
+        int pipeCost = m_GameManager.Balance.PipeCost;
+        Bind(m_PipeButton, "Pipes", $"${pipeCost}", Color.clear,
+            $"Water pipes  [P]\nDrag to lay pipes under any land but roads (${pipeCost} each). Roads carry water already; pipes reach a tower off the road network, join two road networks or feed the building above them. Drag from a pipe to remove pipes.",
+            () => Toggle(PlacementController.Mode.Pipe, m_Placement.SelectPipe));
         BindZone(m_ResidentialButton, "Residential", ZoneType.Residential, ZonePalette.Residential, "Homes grow here when residential demand is high.");
         BindZone(m_CommercialButton, "Commercial", ZoneType.Commercial, ZonePalette.Commercial, "Shops grow here, providing jobs.");
         BindZone(m_IndustrialButton, "Industrial", ZoneType.Industrial, ZonePalette.Industrial, "Factories grow here, providing jobs.");
@@ -108,6 +132,7 @@ public sealed class ToolbarController : MonoBehaviour
             if (m_WaterViewButton != null) m_WaterViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Water));
             if (m_AgeViewButton != null) m_AgeViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Age));
         }
+        if (m_PipeButton != null) m_PipeButton.gameObject.SetActive(m_GameManager.PipesUnlocked);
         bool any = false;
         int visible = 0;
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
@@ -224,6 +249,7 @@ public sealed class ToolbarController : MonoBehaviour
         ZoneType brush = m_Placement.ZoneBrush;
 
         SetActive(m_RoadButton, mode == PlacementController.Mode.Road);
+        SetActive(m_PipeButton, mode == PlacementController.Mode.Pipe);
         SetActive(m_ResidentialButton, zoning && brush == ZoneType.Residential);
         SetActive(m_CommercialButton, zoning && brush == ZoneType.Commercial);
         SetActive(m_IndustrialButton, zoning && brush == ZoneType.Industrial);
@@ -246,6 +272,7 @@ public sealed class ToolbarController : MonoBehaviour
     private void RefreshAffordable(float money)
     {
         if (m_RoadButton != null) m_RoadButton.SetAffordable(money >= m_GameManager.Balance.RoadCost);
+        if (m_PipeButton != null) m_PipeButton.SetAffordable(money >= m_GameManager.Balance.PipeCost);
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {
             pair.Value.SetAffordable(money >= pair.Key.Cost);

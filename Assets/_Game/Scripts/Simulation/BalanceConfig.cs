@@ -77,6 +77,10 @@ public sealed class BalanceConfig : ScriptableObject
     [Header("Water (M13)")]
     [Tooltip("(M13) Water units a grown cell draws per unit of capacity from the piped network (power draws 1 per unit).")]
     [SerializeField] private float m_WaterPerCapacity = 1f;
+    [Tooltip("(M13) Cost of laying one cell of water pipe.")]
+    [SerializeField] private int m_PipeCost = 5;
+    [Tooltip("(M13) Daily upkeep per pipe cell.")]
+    [SerializeField] private float m_PipeUpkeepPerDay = 0.02f;
 
     [Header("Pollution (M12)")]
     [Tooltip("(M12) Pollution points a grown industrial cell emits per unit of capacity (a level-1 shed = 1, level 3 = 4), x its built age's PollutionScale.")]
@@ -153,6 +157,8 @@ public sealed class BalanceConfig : ScriptableObject
     public float PowerPenalty => m_PowerPenalty;
     public float WaterPenalty => m_WaterPenalty;
     public float WaterPerCapacity => m_WaterPerCapacity;
+    public int PipeCost => m_PipeCost;
+    public float PipeUpkeepPerDay => m_PipeUpkeepPerDay;
     public float HomelessPenalty => m_HomelessPenalty;
     public float LowHappinessThreshold => m_LowHappinessThreshold;
     public float LowHappinessDemandScale => m_LowHappinessDemandScale;

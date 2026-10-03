@@ -49,6 +49,7 @@ public sealed class SaveSystemTests
                 Assert.AreEqual(expected.GetZone(cell), actual.GetZone(cell), $"zone {cell}");
                 Assert.AreEqual(expected.IsRoad(cell), actual.IsRoad(cell), $"road {cell}");
                 Assert.AreEqual(expected.GetBuildingLevel(cell), actual.GetBuildingLevel(cell), $"level {cell}");
+                Assert.AreEqual(expected.IsPipe(cell), actual.IsPipe(cell), $"pipe {cell}");
             }
         }
     }
@@ -175,6 +176,36 @@ public sealed class SaveSystemTests
 
         Assert.AreEqual(a.Population.Population, b.Population.Population);
         Assert.AreEqual(a.Population.AverageHappiness, b.Population.AverageHappiness);
+        AssertSameGrid(gridA, gridB);
+    }
+
+    // M13 (save v3): a tower off the road network, piped to it, too small for the city: the save
+    // happens mid-shortage and the loaded city must play on exactly like the original.
+    [Test]
+    public void SaveWithPipesMidShortage_ThenContinue_MatchesUninterruptedRun()
+    {
+        ServiceSource plant = new ServiceSource(new Vector2Int(0, 9), new Vector2Int(3, 3), 0, 600);
+        ServiceSource tower = new ServiceSource(new Vector2Int(2, 2), Vector2Int.one, 0, 0, waterSupply: 150);
+        GridData gridA = new GridData(24, 24);
+        SeededCity.Seed(gridA);
+        for (int x = 3; x <= 11; x++) gridA.SetPipe(new Vector2Int(x, 2), true);   // to the north-south road at x = 12
+        SimulationSystem a = new SimulationSystem(gridA, new RoadNetwork(gridA), m_Config);
+        a.Sources = new[] { plant, tower };
+        Run(a, 60);
+        Assert.AreEqual(150, a.Water.Network.Supply, "the pipe links the tower");
+        Assert.Greater(a.Water.DryCells, 0, "mid-shortage");
+
+        SaveData saved = SaveSystem.Capture(gridA, a);
+        Assert.AreEqual(9, System.Array.FindAll(saved.Pipes, p => p != 0).Length);
+        SimulationSystem b = LoadIntoNew(saved, out GridData gridB, new[] { tower, plant });
+        Assert.AreEqual(a.Water.DryCells, b.Water.DryCells);
+
+        Run(a, 30);
+        Run(b, 30);
+
+        Assert.AreEqual(a.Population.Population, b.Population.Population);
+        Assert.AreEqual(a.Population.AverageHappiness, b.Population.AverageHappiness);
+        Assert.AreEqual(a.Economy.Money, b.Economy.Money);
         AssertSameGrid(gridA, gridB);
     }
 

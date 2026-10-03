@@ -6,7 +6,8 @@ using UnityEngine;
 // 4-connected to them (the network needn't reach the map edge). Sources on the same network pool
 // their supply. Grown cells beside a carrying cell draw DrawFor(capacity); supply is handed out in
 // BFS order from the sources (seeds sorted row-major, so the result doesn't depend on build order),
-// so the cells furthest out go without first. Recomputes lazily after any grid or source change.
+// so the cells furthest out go without first. A carrying cell that is itself a grown cell (water: a
+// pipe under it) is served too. Recomputes lazily after any grid or source change.
 // Power (M9) and piped water (M13) are the two subclasses.
 public abstract class UtilityNetwork
 {
@@ -39,7 +40,7 @@ public abstract class UtilityNetwork
     // Units a source feeds into this network; 0 = not a source of it.
     protected abstract int SupplyOf(ServiceSource source);
 
-    // Whether the utility flows through this cell (roads, for both power and water).
+    // Whether the utility flows through this cell (roads for power; roads and pipes for water).
     protected virtual bool Carries(Vector2Int cell) => m_Grid.IsRoad(cell);
 
     // Units a cell of the given capacity draws.
@@ -187,11 +188,15 @@ public abstract class UtilityNetwork
         }
     }
 
-    // Serves the grown cells beside one carrying cell while its network has supply left.
+    private static readonly Vector2Int[] s_SelfAndNeighbors =
+        { Vector2Int.zero, new Vector2Int(1, 0), new Vector2Int(-1, 0), new Vector2Int(0, 1), new Vector2Int(0, -1) };   // self, then CellUtils.Neighbors4's order
+
+    // Serves the grown cells beside one carrying cell (and the cell itself, when it is a grown cell
+    // with a pipe under it) while its network has supply left. Roads draw nothing, so power is unchanged.
     private void FeedCellsBeside(Vector2Int road)
     {
         int network = m_RoadNetwork[Index(road)];
-        foreach (Vector2Int offset in CellUtils.Neighbors4)
+        foreach (Vector2Int offset in s_SelfAndNeighbors)
         {
             Vector2Int cell = road + offset;
             if (!m_Grid.InBounds(cell)) continue;

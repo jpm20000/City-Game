@@ -342,6 +342,108 @@ public sealed class WaterTests
         Assert.AreEqual(0, sim.Water.DryCells);
     }
 
+    // --- Pipes (13d) ---
+
+    [Test]
+    public void Pipes_NeverUnderRoads_RoadsReplaceThem_ResizeClears()
+    {
+        var grid = Street(8, 4);
+        grid.SetPipe(new Vector2Int(2, 0), true);
+        Assert.IsFalse(grid.IsPipe(new Vector2Int(2, 0)), "a road carries water already");
+
+        grid.SetPipe(new Vector2Int(2, 2), true);
+        Assert.IsTrue(grid.IsPipe(new Vector2Int(2, 2)));
+        Assert.AreEqual(1, grid.CountPipes());
+        grid.SetRoad(new Vector2Int(2, 2), true);
+        Assert.IsFalse(grid.IsPipe(new Vector2Int(2, 2)), "a road laid on a pipe replaces it");
+
+        grid.SetPipe(new Vector2Int(3, 3), true);
+        byte[] pipes = grid.ExportPipes();
+        var copy = new GridData(8, 4);
+        copy.Import(grid.ExportZones(), grid.ExportRoads(), grid.ExportLevels(), null, null, pipes);
+        Assert.IsTrue(copy.IsPipe(new Vector2Int(3, 3)));
+        Assert.AreEqual(1, copy.CountPipes());
+
+        grid.Resize(10, 10);
+        Assert.AreEqual(0, grid.CountPipes());
+    }
+
+    [Test]
+    public void PumpAwayFromRoads_FeedsTheRoadsThroughAPipe()
+    {
+        var grid = Street(12, 6);
+        for (int x = 0; x < 5; x++) Grow(grid, new Vector2Int(x, 1), 1);
+        var water = new WaterSystem(grid, m_Config);
+        water.SetSources(new[] { Tower(new Vector2Int(10, 4), 100) });
+        Assert.AreEqual(0, water.Network.Supply, "no road beside the pump");
+
+        for (int y = 1; y <= 3; y++) grid.SetPipe(new Vector2Int(10, y), true);   // (10,1)..(10,3) up to the road
+        Assert.AreEqual(100, water.Network.Supply);
+        Assert.IsTrue(water.Network.IsCarrying(new Vector2Int(10, 2)));
+        Assert.IsTrue(water.Network.IsCarrying(new Vector2Int(0, 0)), "the road behind the pipe carries it");
+        Assert.AreEqual(0, water.DryCells);
+    }
+
+    [Test]
+    public void PipeJoiningTwoRoadNetworks_PoolsTheirSupply()
+    {
+        var grid = new GridData(12, 4);
+        for (int x = 0; x < 5; x++) grid.SetRoad(new Vector2Int(x, 0), true);
+        for (int x = 7; x < 12; x++) grid.SetRoad(new Vector2Int(x, 0), true);
+        for (int x = 0; x < 5; x++) Grow(grid, new Vector2Int(x, 1), 1);      // 20 drawn on the west road
+        var water = new WaterSystem(grid, m_Config);
+        water.SetSources(new[] { Tower(new Vector2Int(11, 1), 20) });         // the tower is on the east road
+        Assert.AreEqual(5, water.DryCells);
+
+        grid.SetPipe(new Vector2Int(5, 0), true);
+        grid.SetPipe(new Vector2Int(6, 0), true);
+        Assert.AreEqual(0, water.DryCells);
+        Assert.AreEqual(20, water.Network.Load);
+    }
+
+    [Test]
+    public void PipeUnderAGrownCell_FeedsIt_AndCarriesOn()
+    {
+        var grid = Street(8, 6);
+        Vector2Int deep = new Vector2Int(3, 3), deeper = new Vector2Int(3, 4);   // no road beside either
+        Grow(grid, deep, 1);
+        Grow(grid, deeper, 1);
+        var water = new WaterSystem(grid, m_Config);
+        water.SetSources(new[] { Tower(new Vector2Int(7, 1), 100) });
+        Assert.IsFalse(water.HasWater(deep));
+
+        grid.SetPipe(new Vector2Int(3, 1), true);
+        grid.SetPipe(new Vector2Int(3, 2), true);
+        grid.SetPipe(deep, true);
+        Assert.IsTrue(water.HasWater(deep), "a pipe under it");
+        Assert.IsTrue(water.HasWater(deeper), "beside a pipe that runs through a grown cell");
+    }
+
+    [Test]
+    public void Pipes_DontCarryPower()
+    {
+        var grid = new GridData(12, 4);
+        for (int x = 0; x < 5; x++) grid.SetRoad(new Vector2Int(x, 0), true);
+        for (int x = 7; x < 12; x++) grid.SetRoad(new Vector2Int(x, 0), true);
+        grid.SetPipe(new Vector2Int(5, 0), true);
+        grid.SetPipe(new Vector2Int(6, 0), true);
+        var power = new PowerSystem(grid, m_Config);
+        power.SetSources(new[] { Plant(new Vector2Int(11, 1), 100) });
+
+        Assert.IsTrue(power.IsEnergisedRoad(new Vector2Int(7, 0)));
+        Assert.IsFalse(power.IsEnergisedRoad(new Vector2Int(4, 0)));
+    }
+
+    [Test]
+    public void Pipes_CostUpkeep()
+    {
+        var grid = new GridData(12, 4);
+        for (int x = 0; x < 10; x++) grid.SetPipe(new Vector2Int(x, 2), true);
+        var sim = new SimulationSystem(grid, new RoadNetwork(grid), m_Config);
+        sim.Tick();
+        Assert.AreEqual(10 * m_Config.PipeUpkeepPerDay, sim.Economy.ExpensePerDay, 1e-5f);
+    }
+
     // --- Happiness ---
 
     [Test]

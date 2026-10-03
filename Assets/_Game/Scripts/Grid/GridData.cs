@@ -13,6 +13,7 @@ public sealed class GridData
     private byte[] m_BuildingLevel;
     private byte[] m_BuiltAge;      // age index a grown cell was (re)built in (M11)
     private bool[] m_Historic;      // "Keep historical building" (M11)
+    private bool[] m_Pipes;         // water pipe under the cell (M13); never under a road (roads carry water anyway)
 
     public event Action<Vector2Int> OnCellChanged;
 
@@ -45,6 +46,7 @@ public sealed class GridData
         m_BuildingLevel = new byte[width * height];
         m_BuiltAge = new byte[width * height];
         m_Historic = new bool[width * height];
+        m_Pipes = new bool[width * height];
     }
 
     public bool InBounds(Vector2Int cell)
@@ -70,12 +72,39 @@ public sealed class GridData
         return m_Roads[Index(cell)];
     }
 
+    // A road laid over a pipe replaces it (the road carries the water).
     public void SetRoad(Vector2Int cell, bool isRoad)
     {
         int i = Index(cell);
         if (m_Roads[i] == isRoad) return;
         m_Roads[i] = isRoad;
+        if (isRoad) m_Pipes[i] = false;
         OnCellChanged?.Invoke(cell);
+    }
+
+    public bool IsPipe(Vector2Int cell)
+    {
+        return m_Pipes[Index(cell)];
+    }
+
+    // Pipes lie under anything but roads; setting one on a road is ignored.
+    public void SetPipe(Vector2Int cell, bool isPipe)
+    {
+        int i = Index(cell);
+        if (isPipe && m_Roads[i]) return;
+        if (m_Pipes[i] == isPipe) return;
+        m_Pipes[i] = isPipe;
+        OnCellChanged?.Invoke(cell);
+    }
+
+    public int CountPipes()
+    {
+        int count = 0;
+        for (int i = 0; i < m_Pipes.Length; i++)
+        {
+            if (m_Pipes[i]) count++;
+        }
+        return count;
     }
 
     public byte GetBuildingLevel(Vector2Int cell)
@@ -219,10 +248,18 @@ public sealed class GridData
         return data;
     }
 
-    // Replaces zones / roads / levels (and built ages / historic flags; null = all 0) and clears
-    // occupancy (release buildings first). Raises OnCellChanged for every cell whose state changed
-    // so views resync. Undeveloped cells never keep a built age or historic flag.
-    public void Import(byte[] zones, byte[] roads, byte[] levels, byte[] builtAges = null, byte[] historic = null)
+    public byte[] ExportPipes()
+    {
+        byte[] data = new byte[m_Pipes.Length];
+        for (int i = 0; i < data.Length; i++) data[i] = m_Pipes[i] ? (byte)1 : (byte)0;
+        return data;
+    }
+
+    // Replaces zones / roads / levels (and built ages / historic flags / pipes; null = all 0) and
+    // clears occupancy (release buildings first). Raises OnCellChanged for every cell whose state
+    // changed so views resync. Undeveloped cells never keep a built age or historic flag; roads never keep a pipe.
+    public void Import(byte[] zones, byte[] roads, byte[] levels, byte[] builtAges = null, byte[] historic = null,
+        byte[] pipes = null)
     {
         int count = Width * Height;
         if (zones == null || zones.Length != count) throw new ArgumentException("Zone data size mismatch.", nameof(zones));
@@ -230,6 +267,7 @@ public sealed class GridData
         if (levels == null || levels.Length != count) throw new ArgumentException("Level data size mismatch.", nameof(levels));
         if (builtAges != null && builtAges.Length != count) throw new ArgumentException("Built age data size mismatch.", nameof(builtAges));
         if (historic != null && historic.Length != count) throw new ArgumentException("Historic data size mismatch.", nameof(historic));
+        if (pipes != null && pipes.Length != count) throw new ArgumentException("Pipe data size mismatch.", nameof(pipes));
 
         for (int i = 0; i < count; i++)
         {
@@ -238,14 +276,16 @@ public sealed class GridData
             byte level = (byte)Mathf.Min(levels[i], (byte)3);
             byte builtAge = level > 0 && builtAges != null ? builtAges[i] : (byte)0;
             bool kept = level > 0 && historic != null && historic[i] != 0;
+            bool pipe = !road && pipes != null && pipes[i] != 0;
             if (m_Zones[i] == zone && m_Roads[i] == road && m_BuildingLevel[i] == level && m_Occupancy[i] == 0
-                && m_BuiltAge[i] == builtAge && m_Historic[i] == kept) continue;
+                && m_BuiltAge[i] == builtAge && m_Historic[i] == kept && m_Pipes[i] == pipe) continue;
 
             m_Zones[i] = zone;
             m_Roads[i] = road;
             m_BuildingLevel[i] = level;
             m_BuiltAge[i] = builtAge;
             m_Historic[i] = kept;
+            m_Pipes[i] = pipe;
             m_Occupancy[i] = 0;
             OnCellChanged?.Invoke(new Vector2Int(i % Width, i / Width));
         }

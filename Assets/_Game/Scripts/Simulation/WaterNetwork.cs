@@ -1,7 +1,8 @@
 using UnityEngine;
 
 // The piped water network of the Industrial and Modern ages (M13): towers and pumps feed the roads
-// they touch, like plants feed power (the same UtilityNetwork model). A grown cell draws
+// and pipes they touch, like plants feed power (the same UtilityNetwork model). Roads and player-drawn
+// pipes both carry water; a pipe under a grown cell feeds that cell. A grown cell draws
 // WaterPerCapacity units per unit of capacity.
 public sealed class WaterNetwork : UtilityNetwork
 {
@@ -14,6 +15,8 @@ public sealed class WaterNetwork : UtilityNetwork
     }
 
     protected override int SupplyOf(ServiceSource source) => source.WaterSupply;
+
+    protected override bool Carries(Vector2Int cell) => m_Grid.IsRoad(cell) || m_Grid.IsPipe(cell);
 
     public override int DrawFor(int capacity)
     {

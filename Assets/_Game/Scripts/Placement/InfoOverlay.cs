@@ -185,15 +185,17 @@ public sealed class InfoOverlay : GridTilemapView
         BuildingDefinition tool = m_Placement != null && m_Placement.CurrentMode == PlacementController.Mode.Building
             ? m_Placement.SelectedBuilding
             : null;
+        bool pipeTool = m_Placement != null && m_Placement.CurrentMode == PlacementController.Mode.Pipe;
         bool wellAge = Simulation != null && Simulation.Water.Mode == WaterRule.Coverage;
-        View toolView = tool == null ? View.Off
+        View toolView = pipeTool ? View.Water
+            : tool == null ? View.Off
             : tool.PowerSupply > 0 ? View.Power
             : tool.WaterSupply > 0 || (tool.WaterRadius > 0 && wellAge) ? View.Water
             : tool.CoverageRadius > 0 ? View.Coverage
             : View.Off;
         View shown = toolView != View.Off ? toolView : m_Chosen;
 
-        m_Previewing = toolView != View.Off && m_Placement.HasBuildingPreview;
+        m_Previewing = toolView != View.Off && !pipeTool && m_Placement.HasBuildingPreview;
         if (m_Previewing)
         {
             m_PreviewSources.Clear();
@@ -376,6 +378,7 @@ public sealed class InfoOverlay : GridTilemapView
         bool piped = water.Mode == WaterRule.Piped;
         if (Grid.IsRoad(cell)) return piped && water.Network.IsCarrying(cell) ? m_WaterMainTile : null;
         ZoneType zone = Grid.GetZone(cell);
+        if (piped && Grid.IsPipe(cell) && Grid.GetBuildingLevel(cell) == 0 && water.Network.IsCarrying(cell)) return m_WaterMainTile;
         if (Grid.GetBuildingLevel(cell) > 0 && zone != ZoneType.None)
         {
             if (NewlyWatered(cell)) return m_NewlyWateredTile;

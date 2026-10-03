@@ -217,6 +217,16 @@ public sealed class SelectionPanel : MonoBehaviour
         return false;
     }
 
+    // M13: pipes are underground, so the panel says when one runs under the cell.
+    private void DescribePipe(Vector2Int cell)
+    {
+        if (!m_GameManager.Grid.IsPipe(cell)) return;
+        bool carrying = m_GameManager.Simulation.Water.Network.IsCarrying(cell);
+        Line(carrying
+            ? "<color=#59A6F2>A water pipe</color> runs under it."
+            : "<color=#9AA3B2>A water pipe runs under it (no tower feeds it yet).</color>");
+    }
+
     private bool TouchesEnergisedRoad(BuildingInstance building)
     {
         foreach (Vector2Int cell in CellUtils.GetFootprint(building.Origin, building.Definition.Size, building.Rotation))
@@ -287,6 +297,7 @@ public sealed class SelectionPanel : MonoBehaviour
             Line(parks > 0 ? $"Parks nearby  {parks}  (+{bonus:P0} happiness)" : "No park nearby");
         }
         DescribeEnvironment(cell, zone);
+        DescribePipe(cell);
         DescribeAge(cell, builtAge);
         if (level < maxLevel)
         {
@@ -387,6 +398,7 @@ public sealed class SelectionPanel : MonoBehaviour
         Line("Undeveloped.");
         Line(BlockerText(cell, zone, "Growth"));
         DescribeEnvironment(cell, zone);
+        DescribePipe(cell);
         if (m_GameManager.Simulation.Rules.UpgradesNeedPower)
         {
             Line(BesideEnergisedRoad(cell)
