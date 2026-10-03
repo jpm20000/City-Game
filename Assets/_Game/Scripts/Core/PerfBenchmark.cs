@@ -42,6 +42,7 @@ public sealed class PerfBenchmark : MonoBehaviour
         saveGame.NewCity(new Vector2Int(k_MapSize, k_MapSize));
         float buildStart = Time.realtimeSinceStartup;
         BuildCity(gameManager.Grid, gameManager.Ages != null ? gameManager.Ages.Count : 1);
+        FeedUtilities(gameManager);
         float buildMs = (Time.realtimeSinceStartup - buildStart) * 1000f;
         for (int i = 0; i < 30; i++) yield return null;
 
@@ -145,6 +146,24 @@ public sealed class PerfBenchmark : MonoBehaviour
         foreach (float sample in m_Samples) sum += sample;
         m_Report.AppendLine($"{scenario}: frame avg {sum / k_Frames:F2} ms, median {m_Samples[k_Frames / 2]:F2}, p95 {m_Samples[k_Frames * 95 / 100]:F2}, max {m_Samples[k_Frames - 1]:F2}"
             + $" | medians: main thread {m_CpuSamples[k_Frames / 2]:F2}, render thread {m_RenderSamples[k_Frames / 2]:F2}, GPU {m_GpuSamples[k_Frames / 2]:F2}");
+    }
+
+    // M13: power and water fed in along the west edge (sim-only sources, no buildings drawn) and a
+    // water pipe along the middle row of every block, so both networks carry real flow when the
+    // tick recomputes them.
+    private static void FeedUtilities(GameManager gameManager)
+    {
+        GridData grid = gameManager.Grid;
+        var sources = new System.Collections.Generic.List<ServiceSource>();
+        for (int y = 1; y < grid.Height; y += 10)
+        {
+            sources.Add(new ServiceSource(new Vector2Int(1, y), Vector2Int.one, 0, 20000, waterSupply: 20000));
+        }
+        gameManager.Simulation.Sources = sources;
+        for (int y = 2; y < grid.Height; y += 5)
+        {
+            for (int x = 0; x < grid.Width; x++) grid.SetPipe(new Vector2Int(x, y), true);   // ignored on roads
+        }
     }
 
     // Blocks of 4x4 cells share a built age, cycling through every age, so all age styles are drawn.

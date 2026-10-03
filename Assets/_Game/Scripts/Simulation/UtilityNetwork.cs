@@ -17,6 +17,8 @@ public abstract class UtilityNetwork
     private int[] m_RoadNetwork;      // network id per carrying cell, -1 = dry
     private int[] m_CellNetwork;      // network feeding each served cell, -1 = unserved
     private bool[] m_Visited;
+    private int[] m_Draw;             // each cell's draw, filled once per recompute (M13e: the BFS asks up to 5x per cell)
+    private bool[] m_Carries;         // Carries(cell), filled once per recompute
     private readonly List<int> m_Remaining = new();
     private readonly Queue<Vector2Int> m_Frontier = new();
     private IReadOnlyList<ServiceSource> m_Sources = Array.Empty<ServiceSource>();
@@ -56,6 +58,8 @@ public abstract class UtilityNetwork
         m_RoadNetwork = new int[count];
         m_CellNetwork = new int[count];
         m_Visited = new bool[count];
+        m_Draw = new int[count];
+        m_Carries = new bool[count];
         m_Dirty = true;
     }
 
@@ -123,7 +127,7 @@ public abstract class UtilityNetwork
         m_Supply = 0;
         m_Load = 0;
         m_UnservedCells = 0;
-        m_Demand = CountDemand();
+        m_Demand = CountDemand();   // also fills m_Draw and m_Carries
 
         // Seeds: network cells touching a source.
         SortedSet<int> seeds = new SortedSet<int>();
@@ -179,9 +183,9 @@ public abstract class UtilityNetwork
             foreach (Vector2Int offset in CellUtils.Neighbors4)
             {
                 Vector2Int next = road + offset;
-                if (!m_Grid.InBounds(next) || !Carries(next)) continue;
+                if (!m_Grid.InBounds(next)) continue;
                 int i = Index(next);
-                if (m_Visited[i]) continue;
+                if (!m_Carries[i] || m_Visited[i]) continue;
                 m_Visited[i] = true;
                 m_Frontier.Enqueue(next);
             }
@@ -203,7 +207,7 @@ public abstract class UtilityNetwork
             int i = Index(cell);
             if (m_CellNetwork[i] >= 0) continue;
 
-            int draw = Draw(cell);
+            int draw = m_Draw[i];
             if (draw == 0 || m_Remaining[network] < draw) continue;
 
             m_Remaining[network] -= draw;
@@ -224,9 +228,9 @@ public abstract class UtilityNetwork
             foreach (Vector2Int offset in CellUtils.Neighbors4)
             {
                 Vector2Int next = cell + offset;
-                if (!m_Grid.InBounds(next) || !Carries(next)) continue;
+                if (!m_Grid.InBounds(next)) continue;
                 int i = Index(next);
-                if (m_RoadNetwork[i] >= 0) continue;
+                if (!m_Carries[i] || m_RoadNetwork[i] >= 0) continue;
                 m_RoadNetwork[i] = network;
                 m_Frontier.Enqueue(next);
             }
@@ -246,7 +250,7 @@ public abstract class UtilityNetwork
                 if (insideX == insideY) continue;   // the footprint itself, or a diagonal corner
 
                 Vector2Int cell = new Vector2Int(x, y);
-                if (m_Grid.InBounds(cell) && Carries(cell)) roads.Add(Index(cell));
+                if (m_Grid.InBounds(cell) && m_Carries[Index(cell)]) roads.Add(Index(cell));
             }
         }
         return roads;
@@ -259,7 +263,11 @@ public abstract class UtilityNetwork
         {
             for (int x = 0; x < m_Width; x++)
             {
-                int draw = Draw(new Vector2Int(x, y));
+                Vector2Int cell = new Vector2Int(x, y);
+                int i = Index(cell);
+                int draw = Draw(cell);
+                m_Draw[i] = draw;
+                m_Carries[i] = Carries(cell);
                 demand += draw;
                 if (draw > 0) m_UnservedCells++;   // counted down as cells get served
             }

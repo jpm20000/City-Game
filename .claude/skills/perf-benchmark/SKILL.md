@@ -29,8 +29,10 @@ Editor frame times mislead: Hierarchy/editor overhead makes GameObject create/de
 |---|---|---|---|---|
 | M10b (after shared materials + pooling) | ~1.1 ms | 1.5 ms | ~2 ms | 0.5 ms |
 | M11e (mixed ages) | 1.14 ms | 1.48 ms | ~2 ms | 1.25 ms* |
+| M13e (power + water fed, pipes) | 1.27 ms | 1.54 ms | 3.8–4.5 ms | 3.52 ms (1.37 power only)** |
 
 \* The stress city starts with a quarter of its blocks outdated, so the redevelop scan runs over the whole map every tick.
+\*\* Since M13e `PerfBenchmark.FeedUtilities` feeds power and water from sim-only sources on the west edge and lays a pipe along every block, so both networks carry flow; earlier rows had no plants, so the power network never filled. A recompute is O(cells) and runs twice on a day with upgrades; the edit-every-frame rows include the per-frame `PowerChanged` / `WaterChanged` recompute.
 
 Regressions to watch: per-instance materials or `MaterialPropertyBlock`s (they drop renderers out of the SRP Batcher / GPU Resident Drawer — this was 23 ms frames / 110 ms zoomed out before M10b), creating/destroying GameObjects per change instead of pooling, and per-tick full-map scans in new sim systems.
 

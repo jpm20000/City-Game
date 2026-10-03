@@ -31,6 +31,11 @@ Every action goes through Input System events, so the EventSystem, `InputReader`
 ## Reporting
 End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; distinguish driver bugs (fix and rerun) from game bugs (fix in the game, add a test where the sim is involved).
 
+## Notes from the M13 play-through (UI-only)
+- **View buttons toggle.** Clicking the active VIEW button turns the view off, and the chosen view survives New City; set `InfoOverlay.SetView(View.Off)` (or check `Chosen`) before a "click the view button" step, or a rerun in the same Play session fails it.
+- **Debug jumps are fine when labelled.** Climbing four ages on a 32² map takes hundreds of days; `tech.Restore(age, TechSystem.StartingTechs(...), "", 0, [])` + `GameEvents.RaiseAgeChanged(age)` jumps there (log it as DEBUG). It grants only the starting techs (no Public Sanitation → no pump button) and skips `GameManager.HandleAgeAdvanced`, so the calendar doesn't move and the HUD water line stays stale until the next grid change.
+- Pipes paint while LMB is held, like zones: `Drag(Line(...))`; a drag that starts on a pipe removes.
+
 ## Notes from the M12 play-through (UI-only, 0 failed checks)
 - Scenario shape that worked for a *rule* milestone: New City (Industrial, 64²) → road, drag zones, place the plant from the toolbar → skip days with the debug panel until the rule bites (a home held at level 2) → open the view by its toolbar button → select the cell and **read the SelectionPanel text** (`GetComponentsInChildren<TMP_Text>(false)` under `UI/SelectionPanel`, then `Contains(...)`) → apply the fix by clicking (park) → skip days → check the level rose → Keep via the panel → `V` cycles the views.
 - **Power runs out first.** A grown 64² test city fills one plant in ~90 days, and a home blocked by power looks like a failed rule: place a second plant by click before expecting an upgrade (`blocker PowerAtCapacity` in the log is the tell). Log `Power.Load/Supply` in `State()`.

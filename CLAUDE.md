@@ -6,7 +6,7 @@ Project conventions and standing rules live in `AGENTS.md` (shared with OpenCode
 
 @AGENTS.md
 
-Design intent, balance formulas, the milestone roadmap (§12) and the systems reference (§13) are in `Docs/GamePlan.md` (where an earlier section disagrees with §13 or `AGENTS.md`, those describe the code as built). M0–M12 are done; §12 holds the M10–M19 ages roadmap (M13 next) — when starting a milestone, expand its outline there into a §11-style plan (goal, done-when, lettered steps, risks) before implementing.
+Design intent, balance formulas, the milestone roadmap (§12) and the systems reference (§13) are in `Docs/GamePlan.md` (where an earlier section disagrees with §13 or `AGENTS.md`, those describe the code as built). M0–M13 are done; §12 holds the M10–M19 ages roadmap (M14 next) — when starting a milestone, expand its outline there into a §11-style plan (goal, done-when, lettered steps, risks) before implementing.
 
 ## Claude Code specifics
 

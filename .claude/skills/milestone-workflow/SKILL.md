@@ -30,6 +30,12 @@ Where things live: standing rules → `AGENTS.md` (**Roadmap M11–M19**); plans
 - Balance targets still met (`AgeBalanceTests`), benchmark re-run if the plan asked for it.
 - Docs: GamePlan §13 (systems as built), §12 (milestone marked done, step notes, status paragraph naming the next milestone) and §8 status; `AGENTS.md` Project bullet ("done / next") and `CLAUDE.md` header line ("M0–M1x are done"); update the plug-in notes for later milestones if this one changed the code they build on.
 
+## Lessons from M13 (carry forward)
+- **Check plan assumptions against validators before content work.** M13's plan made Waterworks a required tech of the Industrial age; `TechDatabase.Validate` only allows required techs from an earlier age, so it followed the Electricity precedent (a starting tech) instead.
+- **Every new must-build needs the harness player to respond — and to save for it.** The engaged player that kept buying parks and roads while a tower was blocking growth stalled the Industrial age for 100+ days (see `balance-tuning`).
+- **The toolbar and HUD are full at 1920.** New buttons need room: building buttons narrow, view buttons are 88 px and the toolbar scales itself down when it overflows; put a new readout inside an existing HUD group (water sits under power).
+- **Measure networks with flow.** A benchmark city without sources hides per-cell network cost; `PerfBenchmark` now feeds power and water.
+
 ## Lessons from M12 (carry forward)
 - **Step order that worked:** plan → pure sim + content + tests (12a/12b) → UI (12c) → harness + balance + play-through + docs (12d). Each step committed green; a baseline-changing step records the old and new numbers in its §12 note.
 - **A new sim term shifts the legacy tests.** Run the whole suite right after wiring it in; failures in the seeded-city ranges are the signal to *tune* (M12: pollution per point 0.02 → 0.06), not to loosen the asserts. Re-record `IndustrialStart_RealContent_Baseline` only after tuning settles.
