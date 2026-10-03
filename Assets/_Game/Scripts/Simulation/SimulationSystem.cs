@@ -17,6 +17,7 @@ public sealed class SimulationSystem
     public PowerSystem Power { get; }
     public CoverageSystem Coverage { get; }
     public PollutionSystem Pollution { get; }
+    public LandValueSystem LandValue { get; }
 
     // Research and the current age; null when the sim was built without age/tech databases.
     public TechSystem Tech { get; }
@@ -64,7 +65,8 @@ public sealed class SimulationSystem
         Power = new PowerSystem(grid, config, Capacity);
         Coverage = new CoverageSystem(grid.Width, grid.Height);
         Pollution = new PollutionSystem(grid, config, Capacity, ages, () => TechModifiers);
-        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech);
+        LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers);
+        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue);
         grid.OnResized += () =>
         {
             Coverage.Resize(grid.Width, grid.Height);
@@ -75,7 +77,7 @@ public sealed class SimulationSystem
     // The Power term only counts in ages whose upgrades need power.
     public ServiceStats MeasureServices()
     {
-        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution);
+        return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution, LandValue);
     }
 
     // Research points earned per day at the current population: filled commercial jobs plus

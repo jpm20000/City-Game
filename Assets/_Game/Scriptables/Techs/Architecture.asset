@@ -14,9 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: architecture
   m_DisplayName: Architecture
-  m_Description: 'Proportion, domes and planned facades.'
+  m_Description: 'Proportion, domes and planned facades. Land value +5% everywhere.'
   m_Age: 1
   m_Cost: 200
   m_Prerequisites: 
   - {fileID: 11400000, guid: 89807dc22f0055238f9706007d6da8f5, type: 2}
-  m_Effects: []
+  m_Effects:
+  - Type: 6
+    Target: 
+    Value: 0.05

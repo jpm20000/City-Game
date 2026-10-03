@@ -12,4 +12,5 @@ public enum GrowthBlocker
     AgeMaxLevel,        // at the current age's level cap (M11)
     Outdated,           // built in an older age; waiting to be rebuilt in the current one (M11)
     KeptHistoric,       // kept historic and at its own age's level cap (M11)
+    LowLandValue,       // home or shop at level 2 whose land value is below LandValueForLevel3 (M12)
 }

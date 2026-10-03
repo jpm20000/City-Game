@@ -288,6 +288,9 @@ public sealed class SelectionPanel : MonoBehaviour
                 return "<color=#F2C14E>Outdated</color> — will be rebuilt in the current age's style.";
             case GrowthBlocker.KeptHistoric:
                 return "<color=#9AA3B2>Historic (kept) — highest level for its age.</color>";
+            case GrowthBlocker.LowLandValue:
+                return $"<color=#F2C14E>{verb} waiting:</color> land value {m_GameManager.Simulation.LandValue.GetLandValue(cell):P0}, " +
+                       $"level 3 needs {m_GameManager.Balance.LandValueForLevel3:P0} — add parks or move industry away.";
             default:
                 return string.Empty;
         }

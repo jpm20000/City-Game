@@ -998,7 +998,14 @@ finally pay off with a heritage bonus.
   source, resize, laziness (recomputes after a level change), tech multiplier; per-home term (a home
   far from industry pays nothing); the rewritten formula tests. Re-run the seeded-city and age
   balance tests and record what moved.
-- **12b Land value, the level-3 gate and heritage (pure + content).** `LandValueSystem`, the gate and
+- **12b Land value, the level-3 gate and heritage (pure + content) — done (2026-10-03).** Notes from
+  implementing: the gate is checked after road access and before power (so no power is reserved for a
+  blocked upgrade); a kept block counts toward its own heritage; only the heritage counts are cached,
+  the rest of the value is read live. Planned numbers kept. Effect on the harnesses: the seeded city
+  has no level-3 homes by day 60 anyway, so it is unchanged; `EngagedCity` Industrial / Modern starts
+  hold 10 + 4 / 7 + 4 R + C cells at level 2 by land value at day 120 (pop 564 / 859, was 600 / 887)
+  and still pass; the Medieval run is unchanged (86 / 62 / 63 days). 152 EditMode tests green.
+  Original plan: `LandValueSystem`, the gate and
   `LowLandValue`, the Heritage happiness term, `LandValueBonus` + Architecture. Tests: contributors
   add up and clamp; polluted homes stop at level 2 and a park lets them through; industry ungated;
   historic cells raise neighbours' value and happiness; the blocker; Medieval unaffected by the gate.

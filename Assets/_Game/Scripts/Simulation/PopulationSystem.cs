@@ -106,7 +106,8 @@ public sealed class PopulationSystem
             services.ServiceBonus,
             -m_Config.PowerPenalty * cityWeight * services.UnpoweredHousingShare,
             -m_Config.HomelessPenalty * Homeless / Mathf.Max(Population + Homeless, 1),
-            techBonus);
+            techBonus,
+            services.HeritageBonus);
     }
 
     // Load / new game. Call RecountCapacity first so the derived worker/job stats are current.

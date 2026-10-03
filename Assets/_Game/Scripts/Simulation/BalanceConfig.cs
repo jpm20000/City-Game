@@ -78,6 +78,24 @@ public sealed class BalanceConfig : ScriptableObject
     [Tooltip("(M12) Cells industrial pollution reaches without ages (and in ages whose PollutionRadius is 0); falls off linearly to the edge.")]
     [SerializeField] private int m_PollutionRadius = 3;
 
+    [Header("Land value & heritage (M12)")]
+    [Tooltip("(M12) Land value of an untouched cell (0..1).")]
+    [SerializeField] private float m_LandValueBase = 0.5f;
+    [Tooltip("(M12) Land value per service (park) whose coverage reaches the cell.")]
+    [SerializeField] private float m_LandValuePerService = 0.10f;
+    [SerializeField] private float m_LandValueServiceCap = 0.20f;
+    [Tooltip("(M12) Land value lost per pollution point.")]
+    [SerializeField] private float m_LandValuePerPollution = 0.04f;
+    [Tooltip("(M12) Residential and commercial cells need this land value to grow to level 3 (industry is exempt).")]
+    [SerializeField] private float m_LandValueForLevel3 = 0.40f;
+    [Tooltip("(M12) Kept historic blocks raise land value and happiness within this many cells (Chebyshev).")]
+    [SerializeField] private int m_HeritageRadius = 3;
+    [SerializeField] private float m_HeritageLandValueEach = 0.05f;
+    [SerializeField] private float m_HeritageLandValueCap = 0.20f;
+    [Tooltip("(M12) Happiness per kept historic block within HeritageRadius of a home (the Heritage term is the average over homes).")]
+    [SerializeField] private float m_HeritageHappinessEach = 0.02f;
+    [SerializeField] private float m_HeritageHappinessCap = 0.06f;
+
     [Header("Research & ages")]
     [Tooltip("(tuned, M11g) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs). 0.25 puts each age at ~60-90 days of engaged play (AgeBalanceTests).")]
     [SerializeField] private float m_ResearchPerCommercialJob = 0.25f;
@@ -137,6 +155,17 @@ public sealed class BalanceConfig : ScriptableObject
 
     public float IndustrialPollution => m_IndustrialPollution;
     public int PollutionRadius => m_PollutionRadius;
+
+    public float LandValueBase => m_LandValueBase;
+    public float LandValuePerService => m_LandValuePerService;
+    public float LandValueServiceCap => m_LandValueServiceCap;
+    public float LandValuePerPollution => m_LandValuePerPollution;
+    public float LandValueForLevel3 => m_LandValueForLevel3;
+    public int HeritageRadius => m_HeritageRadius;
+    public float HeritageLandValueEach => m_HeritageLandValueEach;
+    public float HeritageLandValueCap => m_HeritageLandValueCap;
+    public float HeritageHappinessEach => m_HeritageHappinessEach;
+    public float HeritageHappinessCap => m_HeritageHappinessCap;
 
     public float ResearchPerCommercialJob => m_ResearchPerCommercialJob;
     public int RedevelopPerDay => m_RedevelopPerDay;

@@ -62,7 +62,7 @@ TECHS = [
     ("PrintingPress", "printing_press", "Printing Press", 1, 200, ["monasticism"], [research(1.25)], "Books for everyone. Research +25%."),
     ("Academies", "academies", "Academies", 1, 250, ["printing_press"], [], "Halls of scholarship. Unlocks the Academy, which produces research."),
     ("Banking", "banking", "Banking", 1, 220, ["guilds"], [demand(C, 1.15)], "Credit and bills of exchange. Commercial demand +15%."),
-    ("Architecture", "architecture", "Architecture", 1, 200, ["masonry"], [], "Proportion, domes and planned facades."),
+    ("Architecture", "architecture", "Architecture", 1, 200, ["masonry"], [land_value(0.05)], "Proportion, domes and planned facades. Land value +5% everywhere."),
     ("CivicPlanning", "civic_planning", "Civic Planning", 1, 260, ["architecture"], [happy(0.03)], "Squares, straight streets and order. Happiness +3%."),
     ("Watermills", "watermills", "Watermills", 1, 180, ["smithing"], [upkeep(0.9)], "Water does the heavy work. Upkeep -10%."),
     # Industrial

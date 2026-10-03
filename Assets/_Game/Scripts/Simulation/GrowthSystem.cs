@@ -4,7 +4,8 @@ using UnityEngine;
 
 // Grows undeveloped zoned cells to level 1, then upgrades the lowest-level cells, scanning in
 // row-major order so results are deterministic. Level 1 needs only road access. Upgrades are capped
-// by the current age's MaxLevel (a historic cell by its own built age's), and in ages whose
+// by the current age's MaxLevel (a historic cell by its own built age's); homes and shops need
+// LandValueForLevel3 to reach level 3 (M12, industry exempt); and in ages whose
 // upgrades need power they also need power with headroom for the extra draw (reserved during the
 // scan). With ages, a separate pass then redevelops up to RedevelopPerDay outdated cells (built in
 // an older age, not kept historic) into the current age at the same level. Writes levels and built
@@ -19,6 +20,7 @@ public sealed class GrowthSystem
     private readonly BalanceConfig m_Config;
     private readonly CapacityModel m_Capacity;
     private readonly TechSystem m_Tech;
+    private readonly LandValueSystem m_LandValue;
     private readonly List<Vector2Int> m_Changed = new();
     private readonly HashSet<Vector2Int> m_ChangedSet = new();
     private readonly List<Vector2Int> m_Redeveloped = new();
@@ -28,10 +30,11 @@ public sealed class GrowthSystem
     {
     }
 
-    // tech null = no ages (AgeRules.Legacy, nothing is ever outdated).
+    // tech null = no ages (AgeRules.Legacy, nothing is ever outdated); landValue null = no level-3 gate.
     public GrowthSystem(GridData grid, RoadNetwork roads, PowerSystem power, BalanceConfig config,
-        CapacityModel capacity, TechSystem tech)
+        CapacityModel capacity, TechSystem tech, LandValueSystem landValue = null)
     {
+        m_LandValue = landValue;
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Roads = roads ?? throw new ArgumentNullException(nameof(roads));
         m_Power = power ?? throw new ArgumentNullException(nameof(power));
@@ -125,6 +128,7 @@ public sealed class GrowthSystem
             return level >= m_Config.MaxLevel ? GrowthBlocker.MaxLevel : GrowthBlocker.AgeMaxLevel;
         }
         if (!m_Roads.HasRoadAccess(cell)) return GrowthBlocker.NoRoadAccess;
+        if (m_LandValue != null && !m_LandValue.AllowsLevel(cell, level + 1)) return GrowthBlocker.LowLandValue;
         if (level > 0 && rules.UpgradesNeedPower)
         {
             if (!m_Power.IsPowered(cell)) return GrowthBlocker.NoPower;
@@ -145,6 +149,7 @@ public sealed class GrowthSystem
                 if (level > 0)
                 {
                     if (level >= MaxLevelFor(cell)) continue;
+                    if (m_LandValue != null && !m_LandValue.AllowsLevel(cell, level + 1)) continue;
                     if (rules.UpgradesNeedPower && !m_Power.TryReserve(cell, m_Capacity.UpgradeDraw(m_Grid, cell))) continue;
                 }
 
