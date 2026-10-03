@@ -44,6 +44,7 @@ public sealed class ToolbarController : MonoBehaviour
     [SerializeField] private TMP_Text m_TooltipText;
 
     private readonly Dictionary<BuildingDefinition, ToolButton> m_BuildingButtons = new();
+    private ToolButton m_ServicesViewButton;   // M14: made at runtime from the Age view button
     private float m_FittedWidth = -1f;
 
     // M13: the toolbar keeps gaining buttons; when it is wider than the screen (minus a margin) it
@@ -91,6 +92,7 @@ public sealed class ToolbarController : MonoBehaviour
             "Pollution view  [V]\n<color=#B07AA8>Purple</color> haze = pollution from industry and power plants; dark buildings are the polluters. Polluted homes are unhappier and lower land value.");
         BindView(m_LandValueViewButton, "Value", InfoOverlay.View.LandValue,
             "Land value view  [V]\n<color=#F2554A>Red</color> = low, <color=#59D966>green</color> = high. Parks and kept historic blocks raise it, pollution lowers it. Homes and shops need enough of it for level 3; darker, striped = held at level 2 by it.");
+        CreateServicesViewButton();
         BindView(m_AgeViewButton, "Ages", InfoOverlay.View.Age,
             "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
         CreateBuildingButtons();
@@ -131,6 +133,7 @@ public sealed class ToolbarController : MonoBehaviour
             if (m_PowerViewButton != null) m_PowerViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Power));
             if (m_WaterViewButton != null) m_WaterViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Water));
             if (m_AgeViewButton != null) m_AgeViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Age));
+            if (m_ServicesViewButton != null) m_ServicesViewButton.gameObject.SetActive(AnyCivicViewAvailable());
         }
         if (m_PipeButton != null) m_PipeButton.gameObject.SetActive(m_GameManager.PipesUnlocked);
         bool any = false;
@@ -192,8 +195,20 @@ public sealed class ToolbarController : MonoBehaviour
         if (def.WaterRadius > 0) text += $"\nWaters blocks within {def.WaterRadius} cells (Medieval and Renaissance). Upgrades past level 1 need water.";
         if (def.WaterSupply > 0) text += $"\nPumps {def.WaterSupply} units of water along the roads it touches (L1/L2/L3 buildings use 4/8/16). Upgrades past level 1 need water.";
         if (def.ResearchPerDay > 0f) text += $"\nProduces {def.ResearchPerDay:0.#} research points a day.";
+        if (def.CivicKind != ServiceKind.None && def.CivicRadius > 0) text += $"\n{CivicTooltip(def.CivicKind)} within {def.CivicRadius} cells (strength {def.CivicStrength:P0}).";
         text += "\n[R] rotates.";
         return text;
+    }
+
+    private static string CivicTooltip(ServiceKind kind)
+    {
+        switch (kind)
+        {
+            case ServiceKind.Order: return "Keeps crime down (happier homes, higher land value)";
+            case ServiceKind.Fire: return "Lowers fire risk";
+            case ServiceKind.Health: return "Cares for the sick";
+            default: return "Schools residents, who then produce research";
+        }
     }
 
     private void Bind(ToolButton button, string label, string cost, Color swatch, string tooltip, UnityEngine.Events.UnityAction onClick)
@@ -221,6 +236,55 @@ public sealed class ToolbarController : MonoBehaviour
         if (m_InfoOverlay == null) return;
         Bind(button, label, string.Empty, Color.clear, tooltip,
             () => m_InfoOverlay.SetView(m_InfoOverlay.Chosen == view ? InfoOverlay.View.Off : view));
+    }
+
+    // M14: one VIEW button for the four civic views, so the view row only grows by one. It is a copy
+    // of the Age view button (same look and layout), placed right after it.
+    private void CreateServicesViewButton()
+    {
+        if (m_AgeViewButton == null || m_InfoOverlay == null) return;
+        m_ServicesViewButton = Instantiate(m_AgeViewButton, m_AgeViewButton.transform.parent);
+        m_ServicesViewButton.name = "ServicesView";
+        m_ServicesViewButton.transform.SetSiblingIndex(m_AgeViewButton.transform.GetSiblingIndex() + 1);
+        Bind(m_ServicesViewButton, "Services", string.Empty, Color.clear,
+            "Services views  [V]\nClick again for the next one: <color=#5B8DEF>order</color> (crime), <color=#F2733F>fire</color> (fire risk), " +
+            "<color=#59D966>health</color> (sickness), <color=#B07AD8>education</color> (schooling). The ground shows each service's reach; " +
+            "buildings go from pale to <color=#E6382E>red</color> as the need grows. Striped = needs it but nothing reaches it.",
+            CycleServicesView);
+    }
+
+    // Off / another view -> the first available civic view -> the next ... -> Off.
+    private void CycleServicesView()
+    {
+        InfoOverlay.View[] views = InfoOverlay.CivicViews;
+        int start = System.Array.IndexOf(views, m_InfoOverlay.Chosen);
+        for (int i = start + 1; i < views.Length; i++)
+        {
+            if (!m_InfoOverlay.IsAvailable(views[i])) continue;
+            m_InfoOverlay.SetView(views[i]);
+            return;
+        }
+        m_InfoOverlay.SetView(InfoOverlay.View.Off);
+    }
+
+    private bool AnyCivicViewAvailable()
+    {
+        foreach (InfoOverlay.View view in InfoOverlay.CivicViews)
+        {
+            if (m_InfoOverlay.IsAvailable(view)) return true;
+        }
+        return false;
+    }
+
+    private static string CivicViewLabel(InfoOverlay.View view)
+    {
+        switch (view)
+        {
+            case InfoOverlay.View.Order: return "Crime";
+            case InfoOverlay.View.Fire: return "Fire";
+            case InfoOverlay.View.Health: return "Health";
+            default: return "Schools";
+        }
     }
 
     // Clicking the active tool again turns it off.
@@ -262,6 +326,12 @@ public sealed class ToolbarController : MonoBehaviour
         SetActive(m_AgeViewButton, view == InfoOverlay.View.Age);
         SetActive(m_PollutionViewButton, view == InfoOverlay.View.Pollution);
         SetActive(m_LandValueViewButton, view == InfoOverlay.View.LandValue);
+        if (m_ServicesViewButton != null)
+        {
+            bool civic = InfoOverlay.IsCivic(view);
+            SetActive(m_ServicesViewButton, civic);
+            if (m_ServicesViewButton.Label != null) m_ServicesViewButton.Label.text = civic ? CivicViewLabel(view) : "Services";
+        }
 
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {

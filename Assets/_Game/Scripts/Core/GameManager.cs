@@ -140,6 +140,32 @@ public sealed class GameManager : MonoBehaviour
 
     public bool IsOutdated(BuildingDefinition def) => ReplacementFor(def) != null;
 
+    // Placed buildings the sim sees as sources (services, utilities, civic buildings).
+    public IReadOnlyList<BuildingInstance> SourceBuildings => m_SourceBuildings;
+
+    // Whether a civic line is part of the game yet (M14): one of its buildings is unlocked. Its view
+    // stays hidden until then. Always true without age data.
+    public bool CivicUnlocked(ServiceKind kind)
+    {
+        if (Simulation == null || Simulation.Tech == null || m_BuildingDatabase == null) return true;
+        foreach (BuildingDefinition def in m_BuildingDatabase.Entries)
+        {
+            if (def != null && def.CivicKind == kind && def.CivicRadius > 0 && IsUnlocked(def)) return true;
+        }
+        return false;
+    }
+
+    // The newest building of a line the player can build now, or null.
+    public BuildingDefinition BestCivic(ServiceKind kind)
+    {
+        if (m_BuildingDatabase == null) return null;
+        foreach (BuildingDefinition def in m_BuildingDatabase.Entries)
+        {
+            if (def != null && def.CivicKind == kind && def.CivicRadius > 0 && CanBuild(def)) return def;
+        }
+        return null;
+    }
+
     // The age of the tech that unlocks a building (-1 when it needs none).
     private int TierAge(BuildingDefinition def)
     {

@@ -277,6 +277,11 @@ public sealed class TechPanel : MonoBehaviour
             float bankDays = m_GameManager.Balance.ResearchBankDays;
             m_Text.Append($"<color={k_Muted}>Nothing being researched</color> — {tech.Progress:N0} RP banked ({rate:0.#} RP/day, saved up to {bankDays:0} days' worth). Pick a tech.");
         }
+        // Where the RP come from (M14), before the techs' multiplier.
+        ResearchBreakdown parts = m_GameManager.Simulation.ResearchBreakdown();
+        string multiplier = parts.Multiplier > 1.001f ? $" · ×{parts.Multiplier:0.##} from techs" : string.Empty;
+        m_Text.Append($"\n<size=85%><color={k_Muted}>From shops {parts.Commercial:0.#} · buildings {parts.Buildings:0.#} · " +
+                      $"schooled residents {parts.Education:0.#}{multiplier}</color></size>");
         if (tech.Queue.Count > 0)
         {
             var names = new List<string>();

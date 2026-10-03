@@ -35,6 +35,9 @@ public sealed class NotificationController : MonoBehaviour
     private bool m_AnnouncedReady;    // "ready to advance" shown for the current age
     private bool m_AnnouncedRebuild;  // first redevelopment of the current age shown
     private bool m_AnnouncedLandValue; // first home / shop held at level 2 by land value shown (M12)
+    private readonly bool[] m_AnnouncedCivic = new bool[5];   // [ServiceKind]: first time the line's need cost 2% shown (M14)
+
+    private const float CivicToastThreshold = 0.02f;
 
     private void OnEnable()
     {
@@ -125,6 +128,56 @@ public sealed class NotificationController : MonoBehaviour
         m_AnnouncedReady = tech != null && tech.GetAdvanceStatus(population.Population).Ready;
         m_AnnouncedRebuild = false;
         m_AnnouncedLandValue = AnyHeldByLandValue();   // a new city starts over
+        HappinessBreakdown happiness = population.Happiness;
+        foreach (ServiceKind kind in new[] { ServiceKind.Order, ServiceKind.Fire, ServiceKind.Health })
+        {
+            m_AnnouncedCivic[(int)kind] = -CivicTerm(happiness, kind) >= CivicToastThreshold;
+        }
+    }
+
+    // --- Civic services (M14) ---
+
+    private static float CivicTerm(HappinessBreakdown happiness, ServiceKind kind)
+    {
+        switch (kind)
+        {
+            case ServiceKind.Order: return happiness.Crime;
+            case ServiceKind.Fire: return happiness.Fire;
+            default: return happiness.Health;
+        }
+    }
+
+    // Once per city and line: the first time crime, fire risk or sickness costs 2% happiness while the
+    // player can build something against it.
+    private void CheckCivicNeeds()
+    {
+        HappinessBreakdown happiness = m_GameManager.Population.Happiness;
+        foreach (ServiceKind kind in new[] { ServiceKind.Order, ServiceKind.Fire, ServiceKind.Health })
+        {
+            if (m_AnnouncedCivic[(int)kind] || -CivicTerm(happiness, kind) < CivicToastThreshold) continue;
+            BuildingDefinition best = m_GameManager.BestCivic(kind);
+            if (best == null) continue;
+            m_AnnouncedCivic[(int)kind] = true;
+            string need = kind == ServiceKind.Order ? "<color=#F2665A>Crime</color> is rising"
+                : kind == ServiceKind.Fire ? "<color=#F2733F>Fire risk</color> worries residents"
+                : "<color=#59D966>Sickness</color> is spreading";
+            ShowToast($"{need} (−{-CivicTerm(happiness, kind):P0} happiness) — build a <b>{best.DisplayName}</b> near crowded homes. Services view shows where it's needed.");
+            return;
+        }
+    }
+
+    // Placed civic buildings that a just-unlocked building outdates, by name.
+    private string OutdatedBy(BuildingDefinition unlocked)
+    {
+        if (unlocked.CivicKind == ServiceKind.None) return null;
+        var names = new List<string>();
+        foreach (BuildingInstance placed in m_GameManager.SourceBuildings)
+        {
+            BuildingDefinition def = placed != null ? placed.Definition : null;
+            if (def == null || def == unlocked || def.CivicKind != unlocked.CivicKind) continue;
+            if (m_GameManager.ReplacementFor(def) == unlocked && !names.Contains(def.DisplayName)) names.Add(def.DisplayName);
+        }
+        return names.Count > 0 ? string.Join(" and ", names) : null;
     }
 
     // --- Land value (M12) ---
@@ -161,15 +214,20 @@ public sealed class NotificationController : MonoBehaviour
         if (done == null) return;
 
         var unlocked = new List<string>();
+        var replaces = new List<string>();
         if (m_GameManager.Buildings != null)
         {
             foreach (BuildingDefinition def in m_GameManager.Buildings.Entries)
             {
-                if (def != null && def.RequiredTech == techId) unlocked.Add(def.DisplayName);
+                if (def == null || def.RequiredTech != techId) continue;
+                unlocked.Add(def.DisplayName);
+                string outdated = OutdatedBy(def);
+                if (outdated != null) replaces.Add($"the {def.DisplayName} replaces your {outdated}");
             }
         }
         string message = $"<color=#73D973>Research complete:</color> {done.DisplayName}";
         if (unlocked.Count > 0) message += $" — <b>{string.Join(", ", unlocked)}</b> unlocked";
+        if (replaces.Count > 0) message += $" ({string.Join("; ", replaces)} — they keep working, but are outdated)";
         if (tech.Active == null) message += ". Pick the next project in Research.";
         ShowToast(message);
     }
@@ -308,7 +366,11 @@ public sealed class NotificationController : MonoBehaviour
             reached = m_PopulationMilestones[m_MilestoneIndex++];
         }
         if (reached > 0) ShowToast($"Population milestone: {reached:N0} residents!");
-        else CheckLandValue();
+        else
+        {
+            CheckLandValue();
+            CheckCivicNeeds();
+        }
     }
 
     // Fires once per drop below the threshold, not every unhappy day.

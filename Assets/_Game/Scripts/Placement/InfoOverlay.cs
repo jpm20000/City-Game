@@ -13,13 +13,50 @@ using UnityEngine.Tilemaps;
 // too. V cycles Off -> Power -> Water -> Coverage -> Pollution -> Land value -> Age, skipping views
 // that aren't available yet (Power until a power source is unlocked, Water until water matters,
 // Age without age data).
-// Holding the Power Plant, Park or a water building's tool switches to its view and previews the
-// building under the cursor: what would be powered / covered / watered if it were placed there.
+// M14: one view per civic line (Order, Fire, Health, Education): the ground shows the line's cover
+// strength (uncovered homes / shops that need it striped), buildings show the need (crime, fire risk,
+// sickness: pale -> red) or, for education, how well homes are schooled; they follow Age in the cycle and
+// appear once a building of the line is unlocked.
+// Holding the Power Plant, Park, a water building's or a civic building's tool switches to its view and
+// previews the building under the cursor: what would be powered / covered / watered if it were placed there.
 public sealed class InfoOverlay : GridTilemapView
 {
-    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water }
+    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water, Order, Fire, Health, Education }
 
-    private static readonly View[] s_CycleOrder = { View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Age };
+    private static readonly View[] s_CycleOrder =
+    {
+        View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Age,
+        View.Order, View.Fire, View.Health, View.Education,
+    };
+
+    // The civic views (M14), in cycle order.
+    public static readonly View[] CivicViews = { View.Order, View.Fire, View.Health, View.Education };
+
+    public static bool IsCivic(View view) => KindOf(view) != ServiceKind.None;
+
+    public static ServiceKind KindOf(View view)
+    {
+        switch (view)
+        {
+            case View.Order: return ServiceKind.Order;
+            case View.Fire: return ServiceKind.Fire;
+            case View.Health: return ServiceKind.Health;
+            case View.Education: return ServiceKind.Education;
+            default: return ServiceKind.None;
+        }
+    }
+
+    public static View ViewOf(ServiceKind kind)
+    {
+        switch (kind)
+        {
+            case ServiceKind.Order: return View.Order;
+            case ServiceKind.Fire: return View.Fire;
+            case ServiceKind.Health: return View.Health;
+            case ServiceKind.Education: return View.Education;
+            default: return View.Off;
+        }
+    }
 
     [SerializeField] private Sprite m_Sprite;
     [SerializeField] private InputReader m_InputReader;
@@ -73,12 +110,27 @@ public sealed class InfoOverlay : GridTilemapView
     [Tooltip("How much darker outdated buildings are drawn (their ground tile is striped).")]
     [SerializeField, Range(0f, 1f)] private float m_OutdatedShade = 0.6f;
 
+    [Header("Civic services (M14)")]
+    [SerializeField] private Color m_OrderCover = new Color(0.36f, 0.55f, 0.94f, 0.60f);
+    [SerializeField] private Color m_FireCover = new Color(0.95f, 0.45f, 0.25f, 0.60f);
+    [SerializeField] private Color m_HealthCover = new Color(0.35f, 0.85f, 0.40f, 0.60f);
+    [SerializeField] private Color m_EducationCover = new Color(0.69f, 0.48f, 0.85f, 0.65f);
+    [Tooltip("Homes / shops that need a line but get none of its cover (striped on the ground).")]
+    [SerializeField] private Color m_CivicUncovered = new Color(0.95f, 0.30f, 0.25f, 0.55f);
+    [SerializeField] private Color m_NeedLow = new Color(0.82f, 0.84f, 0.80f, 1f);
+    [SerializeField] private Color m_NeedHigh = new Color(0.90f, 0.22f, 0.18f, 1f);
+    [Tooltip("Crime / fire risk / sickness drawn at full red.")]
+    [SerializeField] private float m_CrimeFull = 0.5f;
+    [SerializeField] private float m_FireRiskFull = 0.6f;
+    [SerializeField] private float m_SicknessFull = 1f;
+
     private View m_Chosen;
     private View m_Shown;
     private bool m_Previewing;
     private PowerSystem m_PreviewPower;
     private WaterSystem m_PreviewWater;
     private CoverageSystem m_PreviewCoverage;
+    private CivicCoverage m_PreviewCivic;
     private readonly List<ServiceSource> m_PreviewSources = new();
     private Func<Vector2Int, Color?> m_BuildingColor;
     private bool m_BuildingsTinted;
@@ -102,6 +154,8 @@ public sealed class InfoOverlay : GridTilemapView
     private Tile[] m_PollutionTiles;  // [bucket], 0 = none
     private Tile[] m_LandValueTiles;  // [bucket]
     private Tile[] m_HeldTiles;       // [bucket], striped: held at level 2 by land value
+    private Tile[][] m_CivicTiles;    // [ServiceKind][bucket], 0 = none
+    private Tile m_CivicUncoveredTile;  // striped
     private Sprite m_StripeSprite;
 
     // The view the player picked (V / toolbar); Shown can differ while a Plant or Park tool is held.
@@ -113,6 +167,7 @@ public sealed class InfoOverlay : GridTilemapView
     private PowerSystem Power => m_Previewing ? m_PreviewPower : Simulation.Power;
     private CoverageSystem Coverage => m_Previewing ? m_PreviewCoverage : Simulation.Coverage;
     private WaterSystem Water => m_Previewing ? m_PreviewWater : Simulation.Water;
+    private CivicCoverage CivicCover => m_Previewing ? m_PreviewCivic : Simulation.Civic.Cover;
 
     public void SetView(View view)
     {
@@ -142,6 +197,11 @@ public sealed class InfoOverlay : GridTilemapView
             case View.Power: return GameManager.PowerUnlocked;
             case View.Water: return GameManager.WaterUnlocked;
             case View.Age: return GameManager.Simulation.Tech != null;
+            case View.Order:
+            case View.Fire:
+            case View.Health:
+            case View.Education:
+                return GameManager.CivicUnlocked(KindOf(view));
             default: return true;
         }
     }
@@ -191,6 +251,7 @@ public sealed class InfoOverlay : GridTilemapView
             : tool == null ? View.Off
             : tool.PowerSupply > 0 ? View.Power
             : tool.WaterSupply > 0 || (tool.WaterRadius > 0 && wellAge) ? View.Water
+            : tool.CivicKind != ServiceKind.None && tool.CivicRadius > 0 ? ViewOf(tool.CivicKind)
             : tool.CoverageRadius > 0 ? View.Coverage
             : View.Off;
         View shown = toolView != View.Off ? toolView : m_Chosen;
@@ -202,10 +263,12 @@ public sealed class InfoOverlay : GridTilemapView
             m_PreviewSources.AddRange(Simulation.Sources);
             m_PreviewSources.Add(new ServiceSource(m_Placement.PreviewOrigin,
                 CellUtils.EffectiveSize(tool.Size, m_Placement.PreviewRotation), tool.CoverageRadius, tool.PowerSupply,
-                waterSupply: tool.WaterSupply, waterRadius: tool.WaterRadius));
+                waterSupply: tool.WaterSupply, waterRadius: tool.WaterRadius,
+                civicKind: tool.CivicKind, civicRadius: tool.CivicRadius, civicStrength: tool.CivicStrength));
             m_PreviewPower.SetSources(m_PreviewSources);
             m_PreviewWater.SetSources(m_PreviewSources);
             m_PreviewCoverage.Recompute(m_PreviewSources);
+            m_PreviewCivic.Recompute(m_PreviewSources);
         }
 
         if (shown != m_Shown)
@@ -221,6 +284,7 @@ public sealed class InfoOverlay : GridTilemapView
     {
         m_PreviewPower = new PowerSystem(Grid, GameManager.Balance, GameManager.Simulation?.Capacity);
         m_PreviewCoverage = new CoverageSystem(Grid.Width, Grid.Height);
+        m_PreviewCivic = new CivicCoverage(Grid.Width, Grid.Height);
         m_PreviewWater = new WaterSystem(Grid, GameManager.Balance, GameManager.Simulation?.Capacity,
             () => GameManager.Simulation != null ? GameManager.Simulation.Rules.Water : WaterRule.Piped);
         m_BuildingColor = BuildingColor;
@@ -269,12 +333,27 @@ public sealed class InfoOverlay : GridTilemapView
             m_HeldTiles[i] = CreateTile(m_StripeSprite, WithAlpha(color, 0.9f));
         }
 
+        m_CivicTiles = new Tile[CivicViews.Length + 1][];
+        foreach (View view in CivicViews)
+        {
+            ServiceKind kind = KindOf(view);
+            Color cover = CoverColor(kind);
+            var tiles = new Tile[Buckets + 1];
+            for (int i = 1; i <= Buckets; i++)
+            {
+                tiles[i] = CreateTile(m_Sprite, WithAlpha(cover, Mathf.Lerp(m_MinCoverageAlpha, cover.a, (float)i / Buckets)));
+            }
+            m_CivicTiles[(int)kind] = tiles;
+        }
+        m_CivicUncoveredTile = CreateTile(m_StripeSprite, m_CivicUncovered);
+
         Refresh();
     }
 
     protected override void OnGridResized()
     {
         m_PreviewCoverage.Resize(Grid.Width, Grid.Height);
+        m_PreviewCivic.Resize(Grid.Width, Grid.Height);
         Refresh();
     }
 
@@ -295,6 +374,14 @@ public sealed class InfoOverlay : GridTilemapView
         {
             if (tiles != null) foreach (Tile tile in tiles) if (tile != null) Destroy(tile);
         }
+        if (m_CivicTiles != null)
+        {
+            foreach (Tile[] tiles in m_CivicTiles)
+            {
+                if (tiles != null) foreach (Tile tile in tiles) if (tile != null) Destroy(tile);
+            }
+        }
+        if (m_CivicUncoveredTile != null) Destroy(m_CivicUncoveredTile);
         DestroyStripeSprite(m_StripeSprite);
     }
 
@@ -308,6 +395,11 @@ public sealed class InfoOverlay : GridTilemapView
             case View.Age: return AgeTile(cell);
             case View.Pollution: return PollutionTile(cell);
             case View.LandValue: return LandValueTile(cell);
+            case View.Order:
+            case View.Fire:
+            case View.Health:
+            case View.Education:
+                return CivicTile(cell, KindOf(m_Shown));
             default: return null;
         }
     }
@@ -433,6 +525,60 @@ public sealed class InfoOverlay : GridTilemapView
         return m_CoverageTiles[Mathf.Min(count, m_CoverageTiles.Length - 1)];
     }
 
+    private Color CoverColor(ServiceKind kind)
+    {
+        switch (kind)
+        {
+            case ServiceKind.Order: return m_OrderCover;
+            case ServiceKind.Fire: return m_FireCover;
+            case ServiceKind.Health: return m_HealthCover;
+            default: return m_EducationCover;
+        }
+    }
+
+    // Whether a grown cell is one the line serves: crime at homes and shops, fire risk everywhere,
+    // sickness and schooling at homes.
+    private bool Serves(ServiceKind kind, Vector2Int cell)
+    {
+        if (Grid.GetBuildingLevel(cell) == 0) return false;
+        ZoneType zone = Grid.GetZone(cell);
+        switch (kind)
+        {
+            case ServiceKind.Order: return zone == ZoneType.Residential || zone == ZoneType.Commercial;
+            case ServiceKind.Fire: return zone != ZoneType.None;
+            default: return zone == ZoneType.Residential;
+        }
+    }
+
+    // How badly a grown cell needs the line now, 0..1 of the view's full red (0 for education).
+    private float NeedShare(ServiceKind kind, Vector2Int cell)
+    {
+        CivicBreakdown civic = Simulation.Civic.Explain(cell);
+        switch (kind)
+        {
+            case ServiceKind.Order: return Mathf.Clamp01(civic.Crime / Mathf.Max(m_CrimeFull, 0.01f));
+            case ServiceKind.Fire: return Mathf.Clamp01(civic.FireRisk / Mathf.Max(m_FireRiskFull, 0.01f));
+            case ServiceKind.Health: return Mathf.Clamp01(civic.Sickness / Mathf.Max(m_SicknessFull, 0.01f));
+            default: return 0f;
+        }
+    }
+
+    private bool NewlyCivicCovered(ServiceKind kind, Vector2Int cell)
+    {
+        return m_Previewing && m_PreviewCivic.GetStrength(kind, cell) > Simulation.Civic.Cover.GetStrength(kind, cell) + 1e-4f;
+    }
+
+    // Ground: the line's cover strength; cells it serves that need it but get no cover are striped.
+    private Tile CivicTile(Vector2Int cell, ServiceKind kind)
+    {
+        if (Grid.IsRoad(cell)) return null;
+        if (NewlyCivicCovered(kind, cell)) return m_NewlyCoveredTile;
+        float strength = CivicCover.GetStrength(kind, cell);
+        if (strength > 0f) return m_CivicTiles[(int)kind][Mathf.Max(1, Bucket(strength))];
+        bool needs = kind == ServiceKind.Education ? Simulation.Civic.Ramp > 0f : NeedShare(kind, cell) > 0f;
+        return Serves(kind, cell) && needs ? m_CivicUncoveredTile : null;
+    }
+
     // Grown buildings: green / red for power; homes shaded by their service bonus for coverage.
     private Color? BuildingColor(Vector2Int cell)
     {
@@ -465,6 +611,17 @@ public sealed class InfoOverlay : GridTilemapView
             if (zone != ZoneType.Residential && zone != ZoneType.Commercial) return m_NotGated;
             Color color = WithAlpha(LandValueColor(Simulation.LandValue.GetLandValue(cell)), 1f);
             return Simulation.Growth.IsHeldByLandValue(cell) ? WithAlpha(color * m_OutdatedShade, 1f) : color;
+        }
+        if (IsCivic(m_Shown))
+        {
+            ServiceKind kind = KindOf(m_Shown);
+            if (!Serves(kind, cell)) return m_NotAHome;
+            if (NewlyCivicCovered(kind, cell)) return WithAlpha(m_NewlyCovered, 1f);
+            if (kind == ServiceKind.Education)
+            {
+                return Color.Lerp(m_Uncovered, WithAlpha(m_EducationCover, 1f), CivicCover.GetStrength(kind, cell));
+            }
+            return Color.Lerp(m_NeedLow, m_NeedHigh, NeedShare(kind, cell));
         }
         if (m_Shown == View.Age)
         {

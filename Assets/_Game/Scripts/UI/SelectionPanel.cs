@@ -142,6 +142,8 @@ public sealed class SelectionPanel : MonoBehaviour
         if (def.CivicKind != ServiceKind.None && def.CivicRadius > 0)
         {
             Line($"{CivicLine(def.CivicKind)} within {def.CivicRadius} cells, strength {def.CivicStrength:P0}.");
+            string reached = def.CivicKind == ServiceKind.Fire ? "buildings" : def.CivicKind == ServiceKind.Order ? "homes and shops" : "homes";
+            Line($"Reaches {CellsReached(building)} {reached}. [V] Services view.");
             BuildingDefinition replacement = m_GameManager.ReplacementFor(def);
             if (replacement != null)
             {
@@ -317,6 +319,7 @@ public sealed class SelectionPanel : MonoBehaviour
             Line(parks > 0 ? $"Parks nearby  {parks}  (+{bonus:P0} happiness)" : "No park nearby");
         }
         DescribeEnvironment(cell, zone);
+        DescribeCivic(cell, zone);
         DescribePipe(cell);
         DescribeAge(cell, builtAge);
         if (level < maxLevel)
@@ -388,7 +391,64 @@ public sealed class SelectionPanel : MonoBehaviour
         if (value.Heritage > 0f) parts.Append($", heritage +{value.Heritage:P0}");
         if (value.Technology > 0f) parts.Append($", tech +{value.Technology:P0}");
         if (value.Pollution < 0f) parts.Append($", pollution −{-value.Pollution:P0}");
+        if (value.Crime < 0f) parts.Append($", crime −{-value.Crime:P0}");
         return parts.ToString();
+    }
+
+    // Crime, fire risk, sickness and schooling at a grown cell, with what each costs a home (M14).
+    private void DescribeCivic(Vector2Int cell, ZoneType zone)
+    {
+        BalanceConfig balance = m_GameManager.Balance;
+        CivicSystem civic = m_GameManager.Simulation.Civic;
+        CivicBreakdown needs = civic.Explain(cell);
+        bool home = zone == ZoneType.Residential;
+        if (needs.Ramp <= 0f)
+        {
+            Line($"<size=85%><color=#9AA3B2>Small town: no crime, fire or sickness worries until {balance.CivicFreePopulation} residents.</color></size>");
+            if (home && needs.Education > 0f) Line($"Schooling  {needs.Education:P0}");
+            return;
+        }
+        if (home || zone == ZoneType.Commercial)
+        {
+            string cost = home && needs.Crime > 0.005f ? $"  (−{ServiceStats.CrimePenaltyAt(balance, needs.Crime):P0} happiness)" : string.Empty;
+            Line($"Crime  {CivicNeed(needs.Crime)}  (order {needs.Order:P0}){cost}");
+        }
+        string fireCost = home && needs.FireRisk > 0.005f ? $"  (−{ServiceStats.FirePenaltyAt(balance, needs.FireRisk):P0} happiness)" : string.Empty;
+        Line($"Fire risk  {CivicNeed(needs.FireRisk)}  (fire cover {needs.Fire:P0}){fireCost}");
+        if (!home) return;
+        string sickCost = needs.Sickness > 0.005f ? $"  (−{ServiceStats.HealthPenaltyAt(balance, needs.Sickness):P0} happiness)" : string.Empty;
+        Line($"Health care  {needs.Health:P0}{sickCost}");
+        if (needs.Education > 0f) Line($"Schooling  {needs.Education:P0}  (its residents add research)");
+    }
+
+    private static string CivicNeed(float value)
+    {
+        string color = value >= 0.25f ? "#F2665A" : value >= 0.1f ? "#F2C14E" : "#73D973";
+        return $"<color={color}>{value:P0}</color>";
+    }
+
+    // Grown cells a civic building reaches that its line serves (homes for health and education).
+    private int CellsReached(BuildingInstance building)
+    {
+        BuildingDefinition def = building.Definition;
+        GridData grid = m_GameManager.Grid;
+        Vector2Int size = CellUtils.EffectiveSize(def.Size, building.Rotation);
+        int r = def.CivicRadius;
+        int count = 0;
+        for (int y = building.Origin.y - r; y < building.Origin.y + size.y + r; y++)
+        {
+            for (int x = building.Origin.x - r; x < building.Origin.x + size.x + r; x++)
+            {
+                var cell = new Vector2Int(x, y);
+                if (!grid.InBounds(cell) || grid.GetBuildingLevel(cell) == 0) continue;
+                ZoneType zone = grid.GetZone(cell);
+                bool served = def.CivicKind == ServiceKind.Fire ? zone != ZoneType.None
+                    : def.CivicKind == ServiceKind.Order ? zone == ZoneType.Residential || zone == ZoneType.Commercial
+                    : zone == ZoneType.Residential;
+                if (served) count++;
+            }
+        }
+        return count;
     }
 
     // Built age, outdated / historic state and the Keep toggle (M11; nothing without age data).
