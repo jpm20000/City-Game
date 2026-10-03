@@ -4,16 +4,18 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 
 // Data views on the Info Tilemap: Power (energised roads, powered / dark buildings and zones),
-// Coverage (how much park bonus each cell gets) and Age (M11: the age each grown cell was built in,
-// warm = old to cool = new; kept historic cells gold; outdated cells striped and darkened). The
-// ground tint is mostly hidden under grown buildings, so those are recoloured through GrowthVisuals
-// too. V cycles Off -> Power -> Coverage -> Age, skipping views that aren't available yet (Power
-// until a power source is unlocked, Age without age data).
+// Coverage (how much park bonus each cell gets), Pollution and Land value (M12: pollution reaching
+// each cell, polluters dark; land value red -> green, homes and shops held at level 2 by it striped)
+// and Age (M11: the age each grown cell was built in, warm = old to cool = new; kept historic cells
+// gold; outdated cells striped and darkened). The ground tint is mostly hidden under grown
+// buildings, so those are recoloured through GrowthVisuals too. V cycles Off -> Power -> Coverage
+// -> Pollution -> Land value -> Age, skipping views that aren't available yet (Power until a power
+// source is unlocked, Age without age data).
 // Holding the Power Plant or Park tool switches to its view and previews the building under the
 // cursor: what would be powered / covered if it were placed there.
 public sealed class InfoOverlay : GridTilemapView
 {
-    public enum View { Off, Power, Coverage, Age }
+    public enum View { Off, Power, Coverage, Pollution, LandValue, Age }
 
     [SerializeField] private Sprite m_Sprite;
     [SerializeField] private InputReader m_InputReader;
@@ -37,6 +39,22 @@ public sealed class InfoOverlay : GridTilemapView
     [SerializeField, Range(0f, 1f)] private float m_MinCoverageAlpha = 0.18f;
     [Tooltip("How green a home covered by a single service is (1 = fully green at the cap).")]
     [SerializeField, Range(0f, 1f)] private float m_MinCoveredTint = 0.45f;
+
+    [Header("Pollution")]
+    [SerializeField] private Color m_PollutionLow = new Color(0.86f, 0.78f, 0.36f, 0.30f);
+    [SerializeField] private Color m_PollutionHigh = new Color(0.42f, 0.18f, 0.40f, 0.80f);
+    [Tooltip("Pollution points drawn at full strength (homes pay the full penalty from about 4).")]
+    [SerializeField] private float m_PollutionFull = 6f;
+    [SerializeField] private Color m_CleanBuilding = new Color(0.72f, 0.74f, 0.78f, 1f);
+    [Tooltip("Polluters (industry, plants) in the pollution view.")]
+    [SerializeField] private Color m_Polluter = new Color(0.30f, 0.22f, 0.20f, 1f);
+
+    [Header("Land value")]
+    [SerializeField] private Color m_LandValueLow = new Color(0.90f, 0.30f, 0.25f, 0.60f);
+    [SerializeField] private Color m_LandValueMid = new Color(0.95f, 0.80f, 0.30f, 0.55f);
+    [SerializeField] private Color m_LandValueHigh = new Color(0.30f, 0.80f, 0.40f, 0.65f);
+    [Tooltip("Industry in the land value view (it doesn't need land value).")]
+    [SerializeField] private Color m_NotGated = new Color(0.34f, 0.35f, 0.39f, 1f);
 
     [Header("Age")]
     [SerializeField] private Color m_OldestAge = new Color(0.90f, 0.52f, 0.22f, 0.65f);
@@ -64,6 +82,9 @@ public sealed class InfoOverlay : GridTilemapView
     private Tile[] m_AgeTiles;        // [built age]
     private Tile[] m_OutdatedTiles;   // [built age], striped
     private Tile m_HistoricTile;
+    private Tile[] m_PollutionTiles;  // [bucket], 0 = none
+    private Tile[] m_LandValueTiles;  // [bucket]
+    private Tile[] m_HeldTiles;       // [bucket], striped: held at level 2 by land value
     private Sprite m_StripeSprite;
 
     // The view the player picked (V / toolbar); Shown can differ while a Plant or Park tool is held.
@@ -84,7 +105,7 @@ public sealed class InfoOverlay : GridTilemapView
     public void Cycle()
     {
         View next = m_Chosen;
-        do next = next == View.Age ? View.Off : next + 1;
+        do next = next == View.Age ? View.Off : next + 1;   // Age is last
         while (next != View.Off && !IsAvailable(next));
         SetView(next);
     }
@@ -199,6 +220,17 @@ public sealed class InfoOverlay : GridTilemapView
         }
         m_HistoricTile = CreateTile(m_Sprite, m_Historic);
 
+        m_PollutionTiles = new Tile[Buckets + 1];
+        for (int i = 1; i <= Buckets; i++) m_PollutionTiles[i] = CreateTile(m_Sprite, PollutionColor((float)i / Buckets));
+        m_LandValueTiles = new Tile[Buckets + 1];
+        m_HeldTiles = new Tile[Buckets + 1];
+        for (int i = 0; i <= Buckets; i++)
+        {
+            Color color = LandValueColor((float)i / Buckets);
+            m_LandValueTiles[i] = CreateTile(m_Sprite, color);
+            m_HeldTiles[i] = CreateTile(m_StripeSprite, WithAlpha(color, 0.9f));
+        }
+
         Refresh();
     }
 
@@ -220,6 +252,10 @@ public sealed class InfoOverlay : GridTilemapView
         if (m_AgeTiles != null) foreach (Tile tile in m_AgeTiles) if (tile != null) Destroy(tile);
         if (m_OutdatedTiles != null) foreach (Tile tile in m_OutdatedTiles) if (tile != null) Destroy(tile);
         if (m_HistoricTile != null) Destroy(m_HistoricTile);
+        foreach (Tile[] tiles in new[] { m_PollutionTiles, m_LandValueTiles, m_HeldTiles })
+        {
+            if (tiles != null) foreach (Tile tile in tiles) if (tile != null) Destroy(tile);
+        }
         DestroyStripeSprite(m_StripeSprite);
     }
 
@@ -230,8 +266,43 @@ public sealed class InfoOverlay : GridTilemapView
             case View.Power: return PowerTile(cell);
             case View.Coverage: return CoverageTile(cell);
             case View.Age: return AgeTile(cell);
+            case View.Pollution: return PollutionTile(cell);
+            case View.LandValue: return LandValueTile(cell);
             default: return null;
         }
+    }
+
+    private const int Buckets = 20;
+
+    private static int Bucket(float t) => Mathf.Clamp(Mathf.RoundToInt(t * Buckets), 0, Buckets);
+
+    private float PollutionShare(Vector2Int cell) => Mathf.Clamp01(Simulation.Pollution.GetPollution(cell) / Mathf.Max(m_PollutionFull, 0.01f));
+
+    private Color PollutionColor(float t) => Color.Lerp(m_PollutionLow, m_PollutionHigh, t);
+
+    // Centred on the level-3 threshold: red well below it, yellow at it, green well above.
+    private Color LandValueColor(float value)
+    {
+        float gate = GameManager.Balance.LandValueForLevel3;
+        return value < gate
+            ? Color.Lerp(m_LandValueLow, m_LandValueMid, Mathf.InverseLerp(gate - 0.3f, gate, value))
+            : Color.Lerp(m_LandValueMid, m_LandValueHigh, Mathf.InverseLerp(gate, gate + 0.35f, value));
+    }
+
+    private Tile PollutionTile(Vector2Int cell)
+    {
+        if (Grid.IsRoad(cell)) return null;
+        float points = Simulation.Pollution.GetPollution(cell);
+        if (points <= 0.01f) return null;
+        return m_PollutionTiles[Mathf.Max(1, Bucket(PollutionShare(cell)))];
+    }
+
+    private Tile LandValueTile(Vector2Int cell)
+    {
+        if (Grid.IsRoad(cell)) return null;
+        // Rounded down so a cell just below the threshold never shows the threshold's colour.
+        int bucket = Mathf.Clamp(Mathf.FloorToInt(Simulation.LandValue.GetLandValue(cell) * Buckets + 1e-4f), 0, Buckets);
+        return Simulation.Growth.IsHeldByLandValue(cell) ? m_HeldTiles[bucket] : m_LandValueTiles[bucket];
     }
 
     protected override void OnRepainted()
@@ -297,6 +368,18 @@ public sealed class InfoOverlay : GridTilemapView
             if (count == 0) return m_Uncovered;
             float t = (float)Mathf.Min(count, m_CoverageTiles.Length - 1) / (m_CoverageTiles.Length - 1);
             return Color.Lerp(m_Uncovered, WithAlpha(m_Covered, 1f), Mathf.Lerp(m_MinCoveredTint, 1f, t));
+        }
+        if (m_Shown == View.Pollution)
+        {
+            if (Simulation.Pollution.EmissionOf(cell) > 0f) return m_Polluter;
+            return Color.Lerp(m_CleanBuilding, WithAlpha(m_PollutionHigh, 1f), PollutionShare(cell));
+        }
+        if (m_Shown == View.LandValue)
+        {
+            ZoneType zone = Grid.GetZone(cell);
+            if (zone != ZoneType.Residential && zone != ZoneType.Commercial) return m_NotGated;
+            Color color = WithAlpha(LandValueColor(Simulation.LandValue.GetLandValue(cell)), 1f);
+            return Simulation.Growth.IsHeldByLandValue(cell) ? WithAlpha(color * m_OutdatedShade, 1f) : color;
         }
         if (m_Shown == View.Age)
         {

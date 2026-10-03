@@ -65,6 +65,14 @@ public sealed class GrowthSystem
         return Mathf.Min(Rules.MaxLevel, m_Config.MaxLevel);
     }
 
+    // A grown home or shop that could go up a level but its land value is too low (M12).
+    public bool IsHeldByLandValue(Vector2Int cell)
+    {
+        if (m_LandValue == null) return false;
+        int level = m_Grid.GetBuildingLevel(cell);
+        return level > 0 && level < MaxLevelFor(cell) && !m_LandValue.AllowsLevel(cell, level + 1);
+    }
+
     // Returns the cells whose level rose this tick (redeveloped cells are in Redeveloped).
     public IReadOnlyList<Vector2Int> Apply(DemandSnapshot demand)
     {

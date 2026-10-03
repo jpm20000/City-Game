@@ -29,6 +29,7 @@ public sealed class NotificationController : MonoBehaviour
     private bool m_NudgedNoPower;     // "build a power plant" hint already shown
     private bool m_AnnouncedReady;    // "ready to advance" shown for the current age
     private bool m_AnnouncedRebuild;  // first redevelopment of the current age shown
+    private bool m_AnnouncedLandValue; // first home / shop held at level 2 by land value shown (M12)
 
     private void OnEnable()
     {
@@ -111,6 +112,32 @@ public sealed class NotificationController : MonoBehaviour
         TechSystem tech = m_GameManager.Simulation.Tech;
         m_AnnouncedReady = tech != null && tech.GetAdvanceStatus(population.Population).Ready;
         m_AnnouncedRebuild = false;
+        m_AnnouncedLandValue = AnyHeldByLandValue();   // a new city starts over
+    }
+
+    // --- Land value (M12) ---
+
+    private bool AnyHeldByLandValue()
+    {
+        GridData grid = m_GameManager.Grid;
+        GrowthSystem growth = m_GameManager.Simulation.Growth;
+        for (int y = 0; y < grid.Height; y++)
+        {
+            for (int x = 0; x < grid.Width; x++)
+            {
+                if (growth.IsHeldByLandValue(new Vector2Int(x, y))) return true;
+            }
+        }
+        return false;
+    }
+
+    // Once per city: the first home or shop that can't reach level 3 for lack of land value.
+    private void CheckLandValue()
+    {
+        if (m_AnnouncedLandValue || !AnyHeldByLandValue()) return;
+        m_AnnouncedLandValue = true;
+        ShowToast($"Some homes and shops can't reach level 3: their <color=#F2C14E>land value</color> is below " +
+                  $"{m_GameManager.Balance.LandValueForLevel3:P0}. Parks and kept historic blocks raise it, pollution lowers it — see the Value view.");
     }
 
     // --- Ages & research (M11) ---
@@ -209,6 +236,7 @@ public sealed class NotificationController : MonoBehaviour
             reached = m_PopulationMilestones[m_MilestoneIndex++];
         }
         if (reached > 0) ShowToast($"Population milestone: {reached:N0} residents!");
+        else CheckLandValue();
     }
 
     // Fires once per drop below the threshold, not every unhappy day.

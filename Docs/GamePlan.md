@@ -1009,7 +1009,13 @@ finally pay off with a heritage bonus.
   `LowLandValue`, the Heritage happiness term, `LandValueBonus` + Architecture. Tests: contributors
   add up and clamp; polluted homes stop at level 2 and a park lets them through; industry ungated;
   historic cells raise neighbours' value and happiness; the blocker; Medieval unaffected by the gate.
-- **12c UI.** Pollution and Land value info views (ground shading + building tints, through
+- **12c UI — done (2026-10-03).** Notes from implementing: the Land value colours are centred on the
+  level-3 threshold (a plain 0..1 ramp made almost all land the same yellow, since most cells sit at
+  50–55%); `GrowthSystem.IsHeldByLandValue` is shared by the view and the toast. Checked in Play mode
+  on the seeded 64² Industrial city (day 125, 480 pop): homes facing industry 2.8 pollution
+  (−17% happiness), land value 44%; a park lifts its side to 56%, two kept blocks give their row
+  65% (+10% heritage); the toolbar fits 1920 with five VIEW buttons. 151 EditMode tests green.
+  Original plan: Pollution and Land value info views (ground shading + building tints, through
   `GrowthVisuals.SetColorOverride`), two VIEW buttons, SelectionPanel lines, tooltip lines, the
   land-value toast. Play-mode screenshots of both views on a seeded city.
 - **12d Balance, play-through, docs.** `EngagedCity` learns to place parks for homes blocked by land

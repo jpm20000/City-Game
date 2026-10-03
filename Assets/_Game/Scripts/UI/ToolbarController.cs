@@ -22,6 +22,8 @@ public sealed class ToolbarController : MonoBehaviour
     [SerializeField] private ToolButton m_PowerViewButton;
     [SerializeField] private ToolButton m_CoverageViewButton;
     [SerializeField] private ToolButton m_AgeViewButton;
+    [SerializeField] private ToolButton m_PollutionViewButton;
+    [SerializeField] private ToolButton m_LandValueViewButton;
 
     [Header("Buildings")]
     [SerializeField] private ToolButton m_ButtonTemplate;
@@ -53,6 +55,10 @@ public sealed class ToolbarController : MonoBehaviour
             "Power view  [V]\n<color=#FFD133>Yellow</color> roads carry power from a plant. Buildings: <color=#59D966>powered</color> / <color=#F2554A>no power</color> (can't upgrade). Faint tints show zoned land that would / wouldn't get power.");
         BindView(m_CoverageViewButton, "Parks", InfoOverlay.View.Coverage,
             "Park coverage view  [V]\nGreener homes get more happiness from nearby parks (up to 4 parks count). Light grey homes have none; dark grey buildings are jobs, which parks don't affect.");
+        BindView(m_PollutionViewButton, "Pollution", InfoOverlay.View.Pollution,
+            "Pollution view  [V]\n<color=#B07AA8>Purple</color> haze = pollution from industry and power plants; dark buildings are the polluters. Polluted homes are unhappier and lower land value.");
+        BindView(m_LandValueViewButton, "Value", InfoOverlay.View.LandValue,
+            "Land value view  [V]\n<color=#F2554A>Red</color> = low, <color=#59D966>green</color> = high. Parks and kept historic blocks raise it, pollution lowers it. Homes and shops need enough of it for level 3; darker, striped = held at level 2 by it.");
         BindView(m_AgeViewButton, "Ages", InfoOverlay.View.Age,
             "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
         CreateBuildingButtons();
@@ -189,6 +195,8 @@ public sealed class ToolbarController : MonoBehaviour
         SetActive(m_PowerViewButton, view == InfoOverlay.View.Power);
         SetActive(m_CoverageViewButton, view == InfoOverlay.View.Coverage);
         SetActive(m_AgeViewButton, view == InfoOverlay.View.Age);
+        SetActive(m_PollutionViewButton, view == InfoOverlay.View.Pollution);
+        SetActive(m_LandValueViewButton, view == InfoOverlay.View.LandValue);
 
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {

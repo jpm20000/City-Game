@@ -128,6 +128,11 @@ public sealed class SelectionPanel : MonoBehaviour
             Line($"Homes within {def.CoverageRadius} cells: +{balance.ServiceBonusEach:P0} happiness each (up to +{balance.ServiceBonusCap:P0} per home). [V] shows coverage.");
         }
         if (def.PowerSupply > 0) DescribePlant(building);
+        if (def.Pollution > 0f)
+        {
+            float points = def.Pollution * m_GameManager.Simulation.TechModifiers.PollutionMultiplier;
+            Line($"<color=#B07AA8>Pollutes</color>  {points:0.#} within {def.PollutionRadius} cells — nearby homes lose happiness and land value. [V] Pollution view.");
+        }
         if (def.ResearchPerDay > 0f)
         {
             float rp = def.ResearchPerDay * m_GameManager.Simulation.TechModifiers.ResearchMultiplier;
@@ -211,6 +216,7 @@ public sealed class SelectionPanel : MonoBehaviour
             float bonus = Mathf.Min(parks * balance.ServiceBonusEach, balance.ServiceBonusCap);
             Line(parks > 0 ? $"Parks nearby  {parks}  (+{bonus:P0} happiness)" : "No park nearby");
         }
+        DescribeEnvironment(cell, zone);
         DescribeAge(cell, builtAge);
         if (level < maxLevel)
         {
@@ -227,6 +233,61 @@ public sealed class SelectionPanel : MonoBehaviour
         }
         Line("<size=85%><color=#9AA3B2>Demolishing leaves the zone, so it will regrow.</color></size>");
         m_Action = Action.Demolish;
+    }
+
+    // Pollution, land value (with what makes it up) and heritage (M12).
+    private void DescribeEnvironment(Vector2Int cell, ZoneType zone)
+    {
+        GridData grid = m_GameManager.Grid;
+        BalanceConfig balance = m_GameManager.Balance;
+        SimulationSystem sim = m_GameManager.Simulation;
+
+        float emission = sim.Pollution.EmissionOf(cell);
+        if (emission > 0f)
+        {
+            Line($"<color=#B07AA8>Pollutes</color>  {emission:0.#} within {sim.Pollution.RadiusOf(cell)} cells");
+        }
+        float pollution = sim.Pollution.GetPollution(cell);
+        if (pollution > 0.05f)
+        {
+            string cost = zone == ZoneType.Residential && grid.GetBuildingLevel(cell) > 0
+                ? $"  (−{ServiceStats.PollutionPenaltyAt(balance, pollution):P0} happiness)"
+                : string.Empty;
+            Line($"Pollution here  {pollution:0.0}{cost}");
+        }
+        else if (zone == ZoneType.Residential)
+        {
+            Line("No pollution");
+        }
+
+        LandValueBreakdown value = sim.LandValue.Explain(cell);
+        if (zone == ZoneType.Residential || zone == ZoneType.Commercial)
+        {
+            bool enough = value.Total >= balance.LandValueForLevel3 - 1e-4f;
+            string color = enough ? "#73D973" : "#F2C14E";
+            Line($"Land value  <color={color}>{value.Total:P0}</color>  (level 3 needs {balance.LandValueForLevel3:P0})");
+        }
+        else
+        {
+            Line($"Land value  {value.Total:P0}  (industry doesn't need it)");
+        }
+        Line($"<size=85%><color=#9AA3B2>{LandValueParts(value)}</color></size>");
+
+        if (grid.IsHistoric(cell) && grid.GetBuildingLevel(cell) > 0)
+        {
+            Line($"<color=#E8C15A>Heritage</color> — +{balance.HeritageLandValueEach:P0} land value and +{balance.HeritageHappinessEach:P0} happiness " +
+                 $"for homes within {balance.HeritageRadius} cells.");
+        }
+    }
+
+    private static string LandValueParts(LandValueBreakdown value)
+    {
+        var parts = new StringBuilder($"base {value.Base:P0}");
+        if (value.Services > 0f) parts.Append($", parks +{value.Services:P0}");
+        if (value.Heritage > 0f) parts.Append($", heritage +{value.Heritage:P0}");
+        if (value.Technology > 0f) parts.Append($", tech +{value.Technology:P0}");
+        if (value.Pollution < 0f) parts.Append($", pollution −{-value.Pollution:P0}");
+        return parts.ToString();
     }
 
     // Built age, outdated / historic state and the Keep toggle (M11; nothing without age data).
@@ -255,6 +316,7 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Title.text = $"{ZoneName(zone)} zone";
         Line("Undeveloped.");
         Line(BlockerText(cell, zone, "Growth"));
+        DescribeEnvironment(cell, zone);
         if (m_GameManager.Simulation.Rules.UpgradesNeedPower)
         {
             Line(BesideEnergisedRoad(cell)
