@@ -128,6 +128,7 @@ public sealed class SelectionPanel : MonoBehaviour
             Line($"Homes within {def.CoverageRadius} cells: +{balance.ServiceBonusEach:P0} happiness each (up to +{balance.ServiceBonusCap:P0} per home). [V] shows coverage.");
         }
         if (def.PowerSupply > 0) DescribePlant(building);
+        if (def.WaterRadius > 0 || def.WaterSupply > 0) DescribeWaterSource(building);
         if (def.Pollution > 0f)
         {
             float points = def.Pollution * m_GameManager.Simulation.TechModifiers.PollutionMultiplier;
@@ -159,6 +160,63 @@ public sealed class SelectionPanel : MonoBehaviour
         }
     }
 
+    // M13: wells and fountains water a radius in the well ages; towers and pumps feed the roads they
+    // touch in the piped ages.
+    private void DescribeWaterSource(BuildingInstance building)
+    {
+        BuildingDefinition def = building.Definition;
+        WaterSystem water = m_GameManager.Simulation.Water;
+        if (def.WaterRadius > 0)
+        {
+            if (water.Mode == WaterRule.Coverage)
+            {
+                Line($"<color=#59A6F2>Waters</color> blocks within {def.WaterRadius} cells — they can grow past level 1. [V] Water view.");
+            }
+            else
+            {
+                Line("<color=#9AA3B2>Its water no longer counts — homes now need piped water from towers.</color>");
+            }
+            if (m_GameManager.IsObsolete(def)) Line($"<color=#F2C14E>Obsolete</color> in the {m_GameManager.ObsoleteAgeName(def)} — can't be built any more.");
+        }
+        if (def.WaterSupply <= 0) return;
+        if (water.Mode != WaterRule.Piped)
+        {
+            Line("<color=#9AA3B2>Pumps nothing until water is piped (Industrial age).</color>");
+            return;
+        }
+        if (!TouchesCarryingCell(building))
+        {
+            Line("<color=#F2665A>Not beside a road</color> — supplies no water. Lay a road along one side.");
+            return;
+        }
+        WaterStatus status = water.Status;
+        Line($"Pumps {def.WaterSupply:N0} units of water along the roads it touches.");
+        Line($"City water  {status.Demand:N0} needed / {status.Supply:N0} supplied");
+        if (status.DryCells > 0)
+        {
+            Line($"<color=#F2665A>{status.DryCells} building{(status.DryCells == 1 ? "" : "s")} without water</color> — build another tower or connect their roads.");
+        }
+    }
+
+    private bool TouchesCarryingCell(BuildingInstance building)
+    {
+        foreach (Vector2Int cell in CellUtils.GetFootprint(building.Origin, building.Definition.Size, building.Rotation))
+        {
+            if (BesideWaterMain(cell)) return true;
+        }
+        return false;
+    }
+
+    private bool BesideWaterMain(Vector2Int cell)
+    {
+        WaterNetwork network = m_GameManager.Simulation.Water.Network;
+        foreach (Vector2Int offset in CellUtils.Neighbors4)
+        {
+            if (network.IsCarrying(cell + offset)) return true;
+        }
+        return false;
+    }
+
     private bool TouchesEnergisedRoad(BuildingInstance building)
     {
         foreach (Vector2Int cell in CellUtils.GetFootprint(building.Origin, building.Definition.Size, building.Rotation))
@@ -186,6 +244,10 @@ public sealed class SelectionPanel : MonoBehaviour
             ? "Connected to the map edge."
             : "<color=#F2665A>Not connected to the map edge</color> — nothing along it can grow.");
         if (m_GameManager.Simulation.Power.IsEnergisedRoad(cell)) Line("<color=#FFD133>Carries power</color> from a plant.");
+        if (m_GameManager.Simulation.Water.Mode == WaterRule.Piped && m_GameManager.Simulation.Water.Network.IsCarrying(cell))
+        {
+            Line("<color=#59A6F2>Carries water</color> from a tower.");
+        }
         Line($"Upkeep  ${m_GameManager.Balance.RoadUpkeepPerDay:N0} / day");
         m_Action = Action.Demolish;
     }
@@ -209,6 +271,14 @@ public sealed class SelectionPanel : MonoBehaviour
             Line(sim.Power.IsPowered(cell)
                 ? "<color=#73D973>Powered</color>"
                 : "<color=#F2665A>No power</color>");
+        }
+        if (sim.Water.Mode == WaterRule.Coverage)
+        {
+            Line(sim.Water.HasWater(cell) ? "<color=#59A6F2>Water</color> from a well" : "<color=#F2665A>No well nearby</color>");
+        }
+        else if (sim.Water.Mode == WaterRule.Piped)
+        {
+            Line(sim.Water.HasWater(cell) ? "<color=#59A6F2>Water</color>" : "<color=#F2665A>No water</color>");
         }
         if (zone == ZoneType.Residential)
         {
@@ -323,6 +393,19 @@ public sealed class SelectionPanel : MonoBehaviour
                 ? "Power available on its road."
                 : "<color=#9AA3B2>No powered road yet — it can grow to level 1 but needs power to upgrade.</color>");
         }
+        WaterSystem water = m_GameManager.Simulation.Water;
+        if (water.Mode == WaterRule.Coverage)
+        {
+            Line(water.HasWater(cell)
+                ? "A well reaches it."
+                : "<color=#9AA3B2>No well nearby — it can grow to level 1 but needs water to upgrade.</color>");
+        }
+        else if (water.Mode == WaterRule.Piped)
+        {
+            Line(BesideWaterMain(cell)
+                ? "Water available on its road."
+                : "<color=#9AA3B2>No water on its road yet — it can grow to level 1 but needs water to upgrade.</color>");
+        }
         m_Action = Action.Unzone;
     }
 
@@ -342,6 +425,12 @@ public sealed class SelectionPanel : MonoBehaviour
                 return $"<color=#F2665A>{verb} blocked:</color> needs power — connect a power plant to its road.";
             case GrowthBlocker.PowerAtCapacity:
                 return $"<color=#F2C14E>{verb} waiting:</color> its power network is at capacity — build another plant.";
+            case GrowthBlocker.NoWater:
+                return m_GameManager.Simulation.Water.Mode == WaterRule.Coverage
+                    ? $"<color=#F2665A>{verb} blocked:</color> needs water — dig a well within reach."
+                    : $"<color=#F2665A>{verb} blocked:</color> needs water — connect a water tower to its road.";
+            case GrowthBlocker.WaterAtCapacity:
+                return $"<color=#F2C14E>{verb} waiting:</color> its water network is at capacity — build another water tower.";
             case GrowthBlocker.Occupied:
                 return $"<color=#F2665A>{verb} blocked:</color> a placed building occupies this cell.";
             case GrowthBlocker.AgeMaxLevel:

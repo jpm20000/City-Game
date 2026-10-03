@@ -65,6 +65,7 @@ public sealed class HappinessTooltip : MonoBehaviour, IPointerEnterHandler, IPoi
         Line("Pollution (near homes)", h.Pollution, good, bad);
         Line("Parks & services", h.Services, good, bad);
         Line("Power outages", h.Power, good, bad);
+        Line("No water", h.Water, good, bad);
         Line("Homelessness", h.Homeless, good, bad);
         Line("Technology", h.Technology, good, bad);
         Line("Heritage (kept blocks)", h.Heritage, good, bad);
@@ -72,7 +73,7 @@ public sealed class HappinessTooltip : MonoBehaviour, IPointerEnterHandler, IPoi
 
         if (population.Population > 0 && population.Population < balance.SmallTownGracePopulation)
         {
-            m_Builder.Append($"\n<size=85%><color=#9AA3B2>Small town: unemployment, pollution and outages count fully from {balance.SmallTownGracePopulation} residents.</color></size>");
+            m_Builder.Append($"\n<size=85%><color=#9AA3B2>Small town: unemployment, pollution, outages and dry homes count fully from {balance.SmallTownGracePopulation} residents.</color></size>");
         }
         if (h.Total < balance.LowHappinessThreshold)
         {

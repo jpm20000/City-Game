@@ -70,6 +70,26 @@ public sealed class WaterSystem
         return Network.TryReserve(cell, Network.ExtraDraw(fromCapacity, toCapacity));
     }
 
+    // Everything the HUD and toasts need, in one pass.
+    public WaterStatus Status
+    {
+        get
+        {
+            WaterRule mode = Mode;
+            int grown = 0;
+            for (int y = 0; y < m_Grid.Height; y++)
+            {
+                for (int x = 0; x < m_Grid.Width; x++)
+                {
+                    Vector2Int cell = new Vector2Int(x, y);
+                    if (m_Grid.GetZone(cell) != ZoneType.None && !m_Grid.IsRoad(cell) && m_Capacity.CapacityOf(m_Grid, cell) > 0) grown++;
+                }
+            }
+            bool piped = mode == WaterRule.Piped;
+            return new WaterStatus(mode, piped ? Network.Supply : 0, piped ? Network.Demand : 0, DryCells, grown);
+        }
+    }
+
     // Grown cells without water under the current rule.
     public int DryCells
     {

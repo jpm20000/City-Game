@@ -207,6 +207,30 @@ public sealed class WaterTests
         Assert.IsTrue(water.Network.IsServed(new Vector2Int(15, 1)), "the network works at the new size");
     }
 
+    [Test]
+    public void Status_ReportsTheRuleSupplyAndDryShare()
+    {
+        var grid = Street(12, 3);
+        for (int x = 0; x < 5; x++) Grow(grid, new Vector2Int(x, 1), 1);
+        WaterRule mode = WaterRule.Piped;
+        var water = new WaterSystem(grid, m_Config, null, () => mode);
+        water.SetSources(new[] { Tower(new Vector2Int(10, 1), 12), Well(new Vector2Int(0, 2), 2) });
+
+        WaterStatus piped = water.Status;
+        Assert.AreEqual(WaterRule.Piped, piped.Mode);
+        Assert.AreEqual(12, piped.Supply);
+        Assert.AreEqual(20, piped.Demand);
+        Assert.AreEqual(2, piped.DryCells);
+        Assert.AreEqual(5, piped.GrownCells);
+        Assert.AreEqual(0.6f, piped.WateredShare, 1e-5f);
+
+        mode = WaterRule.Coverage;
+        WaterStatus wells = water.Status;
+        Assert.AreEqual(0, wells.Supply, "no piped numbers in the well ages");
+        Assert.AreEqual(2, wells.DryCells);     // x = 3, 4 are out of the well's reach
+        Assert.AreEqual(1f, new WaterStatus(WaterRule.Coverage, 0, 0, 0, 0).WateredShare, "nothing grown yet");
+    }
+
     // --- The growth gate ---
 
     [Test]

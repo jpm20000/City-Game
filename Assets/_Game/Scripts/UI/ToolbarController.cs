@@ -21,6 +21,7 @@ public sealed class ToolbarController : MonoBehaviour
     [Header("Views")]
     [SerializeField] private InfoOverlay m_InfoOverlay;
     [SerializeField] private ToolButton m_PowerViewButton;
+    [SerializeField] private ToolButton m_WaterViewButton;
     [SerializeField] private ToolButton m_CoverageViewButton;
     [SerializeField] private ToolButton m_AgeViewButton;
     [SerializeField] private ToolButton m_PollutionViewButton;
@@ -58,6 +59,8 @@ public sealed class ToolbarController : MonoBehaviour
 
         BindView(m_PowerViewButton, "Power", InfoOverlay.View.Power,
             "Power view  [V]\n<color=#FFD133>Yellow</color> roads carry power from a plant. Buildings: <color=#59D966>powered</color> / <color=#F2554A>no power</color> (can't upgrade). Faint tints show zoned land that would / wouldn't get power.");
+        BindView(m_WaterViewButton, "Water", InfoOverlay.View.Water,
+            "Water view  [V]\nWell ages: <color=#59A6F2>blue</color> land is in a well's reach. Piped ages: <color=#59A6F2>blue</color> roads carry water from a tower. Buildings: <color=#59A6F2>water</color> / <color=#F2554A>dry</color> (can't upgrade).");
         BindView(m_CoverageViewButton, "Parks", InfoOverlay.View.Coverage,
             "Park coverage view  [V]\nGreener homes get more happiness from nearby parks (up to 4 parks count). Light grey homes have none; dark grey buildings are jobs, which parks don't affect.");
         BindView(m_PollutionViewButton, "Pollution", InfoOverlay.View.Pollution,
@@ -102,6 +105,7 @@ public sealed class ToolbarController : MonoBehaviour
         if (m_InfoOverlay != null)
         {
             if (m_PowerViewButton != null) m_PowerViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Power));
+            if (m_WaterViewButton != null) m_WaterViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Water));
             if (m_AgeViewButton != null) m_AgeViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Age));
         }
         bool any = false;
@@ -227,6 +231,7 @@ public sealed class ToolbarController : MonoBehaviour
         SetActive(m_DemolishButton, mode == PlacementController.Mode.Demolish);
         InfoOverlay.View view = m_InfoOverlay != null ? m_InfoOverlay.Shown : InfoOverlay.View.Off;
         SetActive(m_PowerViewButton, view == InfoOverlay.View.Power);
+        SetActive(m_WaterViewButton, view == InfoOverlay.View.Water);
         SetActive(m_CoverageViewButton, view == InfoOverlay.View.Coverage);
         SetActive(m_AgeViewButton, view == InfoOverlay.View.Age);
         SetActive(m_PollutionViewButton, view == InfoOverlay.View.Pollution);

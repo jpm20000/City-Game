@@ -30,8 +30,12 @@ public sealed class HUDController : MonoBehaviour
     [SerializeField] private UIMeter m_IndustrialDemand;
     [Tooltip("Power demand / supply; red while any grown building is unpowered.")]
     [SerializeField] private TMP_Text m_PowerText;
-    [Tooltip("Hidden until a power source is unlocked (Electricity).")]
+    [Tooltip("The utilities group (power line, and the water line since M13); hidden until either is unlocked.")]
     [SerializeField] private GameObject m_PowerGroup;
+    [Tooltip("(M13) Piped: water demand / supply; well ages: share of buildings with water. Red while any grown building is dry.")]
+    [SerializeField] private TMP_Text m_WaterText;
+    [Tooltip("(M13) The water line under the power line; hidden until water is part of the game (GameManager.WaterUnlocked).")]
+    [SerializeField] private GameObject m_WaterGroup;
     [SerializeField] private Color m_IdleColor = new Color(0.60f, 0.64f, 0.70f);
 
     [Header("Age & research (M11)")]
@@ -52,6 +56,7 @@ public sealed class HUDController : MonoBehaviour
         GameEvents.HappinessChanged += OnHappinessChanged;
         GameEvents.DemandChanged += OnDemandChanged;
         GameEvents.PowerChanged += OnPowerChanged;
+        GameEvents.WaterChanged += OnWaterChanged;
         GameEvents.ResearchChanged += RefreshResearch;
         GameEvents.AgeChanged += OnAgeChanged;
         GameEvents.TechCompleted += OnTechCompleted;
@@ -68,6 +73,7 @@ public sealed class HUDController : MonoBehaviour
         GameEvents.HappinessChanged -= OnHappinessChanged;
         GameEvents.DemandChanged -= OnDemandChanged;
         GameEvents.PowerChanged -= OnPowerChanged;
+        GameEvents.WaterChanged -= OnWaterChanged;
         GameEvents.ResearchChanged -= RefreshResearch;
         GameEvents.AgeChanged -= OnAgeChanged;
         GameEvents.TechCompleted -= OnTechCompleted;
@@ -101,6 +107,7 @@ public sealed class HUDController : MonoBehaviour
 
         PowerSystem power = m_GameManager.Simulation.Power;
         OnPowerChanged(power.Supply, power.Demand, power.UnpoweredCells);
+        OnWaterChanged(m_GameManager.Simulation.Water.Status);
 
         if (m_AgeGroup != null) m_AgeGroup.SetActive(m_GameManager.Simulation.Tech != null);
         OnCityLoaded();
@@ -109,11 +116,15 @@ public sealed class HUDController : MonoBehaviour
     private void OnAgeChanged(int age) => OnCityLoaded();
     private void OnTechCompleted(string techId) => OnCityLoaded();
 
-    // Age name, research line and the Power group's visibility (it appears with Electricity).
+    // Age name, research line and the Power / Water groups' visibility (power appears with Electricity).
     private void OnCityLoaded()
     {
         if (m_GameManager == null || m_GameManager.Simulation == null) return;
-        if (m_PowerGroup != null) m_PowerGroup.SetActive(m_GameManager.PowerUnlocked);
+        bool power = m_GameManager.PowerUnlocked;
+        bool water = m_GameManager.WaterUnlocked;
+        if (m_PowerGroup != null) m_PowerGroup.SetActive(power || water);
+        if (m_PowerText != null) m_PowerText.gameObject.SetActive(power);
+        if (m_WaterGroup != null) m_WaterGroup.SetActive(water);
         if (m_AgeText != null) m_AgeText.text = m_GameManager.CurrentAgeName ?? string.Empty;
         RefreshResearch();
     }
@@ -217,6 +228,33 @@ public sealed class HUDController : MonoBehaviour
         {
             m_PowerText.text = $"Power {demand:N0} / {supply:N0}";
             m_PowerText.color = unpoweredCells > 0 ? m_NegativeColor : Color.white;
+        }
+    }
+
+    // Piped ages read like power; well ages show the share of grown buildings a well reaches.
+    private void OnWaterChanged(WaterStatus status)
+    {
+        if (m_WaterText == null) return;
+
+        if (status.Mode == WaterRule.Coverage)
+        {
+            m_WaterText.text = status.GrownCells == 0 ? "Water  —" : $"Water {status.WateredShare:P0}";
+            m_WaterText.color = status.GrownCells == 0 ? m_IdleColor : status.DryCells > 0 ? m_NegativeColor : Color.white;
+        }
+        else if (status.Supply == 0 && status.Demand == 0)
+        {
+            m_WaterText.text = "Water  —";
+            m_WaterText.color = m_IdleColor;
+        }
+        else if (status.Supply == 0)
+        {
+            m_WaterText.text = "No water";
+            m_WaterText.color = m_NegativeColor;
+        }
+        else
+        {
+            m_WaterText.text = $"Water {status.Demand:N0} / {status.Supply:N0}";
+            m_WaterText.color = status.DryCells > 0 ? m_NegativeColor : Color.white;
         }
     }
 

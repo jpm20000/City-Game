@@ -16,6 +16,8 @@ public sealed class NotificationController : MonoBehaviour
 
     [Header("City events")]
     [SerializeField] private int[] m_PopulationMilestones = { 50, 100, 250, 500, 1000, 2000 };
+    [Tooltip("(M13) Population at which a well-age city with dry buildings gets the 'dig a well' hint (wells gate the first upgrade, so earlier than the power hint).")]
+    [SerializeField] private int m_WellNudgePopulation = 10;
 
     [Header("Debt banner")]
     [SerializeField] private GameObject m_Banner;
@@ -27,6 +29,9 @@ public sealed class NotificationController : MonoBehaviour
     private bool m_HadPower;          // a connected plant was supplying power
     private bool m_WasShort;          // some grown buildings were unpowered despite a plant
     private bool m_NudgedNoPower;     // "build a power plant" hint already shown
+    private bool m_HadWater;          // M13: a tower / pump was feeding the piped network
+    private bool m_WasDry;            // M13: some grown buildings were dry despite a tower
+    private bool m_NudgedNoWater;     // M13: "dig a well" / "build a water tower" hint already shown
     private bool m_AnnouncedReady;    // "ready to advance" shown for the current age
     private bool m_AnnouncedRebuild;  // first redevelopment of the current age shown
     private bool m_AnnouncedLandValue; // first home / shop held at level 2 by land value shown (M12)
@@ -40,6 +45,7 @@ public sealed class NotificationController : MonoBehaviour
         GameEvents.HappinessChanged += OnHappinessChanged;
         GameEvents.CityLoaded += SyncCityState;
         GameEvents.PowerChanged += OnPowerChanged;
+        GameEvents.WaterChanged += OnWaterChanged;
         GameEvents.TechCompleted += OnTechCompleted;
         GameEvents.AgeChanged += OnAgeChanged;
         GameEvents.ResearchChanged += OnResearchChanged;
@@ -55,6 +61,7 @@ public sealed class NotificationController : MonoBehaviour
         GameEvents.HappinessChanged -= OnHappinessChanged;
         GameEvents.CityLoaded -= SyncCityState;
         GameEvents.PowerChanged -= OnPowerChanged;
+        GameEvents.WaterChanged -= OnWaterChanged;
         GameEvents.TechCompleted -= OnTechCompleted;
         GameEvents.AgeChanged -= OnAgeChanged;
         GameEvents.ResearchChanged -= OnResearchChanged;
@@ -108,6 +115,11 @@ public sealed class NotificationController : MonoBehaviour
         m_HadPower = power.Supply > 0;
         m_WasShort = power.Supply > 0 && power.UnpoweredCells > 0;
         m_NudgedNoPower = false;   // a loaded city without power still gets the hint
+
+        WaterStatus water = m_GameManager.Simulation.Water.Status;
+        m_HadWater = water.Supply > 0;
+        m_WasDry = water.Supply > 0 && water.DryCells > 0;
+        m_NudgedNoWater = false;
 
         TechSystem tech = m_GameManager.Simulation.Tech;
         m_AnnouncedReady = tech != null && tech.GetAdvanceStatus(population.Population).Ready;
@@ -171,6 +183,12 @@ public sealed class NotificationController : MonoBehaviour
         {
             message += " Buildings now need <color=#FFD133>power</color> to grow past level 1 — research Electricity and build a Power Plant.";
         }
+        if (def.Water == WaterRule.Piped && age > 0 && tech.Ages[age - 1].Water != WaterRule.Piped)
+        {
+            message += PipedWaterUnlocked()
+                ? " Water now comes from <color=#59A6F2>water towers</color> on the roads — wells no longer count. Build a Water Tower beside a road."
+                : " Water now comes from <color=#59A6F2>water towers</color> on the roads — wells no longer count. Research Waterworks and build a Water Tower.";
+        }
         ShowToast(message);
         m_AnnouncedReady = false;
         m_AnnouncedRebuild = false;
@@ -225,6 +243,60 @@ public sealed class NotificationController : MonoBehaviour
         {
             ShowToast("Buildings can't grow past level 1 without power — build a <color=#FFD133>Power Plant</color> beside a road.");
             m_NudgedNoPower = true;
+        }
+    }
+
+    private bool PipedWaterUnlocked()
+    {
+        if (m_GameManager.Buildings == null) return true;
+        foreach (BuildingDefinition def in m_GameManager.Buildings.Entries)
+        {
+            if (def != null && def.WaterSupply > 0 && m_GameManager.CanBuild(def)) return true;
+        }
+        return false;
+    }
+
+    // M13, like power: each fires once per change of state. Well ages only get the one-time nudge.
+    private void OnWaterChanged(WaterStatus status)
+    {
+        if (m_GameManager == null || m_GameManager.Population == null) return;
+        if (!m_GameManager.WaterUnlocked) return;
+        int population = m_GameManager.Population.Population;
+
+        if (status.Mode == WaterRule.Coverage)
+        {
+            if (status.DryCells > 0 && !m_NudgedNoWater && population >= m_WellNudgePopulation)
+            {
+                ShowToast("Buildings need water to grow past level 1 — dig a <color=#59A6F2>Well</color> nearby (it waters the blocks around it). [V] shows where the water reaches.");
+                m_NudgedNoWater = true;
+            }
+            m_HadWater = false;
+            m_WasDry = false;
+            return;
+        }
+        if (status.Mode != WaterRule.Piped) return;
+
+        if (status.Supply > 0 && !m_HadWater)
+        {
+            ShowToast("<color=#59A6F2>Water tower online</color> — buildings along its roads can now grow past level 1. [V] shows the water network.");
+        }
+        else if (status.Supply == 0 && m_HadWater && status.Demand > 0)
+        {
+            ShowToast("<color=#F26659>Water lost</color> — no tower is connected to a road. Buildings can't upgrade and residents are unhappy.");
+        }
+        m_HadWater = status.Supply > 0;
+
+        bool shortage = status.Supply > 0 && status.DryCells > 0;
+        if (shortage && !m_WasDry)
+        {
+            ShowToast($"<color=#F26659>Water shortage</color> — {status.DryCells} building{(status.DryCells == 1 ? "" : "s")} without water. Build another tower or connect their roads. [V] shows the water network.");
+        }
+        m_WasDry = shortage;
+
+        if (status.Supply == 0 && status.Demand > 0 && !m_NudgedNoWater && population >= m_GameManager.Balance.SmallTownGracePopulation)
+        {
+            ShowToast("Buildings can't grow past level 1 without water — build a <color=#59A6F2>Water Tower</color> beside a road.");
+            m_NudgedNoWater = true;
         }
     }
 

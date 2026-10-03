@@ -140,6 +140,22 @@ public sealed class GameManager : MonoBehaviour
         }
     }
 
+    // Whether water is part of the game yet (M13): the Water HUD group, view and toasts stay hidden
+    // until the current age needs water or a water building is unlocked. Always true without age data.
+    public bool WaterUnlocked
+    {
+        get
+        {
+            if (Simulation == null || Simulation.Tech == null || m_BuildingDatabase == null) return true;
+            if (Simulation.Rules.Water != WaterRule.None) return true;
+            foreach (BuildingDefinition def in m_BuildingDatabase.Entries)
+            {
+                if (def != null && (def.WaterSupply > 0 || def.WaterRadius > 0) && CanBuild(def)) return true;
+            }
+            return false;
+        }
+    }
+
     // Display name of the current age, or null without age data.
     public string CurrentAgeName => Simulation?.Tech?.CurrentAgeDefinition.DisplayName;
 
@@ -160,6 +176,7 @@ public sealed class GameManager : MonoBehaviour
     private void HandleAgeAdvanced(int age)
     {
         if (m_Time != null) m_Time.SetYear(Simulation.Tech.Ages[age].YearOnEntering(m_Time.Year));
+        m_PowerDirty = true;   // the water rule may have switched (wells -> piped)
         GameEvents.RaiseAgeChanged(age);
     }
 
@@ -194,8 +211,8 @@ public sealed class GameManager : MonoBehaviour
         m_PowerDirty = true;
     }
 
-    // Power can change on any road, zone, level or plant change (also while paused), so it's pushed
-    // at most once a frame rather than per tick.
+    // Power and water can change on any road, zone, level or source change (also while paused), so
+    // they're pushed at most once a frame rather than per tick.
     private void LateUpdate()
     {
         if (!m_PowerDirty || Simulation == null) return;
@@ -207,6 +224,7 @@ public sealed class GameManager : MonoBehaviour
     {
         PowerSystem power = Simulation.Power;
         GameEvents.RaisePowerChanged(power.Supply, power.Demand, power.UnpoweredCells);
+        GameEvents.RaiseWaterChanged(Simulation.Water.Status);
     }
 
     private void ApplyModifiers(BuildingDefinition def, int sign)
@@ -243,7 +261,7 @@ public sealed class GameManager : MonoBehaviour
         GameEvents.RaiseCashFlowChanged(Simulation.Economy.IncomePerDay, Simulation.Economy.ExpensePerDay);
         if (Simulation.Tech != null) GameEvents.RaiseResearchChanged();
         // Deferred to LateUpdate: after a load this lands after GameEvents.CityLoaded, so listeners
-        // that re-sync on load don't treat the loaded power state as news.
+        // that re-sync on load don't treat the loaded power / water state as news.
         m_PowerDirty = true;
     }
 }

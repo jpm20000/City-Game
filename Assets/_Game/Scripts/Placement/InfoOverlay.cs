@@ -7,15 +7,19 @@ using UnityEngine.Tilemaps;
 // Coverage (how much park bonus each cell gets), Pollution and Land value (M12: pollution reaching
 // each cell, polluters dark; land value red -> green, homes and shops held at level 2 by it striped)
 // and Age (M11: the age each grown cell was built in, warm = old to cool = new; kept historic cells
-// gold; outdated cells striped and darkened). The ground tint is mostly hidden under grown
-// buildings, so those are recoloured through GrowthVisuals too. V cycles Off -> Power -> Coverage
-// -> Pollution -> Land value -> Age, skipping views that aren't available yet (Power until a power
-// source is unlocked, Age without age data).
-// Holding the Power Plant or Park tool switches to its view and previews the building under the
-// cursor: what would be powered / covered if it were placed there.
+// gold; outdated cells striped and darkened) and Water (M13: in the well ages the land wells reach,
+// in the piped ages the roads carrying water; grown buildings blue with water, red without). The
+// ground tint is mostly hidden under grown buildings, so those are recoloured through GrowthVisuals
+// too. V cycles Off -> Power -> Water -> Coverage -> Pollution -> Land value -> Age, skipping views
+// that aren't available yet (Power until a power source is unlocked, Water until water matters,
+// Age without age data).
+// Holding the Power Plant, Park or a water building's tool switches to its view and previews the
+// building under the cursor: what would be powered / covered / watered if it were placed there.
 public sealed class InfoOverlay : GridTilemapView
 {
-    public enum View { Off, Power, Coverage, Pollution, LandValue, Age }
+    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water }
+
+    private static readonly View[] s_CycleOrder = { View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Age };
 
     [SerializeField] private Sprite m_Sprite;
     [SerializeField] private InputReader m_InputReader;
@@ -29,6 +33,12 @@ public sealed class InfoOverlay : GridTilemapView
     [SerializeField] private Color m_Powered = new Color(0.35f, 0.85f, 0.40f, 0.60f);
     [SerializeField] private Color m_Unpowered = new Color(0.95f, 0.30f, 0.25f, 0.60f);
     [SerializeField, Range(0f, 1f)] private float m_UndevelopedAlpha = 0.28f;
+
+    [Header("Water (M13)")]
+    [SerializeField] private Color m_WaterMain = new Color(0.30f, 0.62f, 0.98f, 0.80f);
+    [SerializeField] private Color m_Watered = new Color(0.30f, 0.62f, 0.98f, 0.60f);
+    [SerializeField] private Color m_Dry = new Color(0.95f, 0.30f, 0.25f, 0.60f);
+    [SerializeField] private Color m_NewlyWatered = new Color(0.40f, 0.95f, 0.95f, 0.65f);
 
     [Header("Coverage")]
     [SerializeField] private Color m_Covered = new Color(0.35f, 0.85f, 0.40f, 0.65f);
@@ -67,6 +77,7 @@ public sealed class InfoOverlay : GridTilemapView
     private View m_Shown;
     private bool m_Previewing;
     private PowerSystem m_PreviewPower;
+    private WaterSystem m_PreviewWater;
     private CoverageSystem m_PreviewCoverage;
     private readonly List<ServiceSource> m_PreviewSources = new();
     private Func<Vector2Int, Color?> m_BuildingColor;
@@ -78,6 +89,12 @@ public sealed class InfoOverlay : GridTilemapView
     private Tile m_PowerReachableTile;
     private Tile m_PowerUnreachableTile;
     private Tile m_NewlyCoveredTile;
+    private Tile m_WaterMainTile;
+    private Tile m_WateredTile;
+    private Tile m_DryTile;
+    private Tile m_WaterReachableTile;
+    private Tile m_WaterUnreachableTile;
+    private Tile m_NewlyWateredTile;
     private Tile[] m_CoverageTiles;   // [count], 0 = none
     private Tile[] m_AgeTiles;        // [built age]
     private Tile[] m_OutdatedTiles;   // [built age], striped
@@ -95,6 +112,7 @@ public sealed class InfoOverlay : GridTilemapView
     private SimulationSystem Simulation => GameManager.Simulation;
     private PowerSystem Power => m_Previewing ? m_PreviewPower : Simulation.Power;
     private CoverageSystem Coverage => m_Previewing ? m_PreviewCoverage : Simulation.Coverage;
+    private WaterSystem Water => m_Previewing ? m_PreviewWater : Simulation.Water;
 
     public void SetView(View view)
     {
@@ -104,8 +122,13 @@ public sealed class InfoOverlay : GridTilemapView
 
     public void Cycle()
     {
-        View next = m_Chosen;
-        do next = next == View.Age ? View.Off : next + 1;   // Age is last
+        int index = Mathf.Max(0, Array.IndexOf(s_CycleOrder, m_Chosen));
+        View next;
+        do
+        {
+            index = (index + 1) % s_CycleOrder.Length;
+            next = s_CycleOrder[index];
+        }
         while (next != View.Off && !IsAvailable(next));
         SetView(next);
     }
@@ -117,6 +140,7 @@ public sealed class InfoOverlay : GridTilemapView
         switch (view)
         {
             case View.Power: return GameManager.PowerUnlocked;
+            case View.Water: return GameManager.WaterUnlocked;
             case View.Age: return GameManager.Simulation.Tech != null;
             default: return true;
         }
@@ -161,8 +185,10 @@ public sealed class InfoOverlay : GridTilemapView
         BuildingDefinition tool = m_Placement != null && m_Placement.CurrentMode == PlacementController.Mode.Building
             ? m_Placement.SelectedBuilding
             : null;
+        bool wellAge = Simulation != null && Simulation.Water.Mode == WaterRule.Coverage;
         View toolView = tool == null ? View.Off
             : tool.PowerSupply > 0 ? View.Power
+            : tool.WaterSupply > 0 || (tool.WaterRadius > 0 && wellAge) ? View.Water
             : tool.CoverageRadius > 0 ? View.Coverage
             : View.Off;
         View shown = toolView != View.Off ? toolView : m_Chosen;
@@ -173,8 +199,10 @@ public sealed class InfoOverlay : GridTilemapView
             m_PreviewSources.Clear();
             m_PreviewSources.AddRange(Simulation.Sources);
             m_PreviewSources.Add(new ServiceSource(m_Placement.PreviewOrigin,
-                CellUtils.EffectiveSize(tool.Size, m_Placement.PreviewRotation), tool.CoverageRadius, tool.PowerSupply));
+                CellUtils.EffectiveSize(tool.Size, m_Placement.PreviewRotation), tool.CoverageRadius, tool.PowerSupply,
+                waterSupply: tool.WaterSupply, waterRadius: tool.WaterRadius));
             m_PreviewPower.SetSources(m_PreviewSources);
+            m_PreviewWater.SetSources(m_PreviewSources);
             m_PreviewCoverage.Recompute(m_PreviewSources);
         }
 
@@ -191,6 +219,8 @@ public sealed class InfoOverlay : GridTilemapView
     {
         m_PreviewPower = new PowerSystem(Grid, GameManager.Balance, GameManager.Simulation?.Capacity);
         m_PreviewCoverage = new CoverageSystem(Grid.Width, Grid.Height);
+        m_PreviewWater = new WaterSystem(Grid, GameManager.Balance, GameManager.Simulation?.Capacity,
+            () => GameManager.Simulation != null ? GameManager.Simulation.Rules.Water : WaterRule.Piped);
         m_BuildingColor = BuildingColor;
 
         m_EnergisedTile = CreateTile(m_Sprite, m_EnergisedRoad);
@@ -199,6 +229,12 @@ public sealed class InfoOverlay : GridTilemapView
         m_PowerReachableTile = CreateTile(m_Sprite, WithAlpha(m_Powered, m_UndevelopedAlpha));
         m_PowerUnreachableTile = CreateTile(m_Sprite, WithAlpha(m_Unpowered, m_UndevelopedAlpha));
         m_NewlyCoveredTile = CreateTile(m_Sprite, m_NewlyCovered);
+        m_WaterMainTile = CreateTile(m_Sprite, m_WaterMain);
+        m_WateredTile = CreateTile(m_Sprite, m_Watered);
+        m_DryTile = CreateTile(m_Sprite, m_Dry);
+        m_WaterReachableTile = CreateTile(m_Sprite, WithAlpha(m_Watered, m_UndevelopedAlpha));
+        m_WaterUnreachableTile = CreateTile(m_Sprite, WithAlpha(m_Dry, m_UndevelopedAlpha));
+        m_NewlyWateredTile = CreateTile(m_Sprite, m_NewlyWatered);
 
         BalanceConfig balance = GameManager.Balance;
         int levels = Mathf.Max(1, Mathf.CeilToInt(balance.ServiceBonusCap / Mathf.Max(balance.ServiceBonusEach, 0.0001f)));
@@ -244,7 +280,8 @@ public sealed class InfoOverlay : GridTilemapView
     {
         base.OnDestroy();
         if (m_GrowthVisuals != null && m_BuildingsTinted) m_GrowthVisuals.SetColorOverride(null);
-        foreach (Tile tile in new[] { m_EnergisedTile, m_PoweredTile, m_UnpoweredTile, m_PowerReachableTile, m_PowerUnreachableTile, m_NewlyCoveredTile })
+        foreach (Tile tile in new[] { m_EnergisedTile, m_PoweredTile, m_UnpoweredTile, m_PowerReachableTile, m_PowerUnreachableTile, m_NewlyCoveredTile,
+                     m_WaterMainTile, m_WateredTile, m_DryTile, m_WaterReachableTile, m_WaterUnreachableTile, m_NewlyWateredTile })
         {
             if (tile != null) Destroy(tile);
         }
@@ -264,6 +301,7 @@ public sealed class InfoOverlay : GridTilemapView
         switch (m_Shown)
         {
             case View.Power: return PowerTile(cell);
+            case View.Water: return WaterTile(cell);
             case View.Coverage: return CoverageTile(cell);
             case View.Age: return AgeTile(cell);
             case View.Pollution: return PollutionTile(cell);
@@ -330,6 +368,45 @@ public sealed class InfoOverlay : GridTilemapView
         return BesideEnergisedRoad(cell, power) ? m_PowerReachableTile : m_PowerUnreachableTile;
     }
 
+    // Well ages: the land in a well's reach is tinted, so the view shows where to dig the next one.
+    // Piped ages: roads carrying water, like the power grid. Grown cells blue / red either way.
+    private Tile WaterTile(Vector2Int cell)
+    {
+        WaterSystem water = Water;
+        bool piped = water.Mode == WaterRule.Piped;
+        if (Grid.IsRoad(cell)) return piped && water.Network.IsCarrying(cell) ? m_WaterMainTile : null;
+        ZoneType zone = Grid.GetZone(cell);
+        if (Grid.GetBuildingLevel(cell) > 0 && zone != ZoneType.None)
+        {
+            if (NewlyWatered(cell)) return m_NewlyWateredTile;
+            return water.HasWater(cell) ? m_WateredTile : m_DryTile;
+        }
+        if (!piped)
+        {
+            if (NewlyWatered(cell)) return m_NewlyWateredTile;
+            if (water.HasWater(cell)) return m_WaterReachableTile;
+            return zone != ZoneType.None ? m_WaterUnreachableTile : null;
+        }
+        if (zone == ZoneType.None) return null;
+        return BesideWaterMain(cell, water) ? m_WaterReachableTile : m_WaterUnreachableTile;
+    }
+
+    // What the previewed water building would add (only while previewing).
+    private bool NewlyWatered(Vector2Int cell)
+    {
+        if (!m_Previewing) return false;
+        return m_PreviewWater.HasWater(cell) && !Simulation.Water.HasWater(cell);
+    }
+
+    private static bool BesideWaterMain(Vector2Int cell, WaterSystem water)
+    {
+        foreach (Vector2Int offset in CellUtils.Neighbors4)
+        {
+            if (water.Network.IsCarrying(cell + offset)) return true;
+        }
+        return false;
+    }
+
     private Tile AgeTile(Vector2Int cell)
     {
         if (Grid.GetBuildingLevel(cell) == 0) return null;
@@ -359,6 +436,11 @@ public sealed class InfoOverlay : GridTilemapView
         if (m_Shown == View.Power)
         {
             return WithAlpha(Power.IsPowered(cell) ? m_Powered : m_Unpowered, 1f);
+        }
+        if (m_Shown == View.Water)
+        {
+            if (NewlyWatered(cell)) return WithAlpha(m_NewlyWatered, 1f);
+            return WithAlpha(Water.HasWater(cell) ? m_Watered : m_Dry, 1f);
         }
         if (m_Shown == View.Coverage)
         {
