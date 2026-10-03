@@ -108,7 +108,7 @@ public sealed class NewCityDialog : MonoBehaviour
         AgeDatabase ages = m_GameManager != null ? m_GameManager.Ages : null;
         if (m_AgeHint == null || ages == null || !ages.IsValidIndex(age)) return;
         AgeDefinition def = ages[age];
-        string earlier = age > 0 ? $"Every {ages[age - 1].DisplayName} and earlier tech is researched. " : string.Empty;
+        string earlier = age > 0 ? $"Every tech up to the {ages[age - 1].DisplayName} is researched. " : string.Empty;
         string power = def.UpgradesNeedPower ? "Buildings need power to grow past level 1. " : "No power needed. ";
         m_AgeHint.text = $"Starts in {def.StartYear} with ${def.StartingMoney:N0}. {earlier}{power}" +
                          "<color=#9AA3B2>Later ages need more residents to reach, so small maps suit early ages.</color>";

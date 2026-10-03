@@ -341,7 +341,7 @@ public sealed class PlacementController : MonoBehaviour
     }
 
     // Selects whatever is at the cell; empty, unzoned land (or off-map) clears the selection.
-    private void SelectCell(Vector2Int cell)
+    public void SelectCell(Vector2Int cell)
     {
         if (!IsSelectable(cell))
         {

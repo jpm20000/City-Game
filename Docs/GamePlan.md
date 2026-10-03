@@ -827,7 +827,17 @@ two materials per prefab.
   roof style + height ×, so each age reads differently on placeholder blocks); `GrowthVisuals`
   per-age style and prefab pooling; redevelopment pops like an upgrade. Player-build benchmark
   re-run (must stay ≈1–2 ms on the 96² stress city with mixed ages).
-- **11f UI.**
+- **11f UI — done (2026-10-03).** Everything below is in; notes from implementing: the Research
+  panel shares the HUD slot with Taxes (opening one closes the other); a click on a planned tech
+  removes it, and a tech whose prerequisite is only planned is queued instead of started; the whole
+  BUILDINGS toolbar section hides while nothing is unlocked; the Power HUD group, Power view and
+  power toasts appear with the first unlocked power source. Checked in Play mode (scripted, not yet
+  with virtual input — that's 11g): Medieval start, research plan via the panel, advance to the
+  Renaissance (toast, year 1450), redevelopment toast, Keep on an outdated block (kept Medieval
+  while the other 82 were rebuilt), Age view, New City with Modern / 32² (year 1945, $80k, power UI
+  back). **For 11g:** Medieval research is very slow (≈1 RP/day at 80 residents: Masonry, 60 RP,
+  takes ~2 months), so the RP rate or the Medieval costs need the balance pass. 132 EditMode tests
+  green.
   - **Tech panel** (HUD "Research" button next to Taxes; TaxPanel-style): current age's and next
     age's techs with state (done / available / locked by prerequisite / later age), cost,
     unlocks; click = set active, shift-click = queue; progress bar; the advancement checklist
@@ -936,4 +946,4 @@ cosmetic carts/cars on busy roads (visual only).
 thumbnails, a tutorial for the first age, and a Windows player build.
 
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). M11 is planned in full above
-(steps 11a–11g); 11a–11e (tech core, ages in the sim, save v2 + migration, content, visual slots) are done, next is 11f (UI).
+(steps 11a–11g); 11a–11f (tech core, ages in the sim, save v2 + migration, content, visual slots, UI) are done, next is 11g (balance, play-through, docs).

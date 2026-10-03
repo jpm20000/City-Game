@@ -88,10 +88,15 @@ public sealed class ToolbarController : MonoBehaviour
             if (m_PowerViewButton != null) m_PowerViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Power));
             if (m_AgeViewButton != null) m_AgeViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Age));
         }
+        bool any = false;
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {
-            pair.Value.gameObject.SetActive(m_GameManager.IsUnlocked(pair.Key));
+            bool unlocked = m_GameManager.IsUnlocked(pair.Key);
+            pair.Value.gameObject.SetActive(unlocked);
+            any |= unlocked;
         }
+        // The whole BUILDINGS section (header included) hides while nothing can be built.
+        if (m_BuildingsContainer != null && m_BuildingsContainer.parent != null) m_BuildingsContainer.parent.gameObject.SetActive(any);
     }
 
     private void CreateBuildingButtons()
