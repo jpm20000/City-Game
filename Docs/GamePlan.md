@@ -1133,12 +1133,194 @@ the power pattern.
 - **Tick cost:** a second network BFS after every grid change, which is almost every day. Power costs well under 0.4 ms on a full 96² map, so measure it in 13e.
 - **Pipe UX:** underground pipes are invisible outside the Water view, which can confuse. The pipe tool forces the view on (like the Plant / Park tools force theirs), and the SelectionPanel mentions a pipe under a cell.
 
+### M14 — Civic services (plan, 2026-10-03; revised after M13)
+
+**Goal:** a growing city needs looking after. Four service lines (order, fire, health and
+education) each get one building per age as the tech tree unlocks them. Without cover, crowded
+homes suffer from crime, fear of fire and sickness. Crime also drags land value down, so it feeds
+the M12 level-3 gate. Education buildings produce research, and the residents they reach produce
+more. Older service buildings keep working, but once a better one of the same line can be built,
+they leave the toolbar and their panel says "Outdated — replace with X". This builds on M13's
+`ObsoleteAge` / `CanBuild`. The milestone also gives the many effect-less techs most of their
+content.
+
+**Done when:**
+- A town past a few hundred people without a Watch House, Bucket Brigade or Apothecary has
+  visibly lower happiness. The happiness tooltip names crime, fire risk and sickness. Placing the
+  three buildings (they are cheap) removes those penalties within their reach.
+- Crime lowers land value: a dense level-2 block with no order cover can be held by the level-3
+  gate, and a Police Station nearby lets it upgrade.
+- Each line's buildings unlock through techs in each age (content table below). The toolbar shows
+  only the best buildable building of each line. A placed older building shows "Outdated —
+  replace with X (strength, reach)".
+- Education: a Monastery, Academy, University or Research Lab produces its flat RP, plus RP from
+  the residents it reaches. The tech panel's research line shows both.
+- A Services view (one sub-view per line: crime or fire risk where they apply, health and
+  education cover) and SelectionPanel lines explain all of it.
+- `AgeBalanceTests` still meet their targets (45–90 days per age, never in debt, happiness ≥ 0.55),
+  with `EngagedCity` building civic services. All EditMode tests are green, and a UI-only
+  virtual-input play-through passes.
+
+#### Design decisions (defaults — change any before the step that uses them)
+
+| Topic | Decision |
+|---|---|
+| Baseline | **Civic needs apply everywhere, the age-less sim included** (default, as in M12 / M13: one model, and the no-age sim still equals the Industrial rules). Every need ramps in with city population, from `CivicFreePopulation` 100 to `CivicFullPopulation` 700. The 24² seeded city (≤ ~350 pop) therefore moves only a little (estimate: −0.02 to −0.05 happiness at day 90–120). The legacy checks stay qualitative (retune only if one fails), and `IndustrialStart_RealContent_Baseline` (220 / 0.660) is re-recorded. Education changes nothing without ages, because research is 0 there. *Alternative: needs are zero without an `AgeDatabase`. Legacy numbers would stay untouched, but the no-age sim would drift from Industrial.* |
+| Civic reach is its own field | Parks keep `CoverageRadius`, which the Fountain also uses as a park since M13, and the park count semantics (Services happiness, land value) are untouched. Civic buildings get new fields instead: `BuildingDefinition` / `ServiceSource` `+ CivicKind` (`ServiceKind` enum: `None, Order, Fire, Health, Education`, appended only, since it is serialized), `+ CivicRadius`, `+ CivicStrength` (0..1). These go in optional trailing constructor args, so every existing call site keeps its meaning. |
+| Civic cover | A new `CivicCoverage` stores one `float[]` per kind = the **best strength in reach** (Chebyshev from the footprint, no stacking). Two watch houses side by side gain nothing, and a newer tier simply overrides. It is separate from `CoverageSystem` (which counts), recomputed when `Sources` is set, and reallocated in `Resize`. |
+| Population ramp | `ramp = clamp01((pop − CivicFreePopulation) / (CivicFullPopulation − CivicFreePopulation))`, shared by the three penalties. Small towns (and almost all of the Medieval age, capacity ×0.5) feel nothing, and a city of 700+ feels the full effect. |
+| Crime (order) | Per grown residential or commercial cell: `crime = min(1, capacity × CrimePerCapacity 0.04) × ramp × (1 − order)`. An Industrial level-1 home has capacity 4, so potential 0.16; level 3 (16) gives 0.64. Industry and empty land have none. Derived, never saved. |
+| Crime effects | Happiness: a per-home `min(crime × CrimePenalty 0.15, CrimePenaltyCap 0.10)`, housing-weighted → the `HappinessBreakdown.Crime` term. Land value: `− crime × LandValuePerCrime 0.15` (a new `LandValueBreakdown.Crime` line), so an uncovered dense block falls toward the 0.40 level-3 gate. No new growth blocker: `LowLandValue` already explains it, and the panel names crime as a contributor. One-way: land value never feeds crime. |
+| Fire risk | Per grown cell (all zones): `risk = FireRisk(built age) × (industrial ? FireRiskIndustrialFactor 1.5 : 1) × ramp × (1 − fire)`. `AgeDefinition.FireRisk` (generator column): Medieval 0.6 (timber), Renaissance 0.45, Industrial 0.35, Modern 0.2. Without ages, `BalanceConfig.FireRisk` 0.35. **In M14 it only costs happiness** (default): a per-home `min(risk × FirePenalty 0.10, FirePenaltyCap 0.06)` → `HappinessBreakdown.Fire`. M17 uses the same field to start fires. *Alternatives: a level-3 gate (one more gate beside road / power / water / land value), or display only.* |
+| Health | Per home: `sickness = (1 − health) × ramp` → the `HappinessBreakdown.Health` term = housing-weighted `−sickness × HealthPenalty 0.08`. With full cover the term is 0; it never becomes a bonus. M17's plague reads the same cover. |
+| Education | Research gains `ResearchPerEducatedResident` (0.01) × Σ over grown homes of `residents × education strength` (a fully covered city of 300 adds +3 RP/day), before the research multiplier. Buildings keep their flat `ResearchPerDay`. No happiness term. Without ages, research is 0, so the baseline is unaffected. The Monastery and Academy gain education reach, so research in an early-age city rises a little; that helps the tight Medieval pacing rather than hurting it. |
+| Max uncovered cost | Crime 0.10 + fire 0.06 + health 0.08 = 0.24 happiness at full ramp, which is about the pollution cap. A city that builds nothing sinks below 0.55 and loses residents. A covered city loses nothing. |
+| Outdated vs obsolete | M13's `ObsoleteAge` (hidden from that age on, "Obsolete" in the panel) stays for buildings whose purpose ends (wells). Civic tiers don't use it, because the successor's tech may not be researched yet when an age starts, and that would leave a line with nothing to build. A civic def is **outdated** instead: `GameManager.ReplacementFor(def)` = the latest-age def of the same `CivicKind` that `CanBuild`, if it is newer than `def`. An outdated def is hidden from the toolbar and refused by placement (like obsolete; `RestoreBuilding` / loads still place it). Placed copies keep their own strength and reach (no decay), and the panel says "Outdated — replace with X (strength s, reach r)". There is no automatic replacement; a one-click Replace button is a stretch goal in 14d. |
+| Toolbar | Best-per-line means 11 new buildings add at most 3 buttons in any one age (education replaces the Monastery / Academy pair). The toolbar already scales itself down to fit since 13d. Measure the scale at 1920 in an Industrial city with every line unlocked (13d: 0.95). |
+| Saves | Kinds, reach and strength come from the building assets. Crime, fire risk, sickness and cover are derived, so there is **no version bump** (stays v3). |
+| UI | **One** new VIEW button, "Services" (`InfoOverlay.View` gains `Order, Fire, Health, Education`, appended after `Water`). Clicking it steps through the sub-views whose line has a buildable or placed building (the `PowerUnlocked` / `WaterUnlocked` pattern), and the label shows the sub-view. `V` cycles them like any view. Order and Fire shade crime / fire risk like the Pollution view; Health and Education shade cover strength, with uncovered homes striped once the ramp is above 0. Selecting a civic building to place switches to its sub-view and previews its reach (the 13c water-preview pattern). The park Coverage view is unchanged. |
+
+#### Content (first pass; numbers are tunables)
+
+| Line | Building (Id) | Age | Tech | Size | Cost | Upkeep/day | Reach | Strength | RP/day |
+|---|---|---|---|---|---|---|---|---|---|
+| Order | Watch House `watch_house` | Medieval | **Town Watch** `town_watch` (new) | 1×1 | $400 | $4 | 4 | 0.5 | — |
+| Order | Constabulary `constabulary` | Renaissance | Civic Planning | 2×1 | $1,500 | $12 | 6 | 0.75 | — |
+| Order | Police Station `police_station` | Industrial | Telegraph | 2×2 | $4,000 | $30 | 8 | 1.0 | — |
+| Fire | Bucket Brigade `bucket_brigade` | Medieval | Town Watch | 1×1 | $300 | $3 | 3 | 0.5 | — |
+| Fire | Fire Engine House `fire_engine_house` | Renaissance | Watermills | 2×1 | $1,200 | $10 | 5 | 0.75 | — |
+| Fire | Fire Station `fire_station` | Industrial | Steam Power | 2×2 | $4,000 | $30 | 8 | 1.0 | — |
+| Health | Apothecary `apothecary` | Medieval | **Herbalism** `herbalism` (new) | 1×1 | $500 | $5 | 4 | 0.5 | — |
+| Health | Hospital `hospital` | Industrial | Public Sanitation (also the Pumping Station since M13) | 3×2 | $6,000 | $45 | 9 | 0.85 | — |
+| Health | Medical Centre `medical_centre` | Modern | **Antibiotics** `antibiotics` (new) | 3×3 | $10,000 | $70 | 11 | 1.0 | — |
+| Education | Monastery `monastery` (exists) | Medieval | Monasticism | 2×2 | $2,000 | $10 | 5 (new) | 0.4 (new) | 3 |
+| Education | Academy `academy` (exists) | Renaissance | Academies | 2×2 | $5,000 | $25 | 6 (new) | 0.6 (new) | 5 |
+| Education | University `university` | Industrial | **Universities** `universities` (new) | 3×3 | $9,000 | $50 | 8 | 0.85 | 8 |
+| Education | Research Lab `research_lab` | Modern | Computing | 2×2 | $12,000 | $60 | 8 | 1.0 | 12 |
+
+New techs (in `Tools/gen_age_content.py`; GUIDs are deterministic, so existing references survive):
+- Town Watch (Medieval, 40 RP, after Charters): unlocks the Watch House and Bucket Brigade.
+- Herbalism (Medieval, 35 RP, after Crop Rotation): unlocks the Apothecary.
+- Universities (Industrial, 500 RP, after Telegraph + Academies): unlocks the University.
+- Antibiotics (Modern, 900 RP, after Public Sanitation): unlocks the Medical Centre.
+
+Existing techs that gain an unlock: Civic Planning, Watermills, Telegraph, Steam Power, Public
+Sanitation and Computing (descriptions gain "Unlocks the X"; the tech panel already lists unlocks
+from `RequiredTech`). No `TechsToAdvance` count changes. Check that the Medieval run's pacing
+(86 days, near the 90 limit) doesn't slip: the new techs add cheap options, and `EngagedCity`'s
+tech priority must not put them ahead of Waterworks, power or research techs.
+
+Renaissance has no health tier (the Apothecary carries on), and Modern has no order or fire tier
+(the Industrial ones are already full strength). Both are deliberate to keep the asset count down;
+M18 can add more.
+
+**Placeholder art:** prefabs built from primitives through RunCommand like the M13 ones (prefab
+contract: pivot at the ground centre, layer 9, collider on the root, collider-less `Decor`). Each
+line has one shared roof material (order blue, fire red, health white with a green cross block,
+education purple), and the walls reuse existing materials (`MonasteryStone`, `PumpBrick`, …).
+That makes 4 new shared materials and no per-instance materials. See `scene-prefab-editing`.
+
+#### Architecture
+
+**Pure, in the Simulation asmdef:**
+
+| New / changed | Notes |
+|---|---|
+| `ServiceKind` | `None, Order, Fire, Health, Education`. |
+| `ServiceSource` | `+ CivicKind`, `+ CivicRadius`, `+ CivicStrength` (optional trailing args). |
+| `CivicCoverage` (new) | Per-kind max-strength `float[]`s; `Recompute(sources)`, `GetStrength(kind, cell)`, `Resize`. |
+| `CivicSystem` (new) | Per-cell `Crime`, `FireRisk`, `Sickness` from `GridData` (zones, levels, built ages), `CapacityModel`, `CivicCoverage`, the age data (fire risk per built age) and the population ramp. Lazy like `PollutionSystem`: `OnCellChanged`, `SetSources` and a ramp change of more than 0.01 mark it dirty. `Explain(cell)` → `CivicBreakdown {CrimePotential, Order, Crime, FireRisk, Fire, Sickness, Health, Education}` for the UI. Reallocates on `OnResized`. Owned by `SimulationSystem` (`Simulation.Civic`). |
+| `ServiceStats` | `+ CrimePenalty`, `+ FirePenalty`, `+ HealthPenalty` (housing-weighted, capped per home), `+ EducatedResidents`. `Measure` reads `CivicSystem` (an optional argument; null = no civic terms, so old call sites keep their numbers). Static `CrimePenaltyAt` / `FirePenaltyAt` / `HealthPenaltyAt` for the panel. |
+| `HappinessBreakdown` / `PopulationSystem` | `+ Crime`, `+ Fire`, `+ Health` (optional constructor args after `water`, default 0; in `Total`). They are already ramped, so not multiplied by the `SmallTownGracePopulation` ramp. |
+| `LandValueSystem` | `− crime × LandValuePerCrime`; `LandValueBreakdown.Crime`. Reads `CivicSystem` (optional). |
+| `SimulationSystem` | Owns `Civic`. `ResearchIncome()` adds `EducatedResidents × ResearchPerEducatedResident` before the multiplier, and `ResearchBreakdown()` returns {commercial, buildings, education} for the UI. |
+| `AgeDefinition` / `AgeRules` | `+ FireRisk` (read per built age, like `PollutionScale`; `CapacityModel`-style array cache, since M13 found per-cell `UnityEngine.Object` null checks costly). |
+| `BalanceConfig` | `CivicFreePopulation` 100, `CivicFullPopulation` 700, `CrimePerCapacity` 0.04, `CrimePenalty` 0.15, `CrimePenaltyCap` 0.10, `LandValuePerCrime` 0.15, `FireRisk` 0.35, `FireRiskIndustrialFactor` 1.5, `FirePenalty` 0.10, `FirePenaltyCap` 0.06, `HealthPenalty` 0.08, `ResearchPerEducatedResident` 0.01, all tagged "(M14)" and mirrored in the asset. |
+
+**Runtime (`Assembly-CSharp`):** `BuildingDefinition.CivicKind` / `CivicRadius` /
+`CivicStrength` → `GameManager` sources; `GameManager.ReplacementFor(def)`, `IsOutdated(def)`
+(folded into `CanBuild`), `CivicUnlocked(kind)`; `ToolbarController` (hides outdated defs; one
+Services VIEW button); `InfoOverlay` sub-views; `SelectionPanel`, `HappinessTooltip`, `TechPanel`
+research line, `NotificationController`.
+
+#### Steps (each one fits a session and is committed on its own)
+
+- **14a Civic cover, crime and order (pure).** `ServiceKind`, the `ServiceSource` fields,
+  `CivicCoverage`, `CivicSystem` with crime only, the Crime happiness term, the land-value crime
+  term, and the `BalanceConfig` fields for the ramp and crime. Tests (new `CivicTests.cs`):
+  max-not-sum strength and reach; parks and the Fountain unaffected (all `ServicesTests`,
+  `LandValueTests` and `WaterTests` untouched); crime scales with capacity, ramp and order;
+  industry has no crime; zero below `CivicFreePopulation`; the land-value line; resize; laziness
+  (recomputes after a level change or a source change). Run the whole suite and record which
+  seeded-city numbers moved (old vs new), as 12a did.
+- **14b Fire risk, health, education (pure).** `AgeDefinition.FireRisk` (+ generator column),
+  fire risk and sickness in `CivicSystem`, the Fire and Health terms, educated residents and
+  `ResearchIncome`. Tests: fire risk by built age and the industrial factor; fire / health cover
+  removes the penalty; education RP scales with residents × strength and goes through the
+  multiplier; the no-age sim gains no research. Re-record `IndustrialStart_RealContent_Baseline`
+  once the numbers settle.
+- **14c Content and placeholder art.** The 4 techs and new descriptions in the generator, the 11
+  building definitions and prefabs, the 4 materials, Monastery / Academy education reach, the
+  `BuildingDatabase`, and `GameManager.ReplacementFor` with the toolbar / placement hiding (the
+  minimum to keep the game playable, as 13b did). Mirror the assets in `EngagedCity.LoadBuildings`
+  (it reads them) and in `SeededCity` if it places services (the M12 lesson). `ContentTests`:
+  every civic def has a kind, a strength in (0, 1], a reach and a reachable tech; each line has
+  exactly the buildings per age in the content table; strengths rise with age within a line; the
+  tree is still valid and reachable. Play-mode screenshot of all 13 civic buildings placed in a row.
+- **14d UI.** The Services VIEW button and sub-views, and the auto-switch plus reach preview while
+  placing. SelectionPanel on grown cells: "Crime x% (order y%)", "Fire risk x% (fire cover y%)",
+  "Health cover y%" with the happiness cost of each, and "Education y%" on homes. On civic
+  buildings: line, strength, reach, homes covered, RP (education), and the "Outdated — replace
+  with X" line. The land-value breakdown gains crime. Happiness tooltip: "Crime", "Fire risk",
+  "Sickness (no health care)". Tech panel: research split (commercial / buildings / education).
+  Toasts: once per city the first time each penalty reaches 0.02 while its line is buildable
+  ("Crime is rising — build a Watch House"), and "X unlocked — replaces your Y" when a placed
+  building becomes outdated. Play-mode screenshots of each sub-view on a seeded city; check the
+  toolbar scale at 1920. Stretch goal: a Replace button (demolish and place the replacement on the
+  same origin when its footprint fits and the player can afford it).
+- **14e Balance, play-through, docs.** `EngagedCity` learns to place the best buildable civic
+  building of a line in the free middle of the block whose homes pay the most for that line (one
+  placement a day, paid). It never does this while power or water is short (the 13b "save for
+  utilities" rule wins), and it replaces outdated buildings when cash allows. Retune toward the
+  `AgeBalanceTests` targets (now 86 / 62 / 69 days from Medieval; Renaissance / Industrial /
+  Modern starts 447 / 588 / 888 pop at day 120). The first knobs are `CivicFullPopulation`, the
+  penalties and the Medieval building costs. Measure the tick on a full 96² city: it is 1.10 ms
+  in EditMode and 1.56 ms in the player since M13's incremental networks, so the civic recompute
+  must stay well under 0.3 ms; run `perf-benchmark` if the tick grows by more than that. UI-only
+  play-through: New (Medieval, 48²) → grow past ~300 pop without services → the tooltip shows
+  crime / fire / sickness → research Town Watch and Herbalism → place the Watch House, Bucket
+  Brigade and Apothecary from the toolbar → the Services view shows cover, and the penalties
+  fall → (Industrial start) a dense block held at level 2 by crime → Police Station → level 3 →
+  an old Constabulary's panel shows "Outdated — replace with Police Station". Docs: GamePlan §13
+  (a new *Civic services (M14)* section, plus notes in Services & power, Land value and Ages),
+  the §8 / §12 status, the `AGENTS.md` Project bullet and the `CLAUDE.md` header.
+
+#### Risks / open questions
+
+- **Medieval pacing (86 of 90 days):** the ramp keeps most Medieval towns below 300 pop, so the
+  penalties should barely touch it. But the new Medieval techs compete for early RP. If the age
+  runs over, first fix `EngagedCity`'s tech priority, then lower Town Watch / Herbalism costs, and
+  only then touch the penalties.
+- **Penalty stacking:** pollution, water, crime, fire and sickness all hit the same homes. Watch
+  for cities stuck below 0.5 happiness, where 5% a day move out. The happiness tooltip has to make
+  the cause obvious, or the player can't recover.
+- **Cash competition:** civic upkeep (up to ~$200/day for a full set of Industrial tiers) lands
+  just as power and water towers are needed. The engaged player saves for utilities first. If the
+  Industrial age slips past 90 days, lower Industrial civic upkeep before touching water or power
+  prices.
+- **Monastery / Academy change role:** they gain education reach, so research in an existing
+  early-age city rises slightly. That's acceptable; record the Medieval-run delta in 14b.
+- **Tick cost:** `CivicSystem` is O(cells) per recompute, and civic cover is sources × reach².
+  M13 spent effort bringing the tick down to 1.10 ms, so keep the recompute lazy and
+  array-based (no per-cell `Vector2Int` allocations or `UnityEngine.Object` checks), and measure
+  it in 14e.
+
 ### Where M13–M19 plug in (integration notes)
 Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code that exists today; decide the details in each milestone's plan.
 
 - **M12 Land value & local pollution — done** (see §13 Land value & pollution). Original outline: per-cell pollution (industrial cells emit in an age-scaled radius) replaces the city-wide `PollutionPenalty` term in `PopulationSystem`; per-cell land value from parks/services, pollution and the heritage bonus (`GridData.IsHistoric` raises value around kept cells). Build both like `CoverageSystem` (per-cell arrays, lazy recompute, `OnResized`). Level 3 gains a land-value gate → new `GrowthBlocker`. Pollution and Land value info views.
 - **M13 Water — done** (see §13 Water; full plan above). Original outline: `AgeDefinition.UpgradesNeedWater` already exists (unused) — add it to `AgeRules` and gate upgrades in `GrowthSystem` beside the power gate. Early ages: wells and fountains as coverage sources; Industrial and Modern: towers and pumps feeding pipes under roads, a copy of `PowerSystem`'s network and allocation model (`ServiceSource` + `BuildingDefinition` get a water supply). HUD group, view and toasts follow the power pattern.
-- **M14 Civic services:** (M13 adds: `BuildingDefinition.ObsoleteAge` + `GameManager.IsObsolete` are the hook for "outdated, replace with X"; `UtilityNetwork` is the base for any further road-borne network; the toolbar now scales itself down when it overflows.) order, fire, health and education lines with per-age `BuildingDefinition`s unlocked by existing techs (e.g. fire station → Steam Power). Education buildings produce RP via `ResearchPerDay`. Health and crime become `HappinessBreakdown` terms (+ the happiness tooltip); per-cell crime and fire risk use the coverage pattern. Obsolete placed services get "outdated, replace with X" hints in `SelectionPanel`.
+- **M14 Civic services — planned** (full plan above). (M13 adds: `BuildingDefinition.ObsoleteAge` + `GameManager.IsObsolete` are the hook for "outdated, replace with X"; `UtilityNetwork` is the base for any further road-borne network; the toolbar now scales itself down when it overflows.) order, fire, health and education lines with per-age `BuildingDefinition`s unlocked by existing techs (e.g. fire station → Steam Power). Education buildings produce RP via `ResearchPerDay`. Health and crime become `HappinessBreakdown` terms (+ the happiness tooltip); per-cell crime and fire risk use the coverage pattern. Obsolete placed services get "outdated, replace with X" hints in `SelectionPanel`.
 - **M15 Budget depth:** per-service funding scales a service's radius and effect (`ServiceSource` / `CoverageSystem`); loans with interest live in `EconomySystem` (saved → version bump); ordinances are tech-unlocked toggles (a new `TechEffectType` if needed). `TaxPanel` grows into a budget panel in the `SidePanels` slot.
 - **M16 Traffic:** statistical load per road cell from the homes↔jobs flow (no agents); congestion lowers road access quality and happiness. Road tiers (dirt → cobble → paved → avenue → highway) become a per-road byte in `GridData` (saved → version bump), are unlocked by tech (the `UnlockRoadTier` idea in §12) and drawn per tier by `RoadTilemapView`. Traffic view. Watch the 96² benchmark.
 - **M17 Disasters & events:** fire spreads between cells without fire coverage, plague in the Medieval age without health coverage, plant breakdowns; random events with choices arrive as toasts or popups. Use a seeded RNG whose state is saved; an on/off switch goes in the New City dialog (and `SaveData`).
@@ -1157,7 +1339,7 @@ threshold. Adds Pollution and Land value info views. Reuses the `CoverageSystem`
 feeding pipes under roads (Industrial and Modern, a copy of the `PowerSystem` network/allocation model). Fills in the
 "Upgrades need water" column above. Water info view, HUD readout, toasts.
 
-**M14 — Civic services.** Four service lines, each with per-age buildings:
+**M14 — Civic services** (full plan above). Four service lines, each with per-age buildings:
 - order: watchman → police
 - fire: bucket brigade → fire station
 - health: apothecary → hospital
@@ -1194,8 +1376,8 @@ views; the age-less baseline changed by decision, Industrial start re-recorded a
 EditMode tests green plus the UI-only play-through). **M13 done** (steps 13a–13e: water in every age — wells and fountains
 by coverage in the Medieval and Renaissance ages, towers and pumps on the road network plus player-drawn pipes from the
 Industrial age; the age-less sim needs piped water by decision; save v3 stores pipes; Water view, HUD line, panel, toasts;
-`AgeBalanceTests` 86 / 62 / 69 days; EditMode tests green plus the UI-only play-through). Next: M14 (civic services) — expand
-its outline below into a full plan first.
+`AgeBalanceTests` 86 / 62 / 69 days; EditMode tests green plus the UI-only play-through). Next: M14 (civic services) — planned
+(2026-10-03, full plan above; 14a next).
 
 ---
 
