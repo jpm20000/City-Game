@@ -18,9 +18,13 @@ public sealed class SelectionPanel : MonoBehaviour
     [SerializeField] private Button m_ActionButton;
     [SerializeField] private TMP_Text m_ActionLabel;
     [SerializeField] private Button m_CloseButton;
+    [Tooltip("Keep historical building toggle (M11); shown for grown cells when the game has ages.")]
+    [SerializeField] private Button m_KeepButton;
+    [SerializeField] private TMP_Text m_KeepLabel;
 
     private readonly StringBuilder m_Text = new();
     private Action m_Action;
+    private bool m_ShowKeep;
     private bool m_Dirty;
 
     private void Start()
@@ -31,6 +35,7 @@ public sealed class SelectionPanel : MonoBehaviour
         GameEvents.CellChanged += OnCellChanged;
         GameEvents.DateChanged += OnDateChanged;
         if (m_ActionButton != null) m_ActionButton.onClick.AddListener(OnAction);
+        if (m_KeepButton != null) m_KeepButton.onClick.AddListener(OnKeep);
         if (m_CloseButton != null) m_CloseButton.onClick.AddListener(m_Placement.ClearSelection);
         Refresh();
     }
@@ -68,6 +73,17 @@ public sealed class SelectionPanel : MonoBehaviour
         else if (m_Action == Action.Unzone) m_Placement.Unzone(cell);
     }
 
+    // Toggles "Keep historical building" on the selected grown cell.
+    private void OnKeep()
+    {
+        if (!m_Placement.HasSelection) return;
+        Vector2Int cell = m_Placement.SelectedCell;
+        GridData grid = m_GameManager.Grid;
+        if (grid.GetBuildingLevel(cell) == 0) return;
+        grid.SetHistoric(cell, !grid.IsHistoric(cell));
+        Refresh();
+    }
+
     private void Refresh()
     {
         if (!m_Placement.HasSelection)
@@ -78,6 +94,7 @@ public sealed class SelectionPanel : MonoBehaviour
 
         m_Root.SetActive(true);
         m_Text.Clear();
+        m_ShowKeep = false;
         Vector2Int cell = m_Placement.SelectedCell;
         GridData grid = m_GameManager.Grid;
 
@@ -90,6 +107,11 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Body.text = m_Text.ToString().TrimEnd();
         if (m_ActionButton != null) m_ActionButton.gameObject.SetActive(m_Action != Action.None);
         if (m_ActionLabel != null) m_ActionLabel.text = m_Action == Action.Unzone ? "Unzone" : "Demolish";
+        if (m_KeepButton != null) m_KeepButton.gameObject.SetActive(m_ShowKeep);
+        if (m_ShowKeep && m_KeepLabel != null)
+        {
+            m_KeepLabel.text = m_GameManager.Grid.IsHistoric(m_Placement.SelectedCell) ? "Stop keeping as historic" : "Keep historical building";
+        }
     }
 
     private void DescribeBuilding(BuildingInstance building)
@@ -177,15 +199,19 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Title.text = $"{ZoneName(zone)} building";
         Line($"Level {level} / {maxLevel}");
         Line($"{unit}  {sim.Capacity.CapacityOf(grid, cell)}");
-        Line(m_GameManager.Simulation.Power.IsPowered(cell)
-            ? "<color=#73D973>Powered</color>"
-            : "<color=#F2665A>No power</color>");
+        if (sim.Rules.UpgradesNeedPower)
+        {
+            Line(sim.Power.IsPowered(cell)
+                ? "<color=#73D973>Powered</color>"
+                : "<color=#F2665A>No power</color>");
+        }
         if (zone == ZoneType.Residential)
         {
             int parks = m_GameManager.Simulation.Coverage.GetCoverage(cell);
             float bonus = Mathf.Min(parks * balance.ServiceBonusEach, balance.ServiceBonusCap);
             Line(parks > 0 ? $"Parks nearby  {parks}  (+{bonus:P0} happiness)" : "No park nearby");
         }
+        DescribeAge(cell, builtAge);
         if (level < maxLevel)
         {
             Line($"Next level: {unit.ToLowerInvariant()} {sim.Capacity.Capacity(level + 1, builtAge)}");
@@ -203,15 +229,38 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Action = Action.Demolish;
     }
 
+    // Built age, outdated / historic state and the Keep toggle (M11; nothing without age data).
+    private void DescribeAge(Vector2Int cell, int builtAge)
+    {
+        TechSystem tech = m_GameManager.Simulation.Tech;
+        if (tech == null) return;
+
+        AgeDatabase ages = tech.Ages;
+        string built = ages.IsValidIndex(builtAge) ? ages[builtAge].DisplayName : "an unknown age";
+        Line($"Built in the {built}");
+        if (m_GameManager.Grid.IsHistoric(cell))
+        {
+            Line("<color=#E8C15A>Historic (kept)</color> — keeps its style and size and is never rebuilt.");
+        }
+        else if (m_GameManager.Simulation.Growth.IsOutdated(cell))
+        {
+            Line($"<color=#F2C14E>Outdated</color> — will be rebuilt in the {tech.CurrentAgeDefinition.DisplayName} style.");
+        }
+        m_ShowKeep = true;
+    }
+
     private void DescribeZone(Vector2Int cell)
     {
         ZoneType zone = m_GameManager.Grid.GetZone(cell);
         m_Title.text = $"{ZoneName(zone)} zone";
         Line("Undeveloped.");
         Line(BlockerText(cell, zone, "Growth"));
-        Line(BesideEnergisedRoad(cell)
-            ? "Power available on its road."
-            : "<color=#9AA3B2>No powered road yet — it can grow to level 1 but needs power to upgrade.</color>");
+        if (m_GameManager.Simulation.Rules.UpgradesNeedPower)
+        {
+            Line(BesideEnergisedRoad(cell)
+                ? "Power available on its road."
+                : "<color=#9AA3B2>No powered road yet — it can grow to level 1 but needs power to upgrade.</color>");
+        }
         m_Action = Action.Unzone;
     }
 

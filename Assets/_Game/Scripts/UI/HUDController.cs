@@ -30,7 +30,17 @@ public sealed class HUDController : MonoBehaviour
     [SerializeField] private UIMeter m_IndustrialDemand;
     [Tooltip("Power demand / supply; red while any grown building is unpowered.")]
     [SerializeField] private TMP_Text m_PowerText;
+    [Tooltip("Hidden until a power source is unlocked (Electricity).")]
+    [SerializeField] private GameObject m_PowerGroup;
     [SerializeField] private Color m_IdleColor = new Color(0.60f, 0.64f, 0.70f);
+
+    [Header("Age & research (M11)")]
+    [Tooltip("Hidden when the game has no age data.")]
+    [SerializeField] private GameObject m_AgeGroup;
+    [SerializeField] private TMP_Text m_AgeText;
+    [SerializeField] private TMP_Text m_ResearchText;
+    [SerializeField] private UIMeter m_ResearchMeter;
+    [SerializeField] private Color m_WarningColor = new Color(0.95f, 0.76f, 0.31f);
 
     private void OnEnable()
     {
@@ -42,6 +52,10 @@ public sealed class HUDController : MonoBehaviour
         GameEvents.HappinessChanged += OnHappinessChanged;
         GameEvents.DemandChanged += OnDemandChanged;
         GameEvents.PowerChanged += OnPowerChanged;
+        GameEvents.ResearchChanged += RefreshResearch;
+        GameEvents.AgeChanged += OnAgeChanged;
+        GameEvents.TechCompleted += OnTechCompleted;
+        GameEvents.CityLoaded += OnCityLoaded;
     }
 
     private void OnDisable()
@@ -54,6 +68,10 @@ public sealed class HUDController : MonoBehaviour
         GameEvents.HappinessChanged -= OnHappinessChanged;
         GameEvents.DemandChanged -= OnDemandChanged;
         GameEvents.PowerChanged -= OnPowerChanged;
+        GameEvents.ResearchChanged -= RefreshResearch;
+        GameEvents.AgeChanged -= OnAgeChanged;
+        GameEvents.TechCompleted -= OnTechCompleted;
+        GameEvents.CityLoaded -= OnCityLoaded;
     }
 
     private void Start()
@@ -83,6 +101,39 @@ public sealed class HUDController : MonoBehaviour
 
         PowerSystem power = m_GameManager.Simulation.Power;
         OnPowerChanged(power.Supply, power.Demand, power.UnpoweredCells);
+
+        if (m_AgeGroup != null) m_AgeGroup.SetActive(m_GameManager.Simulation.Tech != null);
+        OnCityLoaded();
+    }
+
+    private void OnAgeChanged(int age) => OnCityLoaded();
+    private void OnTechCompleted(string techId) => OnCityLoaded();
+
+    // Age name, research line and the Power group's visibility (it appears with Electricity).
+    private void OnCityLoaded()
+    {
+        if (m_GameManager == null || m_GameManager.Simulation == null) return;
+        if (m_PowerGroup != null) m_PowerGroup.SetActive(m_GameManager.PowerUnlocked);
+        if (m_AgeText != null) m_AgeText.text = m_GameManager.CurrentAgeName ?? string.Empty;
+        RefreshResearch();
+    }
+
+    private void RefreshResearch()
+    {
+        TechSystem tech = m_GameManager != null && m_GameManager.Simulation != null ? m_GameManager.Simulation.Tech : null;
+        if (tech == null) return;
+
+        float rate = m_GameManager.Simulation.ResearchIncome();
+        ResearchProject active = tech.Active;
+        float progress = active != null && active.Cost > 0f ? Mathf.Clamp01(tech.Progress / active.Cost) : 0f;
+        if (m_ResearchText != null)
+        {
+            m_ResearchText.text = active != null
+                ? $"{active.DisplayName} {progress:P0}  ·  {rate:0.#} RP/day"
+                : $"No research  ·  {rate:0.#} RP/day";
+            m_ResearchText.color = active != null ? Color.white : m_WarningColor;
+        }
+        if (m_ResearchMeter != null) m_ResearchMeter.SetValue(progress);
     }
 
     private void BindSpeedButton(Button button, GameSpeed speed)

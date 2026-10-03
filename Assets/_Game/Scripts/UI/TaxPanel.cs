@@ -33,6 +33,7 @@ public sealed class TaxPanel : MonoBehaviour
         if (m_CloseButton != null) m_CloseButton.onClick.AddListener(() => SetOpen(false));
         GameEvents.CashFlowChanged += OnCashFlowChanged;
         GameEvents.CityLoaded += OnCityLoaded;
+        SidePanels.Opened += OnSidePanelOpened;
 
         SetOpen(false);
     }
@@ -41,12 +42,20 @@ public sealed class TaxPanel : MonoBehaviour
     {
         GameEvents.CashFlowChanged -= OnCashFlowChanged;
         GameEvents.CityLoaded -= OnCityLoaded;
+        SidePanels.Opened -= OnSidePanelOpened;
     }
 
     private void SetOpen(bool open)
     {
         m_Root.SetActive(open);
-        if (open) RefreshHint();
+        if (!open) return;
+        RefreshHint();
+        SidePanels.RaiseOpened(this);
+    }
+
+    private void OnSidePanelOpened(object panel)
+    {
+        if (!ReferenceEquals(panel, this) && m_Root.activeSelf) m_Root.SetActive(false);
     }
 
     private void Setup(Slider slider, TMP_Text label, float rate, System.Action<float> apply)

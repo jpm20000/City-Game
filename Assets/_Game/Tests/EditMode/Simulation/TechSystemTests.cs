@@ -125,6 +125,17 @@ public sealed class TechSystemTests
         Assert.IsFalse(m_Ages.Validate(errors));
     }
 
+    [Test]
+    public void DepthInAge_CountsOnlySameAgePrerequisites()
+    {
+        Assert.AreEqual(0, m_Techs.DepthInAge(m_MedA));
+        Assert.AreEqual(1, m_Techs.DepthInAge(m_MedB));     // MedA -> MedB
+        Assert.AreEqual(0, m_Techs.DepthInAge(m_RenA));     // its prerequisite MedB is from an earlier age
+        Assert.AreEqual(0, m_Techs.DepthInAge(m_Steam));
+        TechDefinition deep = Tech("deep", 0, 10f, m_MedB, m_MedC);
+        Assert.AreEqual(2, m_Techs.DepthInAge(deep));
+    }
+
     // --- Starting ---
 
     [Test]

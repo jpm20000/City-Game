@@ -103,4 +103,42 @@ public abstract class GridTilemapView : MonoBehaviour
         tile.color = color;
         return tile;
     }
+
+    // White diagonal stripes on transparent, sized like `like` (one cell); tiles tint them. Destroy
+    // the sprite and its texture in OnDestroy.
+    protected static Sprite CreateStripeSprite(Sprite like, string name)
+    {
+        const int size = 64;          // matches ground_square's 64 px per unit
+        const int stripeWidth = 8;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            name = name,
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp,
+        };
+
+        Color32[] pixels = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                bool stripe = (x + y) / stripeWidth % 2 == 0;
+                pixels[y * size + x] = stripe ? new Color32(255, 255, 255, 255) : new Color32(255, 255, 255, 0);
+            }
+        }
+        texture.SetPixels32(pixels);
+        texture.Apply();
+
+        float pixelsPerUnit = like != null ? like.pixelsPerUnit * size / like.rect.width : size;
+        Sprite sprite = Sprite.Create(texture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), pixelsPerUnit);
+        sprite.name = name;
+        return sprite;
+    }
+
+    protected static void DestroyStripeSprite(Sprite sprite)
+    {
+        if (sprite == null) return;
+        Destroy(sprite.texture);
+        Destroy(sprite);
+    }
 }

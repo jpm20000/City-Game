@@ -106,6 +106,24 @@ public sealed class GameManager : MonoBehaviour
         return tech != null && Simulation.Tech.IsResearched(tech);
     }
 
+    // Whether any power source can be built (or is already researched for): the Power HUD group,
+    // Power view and power toasts stay hidden until then. Always true without age data.
+    public bool PowerUnlocked
+    {
+        get
+        {
+            if (Simulation == null || Simulation.Tech == null || m_BuildingDatabase == null) return true;
+            foreach (BuildingDefinition def in m_BuildingDatabase.Entries)
+            {
+                if (def != null && def.PowerSupply > 0 && IsUnlocked(def)) return true;
+            }
+            return false;
+        }
+    }
+
+    // Display name of the current age, or null without age data.
+    public string CurrentAgeName => Simulation?.Tech?.CurrentAgeDefinition.DisplayName;
+
     // Display name of the tech a building needs, or null when it needs none (or the Id is unknown).
     public string RequiredTechName(BuildingDefinition def)
     {
@@ -192,6 +210,7 @@ public sealed class GameManager : MonoBehaviour
     private void HandleTick()
     {
         Simulation.Tick();
+        if (Simulation.Growth.Redeveloped.Count > 0) GameEvents.RaiseRedeveloped(Simulation.Growth.Redeveloped.Count);
         RaiseStateEvents();
     }
 

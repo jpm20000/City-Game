@@ -49,6 +49,15 @@ public sealed class ToolButton : MonoBehaviour, IPointerEnterHandler, IPointerEx
         if (m_Background != null) m_Background.color = active ? m_ActiveColor : m_NormalColor;
     }
 
+    // For buttons with more states than active / inactive (the tech panel).
+    public void SetBackground(Color color)
+    {
+        if (m_Background != null) m_Background.color = color;
+    }
+
+    public TMP_Text Label => m_Label;
+    public TMP_Text Cost => m_Cost;
+
     // The button tint alone is too subtle, so also dim the label and turn the cost red.
     public void SetAffordable(bool affordable)
     {

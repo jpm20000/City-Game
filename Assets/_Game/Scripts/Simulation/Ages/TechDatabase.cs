@@ -26,6 +26,27 @@ public sealed class TechDatabase : ScriptableObject
         return m_ById.TryGetValue(id, out TechDefinition found) ? found : null;
     }
 
+    // Row for a tech in a panel laid out by age: 0 with no prerequisite from its own age, else one more
+    // than its deepest same-age prerequisite (earlier-age prerequisites are already researched by
+    // the time its age arrives, so they don't push it down).
+    public int DepthInAge(TechDefinition tech)
+    {
+        return DepthInAge(tech, new HashSet<TechDefinition>());
+    }
+
+    private static int DepthInAge(TechDefinition tech, HashSet<TechDefinition> visiting)
+    {
+        if (tech == null || !visiting.Add(tech)) return 0;   // cycles are a Validate error
+        int depth = 0;
+        foreach (TechDefinition prerequisite in tech.Prerequisites)
+        {
+            if (prerequisite != null && prerequisite.Age == tech.Age)
+                depth = Math.Max(depth, DepthInAge(prerequisite, visiting) + 1);
+        }
+        visiting.Remove(tech);
+        return depth;
+    }
+
     public int CountInAge(int age)
     {
         int count = 0;

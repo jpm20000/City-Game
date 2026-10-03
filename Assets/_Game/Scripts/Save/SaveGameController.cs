@@ -83,10 +83,17 @@ public sealed class SaveGameController : MonoBehaviour
 
     public void NewCity(Vector2Int size)
     {
+        NewCity(size, -1);
+    }
+
+    // startAge = age index (ignored without age data); -1 = the Industrial age.
+    public void NewCity(Vector2Int size, int startAge)
+    {
         if (!IsReady()) return;
 
-        Apply(SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs));
-        GameEvents.RaiseNotification($"New city — {size.x}×{size.y}");
+        Apply(SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs, startAge));
+        string age = m_GameManager.CurrentAgeName;
+        GameEvents.RaiseNotification(age != null ? $"New city — {size.x}×{size.y}, {age}" : $"New city — {size.x}×{size.y}");
     }
 
     // Returns how many saved buildings couldn't be re-placed (unknown id or blocked footprint).

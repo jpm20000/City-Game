@@ -3,14 +3,17 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
-// Data views on the Info Tilemap: Power (energised roads, powered / dark buildings and zones) and
-// Coverage (how much park bonus each cell gets). The ground tint is mostly hidden under grown
-// buildings, so those are recoloured through GrowthVisuals too. V cycles Off -> Power -> Coverage.
+// Data views on the Info Tilemap: Power (energised roads, powered / dark buildings and zones),
+// Coverage (how much park bonus each cell gets) and Age (M11: the age each grown cell was built in,
+// warm = old to cool = new; kept historic cells gold; outdated cells striped and darkened). The
+// ground tint is mostly hidden under grown buildings, so those are recoloured through GrowthVisuals
+// too. V cycles Off -> Power -> Coverage -> Age, skipping views that aren't available yet (Power
+// until a power source is unlocked, Age without age data).
 // Holding the Power Plant or Park tool switches to its view and previews the building under the
 // cursor: what would be powered / covered if it were placed there.
 public sealed class InfoOverlay : GridTilemapView
 {
-    public enum View { Off, Power, Coverage }
+    public enum View { Off, Power, Coverage, Age }
 
     [SerializeField] private Sprite m_Sprite;
     [SerializeField] private InputReader m_InputReader;
@@ -35,6 +38,13 @@ public sealed class InfoOverlay : GridTilemapView
     [Tooltip("How green a home covered by a single service is (1 = fully green at the cap).")]
     [SerializeField, Range(0f, 1f)] private float m_MinCoveredTint = 0.45f;
 
+    [Header("Age")]
+    [SerializeField] private Color m_OldestAge = new Color(0.90f, 0.52f, 0.22f, 0.65f);
+    [SerializeField] private Color m_NewestAge = new Color(0.32f, 0.60f, 0.96f, 0.65f);
+    [SerializeField] private Color m_Historic = new Color(0.95f, 0.80f, 0.30f, 0.80f);
+    [Tooltip("How much darker outdated buildings are drawn (their ground tile is striped).")]
+    [SerializeField, Range(0f, 1f)] private float m_OutdatedShade = 0.6f;
+
     private View m_Chosen;
     private View m_Shown;
     private bool m_Previewing;
@@ -51,6 +61,10 @@ public sealed class InfoOverlay : GridTilemapView
     private Tile m_PowerUnreachableTile;
     private Tile m_NewlyCoveredTile;
     private Tile[] m_CoverageTiles;   // [count], 0 = none
+    private Tile[] m_AgeTiles;        // [built age]
+    private Tile[] m_OutdatedTiles;   // [built age], striped
+    private Tile m_HistoricTile;
+    private Sprite m_StripeSprite;
 
     // The view the player picked (V / toolbar); Shown can differ while a Plant or Park tool is held.
     public View Chosen => m_Chosen;
@@ -69,11 +83,29 @@ public sealed class InfoOverlay : GridTilemapView
 
     public void Cycle()
     {
-        SetView(m_Chosen == View.Coverage ? View.Off : m_Chosen + 1);
+        View next = m_Chosen;
+        do next = next == View.Age ? View.Off : next + 1;
+        while (next != View.Off && !IsAvailable(next));
+        SetView(next);
+    }
+
+    // Power appears once a power source is unlocked; Age only with age data.
+    public bool IsAvailable(View view)
+    {
+        if (GameManager == null || GameManager.Simulation == null) return view != View.Age;
+        switch (view)
+        {
+            case View.Power: return GameManager.PowerUnlocked;
+            case View.Age: return GameManager.Simulation.Tech != null;
+            default: return true;
+        }
     }
 
     private void OnEnable()
     {
+        GameEvents.CityLoaded += Refresh;
+        GameEvents.TechCompleted += OnTechCompleted;
+        GameEvents.AgeChanged += OnAgeChanged;
         if (m_Placement == null) return;
         m_Placement.ModeChanged += Refresh;
         m_Placement.PreviewChanged += Refresh;
@@ -81,10 +113,18 @@ public sealed class InfoOverlay : GridTilemapView
 
     private void OnDisable()
     {
+        GameEvents.CityLoaded -= Refresh;
+        GameEvents.TechCompleted -= OnTechCompleted;
+        GameEvents.AgeChanged -= OnAgeChanged;
         if (m_Placement == null) return;
         m_Placement.ModeChanged -= Refresh;
         m_Placement.PreviewChanged -= Refresh;
     }
+
+    private void OnTechCompleted(string techId) => Refresh();
+
+    // Outdated cells depend on the current age.
+    private void OnAgeChanged(int age) => Refresh();
 
     private void Update()
     {
@@ -95,6 +135,7 @@ public sealed class InfoOverlay : GridTilemapView
     private void Refresh()
     {
         if (Grid == null) return;
+        if (!IsAvailable(m_Chosen)) m_Chosen = View.Off;   // e.g. loaded a city from before power
 
         BuildingDefinition tool = m_Placement != null && m_Placement.CurrentMode == PlacementController.Mode.Building
             ? m_Placement.SelectedBuilding
@@ -147,6 +188,17 @@ public sealed class InfoOverlay : GridTilemapView
             m_CoverageTiles[count] = CreateTile(m_Sprite, WithAlpha(m_Covered, alpha));
         }
 
+        int ages = GameManager.Ages != null ? GameManager.Ages.Count : 1;
+        m_StripeSprite = CreateStripeSprite(m_Sprite, "OutdatedStripes");
+        m_AgeTiles = new Tile[ages];
+        m_OutdatedTiles = new Tile[ages];
+        for (int age = 0; age < ages; age++)
+        {
+            m_AgeTiles[age] = CreateTile(m_Sprite, AgeColor(age));
+            m_OutdatedTiles[age] = CreateTile(m_StripeSprite, WithAlpha(AgeColor(age), 0.9f));
+        }
+        m_HistoricTile = CreateTile(m_Sprite, m_Historic);
+
         Refresh();
     }
 
@@ -165,6 +217,10 @@ public sealed class InfoOverlay : GridTilemapView
             if (tile != null) Destroy(tile);
         }
         if (m_CoverageTiles != null) foreach (Tile tile in m_CoverageTiles) if (tile != null) Destroy(tile);
+        if (m_AgeTiles != null) foreach (Tile tile in m_AgeTiles) if (tile != null) Destroy(tile);
+        if (m_OutdatedTiles != null) foreach (Tile tile in m_OutdatedTiles) if (tile != null) Destroy(tile);
+        if (m_HistoricTile != null) Destroy(m_HistoricTile);
+        DestroyStripeSprite(m_StripeSprite);
     }
 
     protected override Tile TileFor(Vector2Int cell)
@@ -173,6 +229,7 @@ public sealed class InfoOverlay : GridTilemapView
         {
             case View.Power: return PowerTile(cell);
             case View.Coverage: return CoverageTile(cell);
+            case View.Age: return AgeTile(cell);
             default: return null;
         }
     }
@@ -202,6 +259,21 @@ public sealed class InfoOverlay : GridTilemapView
         return BesideEnergisedRoad(cell, power) ? m_PowerReachableTile : m_PowerUnreachableTile;
     }
 
+    private Tile AgeTile(Vector2Int cell)
+    {
+        if (Grid.GetBuildingLevel(cell) == 0) return null;
+        if (Grid.IsHistoric(cell)) return m_HistoricTile;
+        int age = Mathf.Clamp(Grid.GetBuiltAge(cell), 0, m_AgeTiles.Length - 1);
+        return Simulation.Growth.IsOutdated(cell) ? m_OutdatedTiles[age] : m_AgeTiles[age];
+    }
+
+    // Oldest age warm, newest cool.
+    private Color AgeColor(int age)
+    {
+        int last = m_AgeTiles != null ? m_AgeTiles.Length - 1 : 0;
+        return Color.Lerp(m_OldestAge, m_NewestAge, last > 0 ? (float)age / last : 1f);
+    }
+
     private Tile CoverageTile(Vector2Int cell)
     {
         if (Grid.IsRoad(cell)) return null;
@@ -225,6 +297,12 @@ public sealed class InfoOverlay : GridTilemapView
             if (count == 0) return m_Uncovered;
             float t = (float)Mathf.Min(count, m_CoverageTiles.Length - 1) / (m_CoverageTiles.Length - 1);
             return Color.Lerp(m_Uncovered, WithAlpha(m_Covered, 1f), Mathf.Lerp(m_MinCoveredTint, 1f, t));
+        }
+        if (m_Shown == View.Age)
+        {
+            if (Grid.IsHistoric(cell)) return WithAlpha(m_Historic, 1f);
+            Color color = WithAlpha(AgeColor(Mathf.Clamp(Grid.GetBuiltAge(cell), 0, m_AgeTiles.Length - 1)), 1f);
+            return Simulation.Growth.IsOutdated(cell) ? WithAlpha(color * m_OutdatedShade, 1f) : color;
         }
         return null;
     }

@@ -2,10 +2,10 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// Modal New City panel, opened by the HUD's New button (GameMenu.NewRequested): pick a map size, then
-// Create discards the current city (SaveGameController.NewCity). Cancel / Esc closes it. The script sits
-// on the container; m_Panel (dimmed full-screen blocker + centred panel) is what gets toggled. M11 adds
-// the starting age.
+// Modal New City panel, opened by the HUD's New button (GameMenu.NewRequested): pick a map size and a
+// starting age (M11), then Create discards the current city (SaveGameController.NewCity). Cancel / Esc
+// closes it. The script sits on the container; m_Panel (dimmed full-screen blocker + centred panel) is
+// what gets toggled.
 public sealed class NewCityDialog : MonoBehaviour
 {
     [SerializeField] private GameMenu m_GameMenu;
@@ -17,10 +17,16 @@ public sealed class NewCityDialog : MonoBehaviour
     [SerializeField] private Button[] m_SizeButtons;
     [SerializeField] private int[] m_Sizes = { 32, 64, 96 };
     [SerializeField] private int m_DefaultSize = 64;
+    [Tooltip("One button per age in AgeDatabase order (extra buttons are hidden); same highlight convention.")]
+    [SerializeField] private Button[] m_AgeButtons;
+    [Tooltip("Hidden when the game has no age data.")]
+    [SerializeField] private GameObject[] m_AgeSection;
+    [SerializeField] private TMP_Text m_AgeHint;
     [SerializeField] private Button m_CreateButton;
     [SerializeField] private Button m_CancelButton;
 
     private int m_SelectedSize;
+    private int m_SelectedAge = -1;
 
     public bool IsOpen => m_Panel != null && m_Panel.activeSelf;
 
@@ -43,6 +49,18 @@ public sealed class NewCityDialog : MonoBehaviour
             TMP_Text label = m_SizeButtons[i].GetComponentInChildren<TMP_Text>();
             if (label != null) label.text = $"{size} × {size}";
         }
+        AgeDatabase ages = m_GameManager != null ? m_GameManager.Ages : null;
+        foreach (GameObject part in m_AgeSection) if (part != null) part.SetActive(ages != null);
+        for (int i = 0; m_AgeButtons != null && i < m_AgeButtons.Length; i++)
+        {
+            bool used = ages != null && i < ages.Count;
+            m_AgeButtons[i].gameObject.SetActive(used);
+            if (!used) continue;
+            int age = i;
+            m_AgeButtons[i].onClick.AddListener(() => SelectAge(age));
+            TMP_Text label = m_AgeButtons[i].GetComponentInChildren<TMP_Text>();
+            if (label != null) label.text = ages[i].DisplayName;
+        }
         if (m_CreateButton != null) m_CreateButton.onClick.AddListener(Create);
         if (m_CancelButton != null) m_CancelButton.onClick.AddListener(Close);
         if (m_Panel != null) m_Panel.SetActive(false);
@@ -60,6 +78,8 @@ public sealed class NewCityDialog : MonoBehaviour
         // Start from the current map's size when it's one of the options.
         int current = m_GameManager != null ? m_GameManager.MapSize.x : 0;
         Select(System.Array.IndexOf(m_Sizes, current) >= 0 ? current : m_DefaultSize);
+        TechSystem tech = m_GameManager != null && m_GameManager.Simulation != null ? m_GameManager.Simulation.Tech : null;
+        if (tech != null) SelectAge(tech.CurrentAge);
         m_Panel.SetActive(true);
     }
 
@@ -77,9 +97,26 @@ public sealed class NewCityDialog : MonoBehaviour
         }
     }
 
+    private void SelectAge(int age)
+    {
+        m_SelectedAge = age;
+        for (int i = 0; m_AgeButtons != null && i < m_AgeButtons.Length; i++)
+        {
+            m_AgeButtons[i].interactable = i != age;
+        }
+
+        AgeDatabase ages = m_GameManager != null ? m_GameManager.Ages : null;
+        if (m_AgeHint == null || ages == null || !ages.IsValidIndex(age)) return;
+        AgeDefinition def = ages[age];
+        string earlier = age > 0 ? $"Every {ages[age - 1].DisplayName} and earlier tech is researched. " : string.Empty;
+        string power = def.UpgradesNeedPower ? "Buildings need power to grow past level 1. " : "No power needed. ";
+        m_AgeHint.text = $"Starts in {def.StartYear} with ${def.StartingMoney:N0}. {earlier}{power}" +
+                         "<color=#9AA3B2>Later ages need more residents to reach, so small maps suit early ages.</color>";
+    }
+
     private void Create()
     {
         Close();
-        if (m_SaveGame != null) m_SaveGame.NewCity(new Vector2Int(m_SelectedSize, m_SelectedSize));
+        if (m_SaveGame != null) m_SaveGame.NewCity(new Vector2Int(m_SelectedSize, m_SelectedSize), m_SelectedAge);
     }
 }

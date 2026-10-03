@@ -5,21 +5,17 @@ using UnityEngine.Tilemaps;
 // Zoned cells without road access get diagonal stripes instead, since they can't grow.
 public sealed class ZoneOverlay : GridTilemapView
 {
-    private const int k_StripeTextureSize = 64;   // matches ground_square's 64 px per unit
-    private const int k_StripeWidth = 8;
-
     [SerializeField] private Sprite m_Sprite;
     [SerializeField, Range(0f, 1f)] private float m_Alpha = 0.45f;
     [SerializeField, Range(0f, 1f)] private float m_NoAccessAlpha = 0.7f;
 
     private Tile[] m_Tiles;          // [zone] with road access
     private Tile[] m_NoAccessTiles;  // [zone] without
-    private Texture2D m_StripeTexture;
     private Sprite m_StripeSprite;
 
     protected override void CreateTiles()
     {
-        CreateStripeSprite();
+        m_StripeSprite = CreateStripeSprite(m_Sprite, "ZoneNoAccessStripes");
 
         m_Tiles = new Tile[4];
         m_NoAccessTiles = new Tile[4];
@@ -36,8 +32,7 @@ public sealed class ZoneOverlay : GridTilemapView
         base.OnDestroy();
         if (m_Tiles != null) foreach (Tile tile in m_Tiles) Destroy(tile);
         if (m_NoAccessTiles != null) foreach (Tile tile in m_NoAccessTiles) Destroy(tile);
-        Destroy(m_StripeSprite);
-        Destroy(m_StripeTexture);
+        DestroyStripeSprite(m_StripeSprite);
     }
 
     protected override Tile TileFor(Vector2Int cell)
@@ -47,33 +42,5 @@ public sealed class ZoneOverlay : GridTilemapView
 
         bool hasAccess = Roads == null || Roads.HasRoadAccess(cell);
         return hasAccess ? m_Tiles[(int)zone] : m_NoAccessTiles[(int)zone];
-    }
-
-    // White diagonal stripes on transparent; the tile colour tints them per zone.
-    private void CreateStripeSprite()
-    {
-        const int size = k_StripeTextureSize;
-        m_StripeTexture = new Texture2D(size, size, TextureFormat.RGBA32, false)
-        {
-            name = "ZoneNoAccessStripes",
-            filterMode = FilterMode.Bilinear,
-            wrapMode = TextureWrapMode.Clamp,
-        };
-
-        Color32[] pixels = new Color32[size * size];
-        for (int y = 0; y < size; y++)
-        {
-            for (int x = 0; x < size; x++)
-            {
-                bool stripe = (x + y) / k_StripeWidth % 2 == 0;
-                pixels[y * size + x] = stripe ? new Color32(255, 255, 255, 255) : new Color32(255, 255, 255, 0);
-            }
-        }
-        m_StripeTexture.SetPixels32(pixels);
-        m_StripeTexture.Apply();
-
-        float pixelsPerUnit = m_Sprite != null ? m_Sprite.pixelsPerUnit * size / m_Sprite.rect.width : size;
-        m_StripeSprite = Sprite.Create(m_StripeTexture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), pixelsPerUnit);
-        m_StripeSprite.name = "ZoneNoAccessStripes";
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
@@ -26,6 +27,8 @@ public sealed class NotificationController : MonoBehaviour
     private bool m_HadPower;          // a connected plant was supplying power
     private bool m_WasShort;          // some grown buildings were unpowered despite a plant
     private bool m_NudgedNoPower;     // "build a power plant" hint already shown
+    private bool m_AnnouncedReady;    // "ready to advance" shown for the current age
+    private bool m_AnnouncedRebuild;  // first redevelopment of the current age shown
 
     private void OnEnable()
     {
@@ -36,6 +39,10 @@ public sealed class NotificationController : MonoBehaviour
         GameEvents.HappinessChanged += OnHappinessChanged;
         GameEvents.CityLoaded += SyncCityState;
         GameEvents.PowerChanged += OnPowerChanged;
+        GameEvents.TechCompleted += OnTechCompleted;
+        GameEvents.AgeChanged += OnAgeChanged;
+        GameEvents.ResearchChanged += OnResearchChanged;
+        GameEvents.Redeveloped += OnRedeveloped;
     }
 
     private void OnDisable()
@@ -47,6 +54,10 @@ public sealed class NotificationController : MonoBehaviour
         GameEvents.HappinessChanged -= OnHappinessChanged;
         GameEvents.CityLoaded -= SyncCityState;
         GameEvents.PowerChanged -= OnPowerChanged;
+        GameEvents.TechCompleted -= OnTechCompleted;
+        GameEvents.AgeChanged -= OnAgeChanged;
+        GameEvents.ResearchChanged -= OnResearchChanged;
+        GameEvents.Redeveloped -= OnRedeveloped;
     }
 
     private void Start()
@@ -65,10 +76,11 @@ public sealed class NotificationController : MonoBehaviour
         SetToastAlpha(Mathf.Clamp01(m_ToastTimer / m_FadeDuration));
     }
 
+    // Longer messages stay up longer (about 30 characters a second).
     private void ShowToast(string message)
     {
         if (m_ToastText != null) m_ToastText.text = message;
-        m_ToastTimer = m_ToastDuration;
+        m_ToastTimer = Mathf.Max(m_ToastDuration, message.Length / 30f);
         SetToastAlpha(1f);
     }
 
@@ -95,12 +107,74 @@ public sealed class NotificationController : MonoBehaviour
         m_HadPower = power.Supply > 0;
         m_WasShort = power.Supply > 0 && power.UnpoweredCells > 0;
         m_NudgedNoPower = false;   // a loaded city without power still gets the hint
+
+        TechSystem tech = m_GameManager.Simulation.Tech;
+        m_AnnouncedReady = tech != null && tech.GetAdvanceStatus(population.Population).Ready;
+        m_AnnouncedRebuild = false;
+    }
+
+    // --- Ages & research (M11) ---
+
+    private void OnTechCompleted(string techId)
+    {
+        TechSystem tech = m_GameManager != null ? m_GameManager.Simulation.Tech : null;
+        TechDefinition done = tech?.Techs.GetById(techId);
+        if (done == null) return;
+
+        var unlocked = new List<string>();
+        if (m_GameManager.Buildings != null)
+        {
+            foreach (BuildingDefinition def in m_GameManager.Buildings.Entries)
+            {
+                if (def != null && def.RequiredTech == techId) unlocked.Add(def.DisplayName);
+            }
+        }
+        string message = $"<color=#73D973>Research complete:</color> {done.DisplayName}";
+        if (unlocked.Count > 0) message += $" — <b>{string.Join(", ", unlocked)}</b> unlocked";
+        if (tech.Active == null) message += ". Pick the next project in Research.";
+        ShowToast(message);
+    }
+
+    private void OnAgeChanged(int age)
+    {
+        TechSystem tech = m_GameManager.Simulation.Tech;
+        AgeDefinition def = tech.Ages[age];
+        string message = $"<color=#F2CC4D>Welcome to the {def.DisplayName}!</color> New buildings grow in its style; older blocks are rebuilt unless you keep them historic.";
+        if (def.UpgradesNeedPower && !m_GameManager.PowerUnlocked)
+        {
+            message += " Buildings now need <color=#FFD133>power</color> to grow past level 1 — research Electricity and build a Power Plant.";
+        }
+        ShowToast(message);
+        m_AnnouncedReady = false;
+        m_AnnouncedRebuild = false;
+    }
+
+    // Once per age, when the checklist is first met and the advance isn't planned yet.
+    private void OnResearchChanged()
+    {
+        if (m_AnnouncedReady || m_GameManager == null) return;
+        TechSystem tech = m_GameManager.Simulation.Tech;
+        if (tech == null) return;
+
+        AdvanceStatus status = tech.GetAdvanceStatus(m_GameManager.Population.Population);
+        if (!status.Ready || tech.IsPlanned(tech.NextAdvance())) return;
+        m_AnnouncedReady = true;
+        ShowToast($"<color=#F2CC4D>Ready to advance to the {tech.Ages[status.NextAge].DisplayName}</color> — start it in Research ({status.RpCost:N0} RP).");
+    }
+
+    private void OnRedeveloped(int count)
+    {
+        if (m_AnnouncedRebuild || m_GameManager == null || m_GameManager.Simulation.Tech == null) return;
+        m_AnnouncedRebuild = true;
+        string age = m_GameManager.Simulation.Tech.CurrentAgeDefinition.DisplayName;
+        ShowToast($"Builders are rebuilding older blocks in the {age} style. Select a building to keep it historic.");
     }
 
     // Each fires once per change of state, not on every grid change.
     private void OnPowerChanged(int supply, int demand, int unpoweredCells)
     {
         if (m_GameManager == null || m_GameManager.Population == null) return;
+        if (!m_GameManager.PowerUnlocked) return;   // no power toasts before Electricity
 
         if (supply > 0 && !m_HadPower)
         {

@@ -21,6 +21,7 @@ public sealed class ToolbarController : MonoBehaviour
     [SerializeField] private InfoOverlay m_InfoOverlay;
     [SerializeField] private ToolButton m_PowerViewButton;
     [SerializeField] private ToolButton m_CoverageViewButton;
+    [SerializeField] private ToolButton m_AgeViewButton;
 
     [Header("Buildings")]
     [SerializeField] private ToolButton m_ButtonTemplate;
@@ -52,6 +53,8 @@ public sealed class ToolbarController : MonoBehaviour
             "Power view  [V]\n<color=#FFD133>Yellow</color> roads carry power from a plant. Buildings: <color=#59D966>powered</color> / <color=#F2554A>no power</color> (can't upgrade). Faint tints show zoned land that would / wouldn't get power.");
         BindView(m_CoverageViewButton, "Parks", InfoOverlay.View.Coverage,
             "Park coverage view  [V]\nGreener homes get more happiness from nearby parks (up to 4 parks count). Light grey homes have none; dark grey buildings are jobs, which parks don't affect.");
+        BindView(m_AgeViewButton, "Ages", InfoOverlay.View.Age,
+            "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
         CreateBuildingButtons();
 
         m_Placement.ModeChanged += RefreshActive;
@@ -76,9 +79,15 @@ public sealed class ToolbarController : MonoBehaviour
 
     private void OnTechCompleted(string techId) => RefreshUnlocked();
 
-    // Locked buildings get no button; a tech unlocking one (or a load) shows it.
+    // Locked buildings get no button; a tech unlocking one (or a load) shows it. Views that aren't
+    // available yet (Power before Electricity, Age without age data) are hidden the same way.
     private void RefreshUnlocked()
     {
+        if (m_InfoOverlay != null)
+        {
+            if (m_PowerViewButton != null) m_PowerViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Power));
+            if (m_AgeViewButton != null) m_AgeViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Age));
+        }
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {
             pair.Value.gameObject.SetActive(m_GameManager.IsUnlocked(pair.Key));
@@ -174,6 +183,7 @@ public sealed class ToolbarController : MonoBehaviour
         InfoOverlay.View view = m_InfoOverlay != null ? m_InfoOverlay.Shown : InfoOverlay.View.Off;
         SetActive(m_PowerViewButton, view == InfoOverlay.View.Power);
         SetActive(m_CoverageViewButton, view == InfoOverlay.View.Coverage);
+        SetActive(m_AgeViewButton, view == InfoOverlay.View.Age);
 
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {
