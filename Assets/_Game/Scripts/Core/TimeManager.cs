@@ -40,6 +40,15 @@ public sealed class TimeManager : MonoBehaviour
         GameEvents.RaiseDateChanged(Day, Month, Year);
     }
 
+    // Advancing an age moves the calendar forward without touching the day or the partial day.
+    public void SetYear(int year)
+    {
+        year = Mathf.Max(1, year);
+        if (year == Year) return;
+        Year = year;
+        GameEvents.RaiseDateChanged(Day, Month, Year);
+    }
+
     // Debug: runs whole days instantly through the same tick + calendar path as Update.
     public void DebugAdvanceDays(int days)
     {

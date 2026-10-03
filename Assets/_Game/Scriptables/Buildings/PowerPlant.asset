@@ -24,7 +24,8 @@ MonoBehaviour:
   m_JobsProvided: 0
   m_HappinessEffect: 0
   m_ZoneRestriction: 0
-  m_UnlockPopulation: 0
   m_Height: 0.6
   m_CoverageRadius: 0
   m_PowerSupply: 600
+  m_RequiredTech: electricity
+  m_ResearchPerDay: 0

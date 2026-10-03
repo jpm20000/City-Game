@@ -797,7 +797,18 @@ two materials per prefab.
   Tests: v1 fixture JSON (a real 24² save) migrates and runs identically to a native Industrial city;
   v2 round trip mid-research and mid-redevelopment = uninterrupted run; unknown tech Ids in a save
   are dropped with a warning, not a failure.
-- **11d Content.** 4 `AgeDefinition` assets, ~28 `TechDefinition` assets (table below),
+- **11d Content — done (2026-10-03).** 30 techs (8/6/8/8) and 4 ages as assets generated from the
+  tables below; tech RP costs are a first pass (Medieval 40–120, Renaissance 180–260, Industrial
+  150–550, Modern 800–1,400) for 11g to tune. Unlocks use `BuildingDefinition.RequiredTech` only.
+  Monastery ($2,000, $10/day, 2 RP/day) and Academy ($5,000, $25/day, 5 RP/day) placeholder
+  prefabs. The databases are wired into `GameManager`, so the game now runs with ages (startup and
+  New City = Industrial until the 11f picker). **Open question for 11g:** an Industrial start
+  keeps every earlier tech's modifier (R ×1.1, C ×1.39, I ×1.21, happiness +0.05, upkeep ×0.9,
+  research ×1.25), so it is slightly ahead of the pre-ages game (seeded city day 60: 220 pop,
+  0.65 happiness vs 212 / 0.60); the "plays exactly like today" check holds for the age-less sim
+  and the test ages, not for the real content. Either accept it (rebaseline) or move those
+  modifiers' weight elsewhere during the balance pass. 130 EditMode tests green.
+  Original plan: 4 `AgeDefinition` assets, ~28 `TechDefinition` assets (table below),
   `AgeDatabase` / `TechDatabase` assets wired into `GameManager`. Research buildings as placeholder
   prefabs: Monastery (Medieval, 2×2, research 2/day) and Academy (Renaissance, 2×2, research 5/day).
   `RequiredTech` on Park (Medieval "Commons") and Power Plant (Industrial "Electricity", granted to
@@ -916,4 +927,4 @@ cosmetic carts/cars on busy roads (visual only).
 thumbnails, a tutorial for the first age, and a Windows player build.
 
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). M11 is planned in full above
-(steps 11a–11g); 11a (tech core), 11b (ages in the sim) and 11c (save v2 + migration) are done, next is 11d (content).
+(steps 11a–11g); 11a–11d (tech core, ages in the sim, save v2 + migration, content) are done, next is 11e (visual slots).

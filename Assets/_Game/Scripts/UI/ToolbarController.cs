@@ -57,7 +57,10 @@ public sealed class ToolbarController : MonoBehaviour
         m_Placement.ModeChanged += RefreshActive;
         if (m_InfoOverlay != null) m_InfoOverlay.ViewChanged += RefreshActive;
         GameEvents.MoneyChanged += RefreshAffordable;
+        GameEvents.TechCompleted += OnTechCompleted;
+        GameEvents.CityLoaded += RefreshUnlocked;
         HideTooltip(null);
+        RefreshUnlocked();
         RefreshActive();
         RefreshAffordable(m_GameManager.Economy.Money);
     }
@@ -67,6 +70,19 @@ public sealed class ToolbarController : MonoBehaviour
         if (m_Placement != null) m_Placement.ModeChanged -= RefreshActive;
         if (m_InfoOverlay != null) m_InfoOverlay.ViewChanged -= RefreshActive;
         GameEvents.MoneyChanged -= RefreshAffordable;
+        GameEvents.TechCompleted -= OnTechCompleted;
+        GameEvents.CityLoaded -= RefreshUnlocked;
+    }
+
+    private void OnTechCompleted(string techId) => RefreshUnlocked();
+
+    // Locked buildings get no button; a tech unlocking one (or a load) shows it.
+    private void RefreshUnlocked()
+    {
+        foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
+        {
+            pair.Value.gameObject.SetActive(m_GameManager.IsUnlocked(pair.Key));
+        }
     }
 
     private void CreateBuildingButtons()
@@ -92,6 +108,7 @@ public sealed class ToolbarController : MonoBehaviour
         string text = $"{def.DisplayName}  ({def.Size.x}x{def.Size.y})\n${def.Cost:N0} to build, ${def.UpkeepPerDay:N0}/day upkeep.";
         if (def.PowerSupply > 0) text += $"\nPowers {def.PowerSupply} units along the roads it touches (L1/L2/L3 buildings use 4/8/16). Upgrades past level 1 need power.";
         if (def.CoverageRadius > 0) text += $"\nRaises happiness of homes within {def.CoverageRadius} cells.";
+        if (def.ResearchPerDay > 0f) text += $"\nProduces {def.ResearchPerDay:0.#} research points a day.";
         text += "\n[R] rotates.";
         return text;
     }

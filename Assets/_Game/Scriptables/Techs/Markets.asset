@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a81a50374d8fd1488dba7cf9e9b874e, type: 3}
+  m_Name: Markets
+  m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
+  m_Id: markets
+  m_DisplayName: Markets
+  m_Description: 'A weekly market draws traders. Commercial demand +10%.'
+  m_Age: 0
+  m_Cost: 70
+  m_Prerequisites: 
+  - {fileID: 11400000, guid: 290e2e16d73852dcb7ba4ab002746634, type: 2}
+  m_Effects:
+  - Type: 2
+    Target: Commercial
+    Value: 1.1

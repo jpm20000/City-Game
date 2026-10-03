@@ -18,6 +18,9 @@ public static class GameEvents
     public static event Action<string> Notification;               // short player-facing message (toast)
     public static event Action<int, int, int> PowerChanged;        // supply, demand, unpowered grown cells
     public static event Action<Vector2Int> WorldResized;           // new map size, before the new city's cells arrive
+    public static event Action ResearchChanged;                    // research progress / plan / income changed (per tick, load)
+    public static event Action<string> TechCompleted;              // tech Id
+    public static event Action<int> AgeChanged;                    // new age index (after advancing)
 
     public static void RaiseMoneyChanged(float money) => MoneyChanged?.Invoke(money);
     public static void RaisePopulationChanged(int population, int jobs) => PopulationChanged?.Invoke(population, jobs);
@@ -33,6 +36,9 @@ public static class GameEvents
     public static void RaiseNotification(string message) => Notification?.Invoke(message);
     public static void RaisePowerChanged(int supply, int demand, int unpoweredCells) => PowerChanged?.Invoke(supply, demand, unpoweredCells);
     public static void RaiseWorldResized(Vector2Int size) => WorldResized?.Invoke(size);
+    public static void RaiseResearchChanged() => ResearchChanged?.Invoke();
+    public static void RaiseTechCompleted(string techId) => TechCompleted?.Invoke(techId);
+    public static void RaiseAgeChanged(int age) => AgeChanged?.Invoke(age);
 
     // Static events survive play sessions when domain reload is disabled; drop stale subscribers.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -52,5 +58,8 @@ public static class GameEvents
         Notification = null;
         PowerChanged = null;
         WorldResized = null;
+        ResearchChanged = null;
+        TechCompleted = null;
+        AgeChanged = null;
     }
 }

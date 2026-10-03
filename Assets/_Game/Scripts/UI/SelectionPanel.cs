@@ -106,6 +106,11 @@ public sealed class SelectionPanel : MonoBehaviour
             Line($"Homes within {def.CoverageRadius} cells: +{balance.ServiceBonusEach:P0} happiness each (up to +{balance.ServiceBonusCap:P0} per home). [V] shows coverage.");
         }
         if (def.PowerSupply > 0) DescribePlant(building);
+        if (def.ResearchPerDay > 0f)
+        {
+            float rp = def.ResearchPerDay * m_GameManager.Simulation.TechModifiers.ResearchMultiplier;
+            Line($"Research  +{rp:0.#} RP / day");
+        }
         m_Action = Action.Demolish;
     }
 

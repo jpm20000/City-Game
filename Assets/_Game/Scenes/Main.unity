@@ -199,6 +199,8 @@ MonoBehaviour:
   m_GridSystem: {fileID: 470304455}
   m_BuildingDatabase: {fileID: 11400000, guid: a71959e6416ea5a47bd699ca2a57472a, type: 2}
   m_Balance: {fileID: 11400000, guid: 3b185a41e97447ee8883c4bb826eb731, type: 2}
+  m_AgeDatabase: {fileID: 11400000, guid: 722889312d145a8bbc2313e2ce5f734b, type: 2}
+  m_TechDatabase: {fileID: 11400000, guid: 2816ddb3faba57f89134050973d81936, type: 2}
   m_Time: {fileID: 189747472}
   m_GrowthVisuals: {fileID: 189747473}
 --- !u!4 &189747471

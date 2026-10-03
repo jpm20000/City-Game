@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 241edd6ee45d45b4fa2b67e623070894, type: 3}
+  m_Name: AgeDatabase
+  m_EditorClassIdentifier: CityBuilder.Simulation::AgeDatabase
+  m_Ages:
+  - {fileID: 11400000, guid: ae9fee95d0aa5d4b936ed5fd54c2113c, type: 2}
+  - {fileID: 11400000, guid: b3f676ecaa4e5f6dba88102f452183e5, type: 2}
+  - {fileID: 11400000, guid: 9e74f5f11fe359e3b649a1c880532461, type: 2}
+  - {fileID: 11400000, guid: 1ea040ee45a950458ebd8d1200a33eeb, type: 2}

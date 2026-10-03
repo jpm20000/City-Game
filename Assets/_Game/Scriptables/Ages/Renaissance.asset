@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a13593af433dd8440a3d802b066bb1d8, type: 3}
+  m_Name: Renaissance
+  m_EditorClassIdentifier: CityBuilder.Simulation::AgeDefinition
+  m_Id: renaissance
+  m_DisplayName: Renaissance
+  m_StartYear: 1450
+  m_MaxLevel: 3
+  m_CapacityScale: 0.75
+  m_UpgradesNeedPower: 0
+  m_UpgradesNeedWater: 0
+  m_TechsToAdvance: 5
+  m_RequiredTechs: []
+  m_PopulationToEnter: 300
+  m_AdvanceCost: 800
+  m_StartingTechs: []
+  m_StartingMoney: 30000
+  m_ZoneNames:
+  - 
+  - 
+  - Workshops

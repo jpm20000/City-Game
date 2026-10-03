@@ -24,5 +24,6 @@ MonoBehaviour:
   m_JobsProvided: 0
   m_HappinessEffect: 0
   m_ZoneRestriction: 1
-  m_UnlockPopulation: 0
   m_Height: 2
+  m_RequiredTech: 
+  m_ResearchPerDay: 0

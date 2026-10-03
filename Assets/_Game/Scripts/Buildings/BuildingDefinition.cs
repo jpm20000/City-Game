@@ -15,12 +15,15 @@ public sealed class BuildingDefinition : ScriptableObject
     [SerializeField] private int m_JobsProvided;
     [SerializeField] private float m_HappinessEffect;
     [SerializeField] private ZoneType m_ZoneRestriction;
-    [SerializeField] private int m_UnlockPopulation;
     [SerializeField] private float m_Height = 2f;
     [Tooltip("Service reach in cells (Chebyshev distance from the footprint); 0 = no coverage.")]
     [SerializeField] private int m_CoverageRadius;
     [Tooltip("Power units fed into the roads this building touches; 0 = not a power source.")]
     [SerializeField] private int m_PowerSupply;
+    [Tooltip("Tech Id that unlocks this building (M11); empty = always available. Ignored without age data.")]
+    [SerializeField] private string m_RequiredTech = "";
+    [Tooltip("Research points per day while placed (M11).")]
+    [SerializeField] private float m_ResearchPerDay;
 
     public string Id => m_Id;
     public string DisplayName => m_DisplayName;
@@ -34,8 +37,9 @@ public sealed class BuildingDefinition : ScriptableObject
     public int JobsProvided => m_JobsProvided;
     public float HappinessEffect => m_HappinessEffect;
     public ZoneType ZoneRestriction => m_ZoneRestriction;
-    public int UnlockPopulation => m_UnlockPopulation;
     public float Height => m_Height;
     public int CoverageRadius => m_CoverageRadius;
     public int PowerSupply => m_PowerSupply;
+    public string RequiredTech => m_RequiredTech;
+    public float ResearchPerDay => m_ResearchPerDay;
 }
