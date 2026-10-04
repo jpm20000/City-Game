@@ -31,9 +31,12 @@ Editor frame times mislead: Hierarchy/editor overhead makes GameObject create/de
 | M11e (mixed ages) | 1.14 ms | 1.48 ms | ~2 ms | 1.25 ms* |
 | M13e (power + water fed, pipes) | 1.27 ms | 1.54 ms | 3.8–4.5 ms | 3.52 ms (1.37 power only)** |
 | M13 follow-up (incremental networks) | 1.25 ms | 1.48 ms | 2.0–2.4 ms | 1.56 ms |
+| M16d (road tiers mix, traffic flow; M14/M15 never measured) | 1.34 ms | 1.64 ms | 2.1–2.5 ms | 2.13 ms (traffic flow alone 0.29 ms)*** |
 
 \* The stress city starts with a quarter of its blocks outdated, so the redevelop scan runs over the whole map every tick.
 \*\* Since M13e `PerfBenchmark.FeedUtilities` feeds power and water from sim-only sources on the west edge and lays a pipe along every block, so both networks carry flow; earlier rows had no plants, so the power network never filled. A recompute is O(cells) and runs twice on a day with upgrades; the edit-every-frame rows include the per-frame `PowerChanged` / `WaterChanged` recompute.
+
+\*\*\* The benchmark prints the traffic flow's own cost since M16 (`Traffic.Update` on the stress city, 96², about 11.5k homes' worth of blocks); `PerfBenchmark` lays a mix of all five road tiers, avenues on the main cross.
 
 Regressions to watch: per-instance materials or `MaterialPropertyBlock`s (they drop renderers out of the SRP Batcher / GPU Resident Drawer — this was 23 ms frames / 110 ms zoomed out before M10b), creating/destroying GameObjects per change instead of pooling, and per-tick full-map scans in new sim systems.
 

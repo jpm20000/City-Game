@@ -49,9 +49,12 @@ public sealed class PerfBenchmark : MonoBehaviour
         float tickStart = Time.realtimeSinceStartup;
         for (int i = 0; i < 20; i++) gameManager.Simulation.Tick();
         float tickMs = (Time.realtimeSinceStartup - tickStart) * 1000f / 20f;
+        float flowStart = Time.realtimeSinceStartup;
+        for (int i = 0; i < 20; i++) gameManager.Simulation.Traffic.Update(1f, 1f, 1f);
+        float flowMs = (Time.realtimeSinceStartup - flowStart) * 1000f / 20f;
 
         m_Report.AppendLine($"PerfBenchmark {DateTime.Now:yyyy-MM-dd HH:mm} — {Application.unityVersion}, {SystemInfo.processorType}, {SystemInfo.graphicsDeviceName}, {Screen.width}x{Screen.height}");
-        m_Report.AppendLine($"map {k_MapSize}x{k_MapSize}: built in {buildMs:F0} ms, sim tick {tickMs:F2} ms");
+        m_Report.AppendLine($"map {k_MapSize}x{k_MapSize}: built in {buildMs:F0} ms, sim tick {tickMs:F2} ms (traffic flow alone {flowMs:F2} ms)");
 
         Camera camera = Camera.main;
         float startZoom = camera.orthographicSize;
@@ -184,7 +187,12 @@ public sealed class PerfBenchmark : MonoBehaviour
         {
             for (int x = 0; x < grid.Width; x++)
             {
-                if (x % 5 == 0 || y % 5 == 0) grid.SetRoad(new Vector2Int(x, y), true);
+                // M16: a mix of road tiers (every tier sprite and capacity in play), avenues on the main cross.
+                if (x % 5 == 0 || y % 5 == 0)
+                {
+                    bool cross = x == 45 || y == 45;
+                    grid.SetRoadTier(new Vector2Int(x, y), cross ? (byte)4 : (byte)((x / 5 * 3 + y / 5 * 2) % 5 + 1));
+                }
             }
         }
         for (int y = 0; y < grid.Height; y++)
