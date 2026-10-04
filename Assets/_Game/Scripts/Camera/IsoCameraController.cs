@@ -65,10 +65,43 @@ public sealed class IsoCameraController : MonoBehaviour
         Vector3 center = new Vector3(size.x * 0.5f, 0f, size.y * 0.5f);
         transform.position = center - transform.forward * distance;
         m_Camera.farClipPlane = Mathf.Max(m_Camera.farClipPlane, distance + side * 1.5f + 20f);
-        m_Camera.orthographicSize = Mathf.Clamp(m_Camera.orthographicSize, m_MinZoom, MaxZoom);
+        m_Camera.orthographicSize = m_Showcase ? Mathf.Min(MaxZoom, ShowcaseZoom) : Mathf.Clamp(m_Camera.orthographicSize, m_MinZoom, MaxZoom);
     }
 
     private float MaxZoom => Mathf.Max(m_MaxZoom, Mathf.Max(m_GridWidth, m_GridHeight) * m_MaxZoomPerCell);
+
+    // --- Showcase (M19c): behind the main menu the camera drifts slowly over the map and ignores input. ---
+
+    private const float ShowcaseZoom = 11f;
+    private bool m_Showcase;
+    private float m_SavedZoom;
+
+    public void SetShowcase(bool on)
+    {
+        if (m_Showcase == on) return;
+        m_Showcase = on;
+        if (on)
+        {
+            m_SavedZoom = m_Camera.orthographicSize;
+            m_Camera.orthographicSize = Mathf.Min(MaxZoom, ShowcaseZoom);
+        }
+        else
+        {
+            m_Camera.orthographicSize = m_SavedZoom;
+            FrameMap(new Vector2Int(Mathf.RoundToInt(m_GridWidth), Mathf.RoundToInt(m_GridHeight)));
+        }
+    }
+
+    private void DriftOverMap()
+    {
+        float t = Time.unscaledTime * 0.035f;
+        float radius = Mathf.Min(m_GridWidth, m_GridHeight) * 0.18f;
+        var target = new Vector3(m_GridWidth * 0.5f + Mathf.Cos(t) * radius, 0f, m_GridHeight * 0.5f + Mathf.Sin(t * 1.3f) * radius * 0.8f);
+        float side = Mathf.Max(m_GridWidth, m_GridHeight);
+        float distance = Mathf.Max(m_BaseDistance, side * 0.75f + 10f);
+        Vector3 want = target - transform.forward * distance;
+        transform.position = Vector3.Lerp(transform.position, want, 1f - Mathf.Exp(-2f * Time.unscaledDeltaTime));
+    }
 
     // Where the view's centre ray meets the ground (the camera is tilted, so not its XZ position).
     private Vector3 GroundLookAt()
@@ -81,6 +114,11 @@ public sealed class IsoCameraController : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (m_Showcase)
+        {
+            DriftOverMap();
+            return;
+        }
         if (m_InputReader == null) return;
 
         ApplyZoom();

@@ -27,3 +27,6 @@ description: Verify City Game changes in Play mode through the Unity MCP bridge 
 - Research without waiting: `tech.SetActive(tech.Techs.GetById(id)); tech.Step(1000f);` — advancing: `tech.SetActiveAdvance(population)` + `Step` (raises `AgeAdvanced`, the calendar moves).
 - Seeded city without the plant (for pre-power ages): `DebugSeedCity()` then `ClearAllBuildings()`.
 - For a UI-only check driven by real input events, use the `virtual-input-playthrough` skill instead.
+
+## The main menu (M19c)
+Play mode now starts on the title screen: the HUD is hidden, input is blocked and the showcase city is loaded. Before a check that drives the game, either call `GameFlow.Instance.StartPlaying()` (leaves the title, keeps the loaded city; a RunCommand that calls `SaveGameController.NewCity(...)` afterwards is the usual next step: `NewCity` also leaves the title), or turn on *CityBuilder > Skip Main Menu In Play Mode* (EditorPrefs `CityGame.SkipMenu`; switch it back off afterwards so the player's own Play sessions show the title). Set `SaveSlots.Root` after startup, and call `GameFlow.Instance.Main.Show()` if the check reads the title's Continue button (it lists the save folder when shown).

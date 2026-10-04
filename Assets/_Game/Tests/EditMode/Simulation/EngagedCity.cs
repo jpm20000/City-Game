@@ -115,6 +115,22 @@ internal sealed class EngagedCity
 
     public int Count(string id) => m_Placed.TryGetValue(id, out int n) ? n : 0;
 
+    // The placed buildings still standing, as save records (M19c: the showcase city is written from a harness run).
+    // The harness always places with rotation 0.
+    public List<BuildingRecord> PlacedBuildings()
+    {
+        var records = new List<BuildingRecord>();
+        var occupants = new List<int>(m_ById.Keys);
+        occupants.Sort();
+        foreach (int occupant in occupants)
+        {
+            (Building b, Vector2Int origin) = m_ById[occupant];
+            if (Grid.GetOccupant(origin) != occupant) continue;
+            records.Add(new BuildingRecord(b.Id, origin.x, origin.y, 0));
+        }
+        return records;
+    }
+
     private void LoadBuildings()
     {
         var database = AssetDatabase.LoadAssetAtPath<ScriptableObject>(BuildingDatabasePath);

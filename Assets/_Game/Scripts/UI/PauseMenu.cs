@@ -28,6 +28,7 @@ public sealed class PauseMenu
         AddButton("Load…", () => m_Flow.Browser.Open(SaveBrowser.Mode.Load));
         if (m_Flow.Menu != null) AddButton("New city", () => m_Flow.Menu.RequestNew());
         AddButton("Settings", SettingsClicked);
+        AddButton("Main menu", () => m_Flow.GuardDiscard(m_Flow.EnterMainMenu));
         AddButton("Quit", () => m_Flow.Quit());
 
         EscapeRouter.Register(this, EscapeRouter.PauseMenu, () =>

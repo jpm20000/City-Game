@@ -12,6 +12,7 @@ public sealed class SaveGameController : MonoBehaviour
     private const string k_LegacyFileName = "city.json";
     private const string k_SavesFolder = "Saves";
     private const string k_SavesDirArg = "-savesDir";
+    private const string k_ShowcaseFileName = "showcase.json";
 
     [SerializeField] private GameManager m_GameManager;
     [SerializeField] private PlacementController m_Placement;
@@ -23,7 +24,10 @@ public sealed class SaveGameController : MonoBehaviour
     // Tutorial progress carried through saves (-1 = no tutorial); the tutorial itself arrives in M19f.
     public int Tutorial { get; set; } = SaveData.NoTutorial;
     // True when the city changed since it was last saved or loaded.
-    public bool Dirty { get; private set; }
+    // The main menu's showcase city is never dirty: leaving it asks nothing.
+    public bool Dirty { get => m_Dirty && !ShowcaseActive; private set => m_Dirty = value; }
+    private bool m_Dirty;
+    public bool ShowcaseActive { get; private set; }
 
     public string SavesFolder => SaveSlots.HasRoot ? SaveSlots.Root : "";
     public bool HasSave => SaveSlots.HasAny();
@@ -197,12 +201,46 @@ public sealed class SaveGameController : MonoBehaviour
             return false;
         }
 
+        ShowcaseActive = false;
         int skipped = Apply(data);
         CurrentName = SaveSlots.KindOf(name) == SaveKind.Manual ? name : "";
         Dirty = false;
         GameEvents.RaiseNotification(skipped == 0
             ? $"City loaded — {name} (Day {data.Day}, Month {data.Month}, Year {data.Year})"
             : $"City loaded — {skipped} building(s) could not be restored");
+        return true;
+    }
+
+    // The newest save overall (the main menu's Continue).
+    public bool LoadNewest()
+    {
+        if (!IsReady()) return false;
+        foreach (SaveSummary save in SaveSlots.List(m_GameManager.Ages, m_GameManager.Techs))
+        {
+            if (!save.Damaged) return Load(save.Name);
+        }
+        GameEvents.RaiseNotification("No saved city to load.");
+        return false;
+    }
+
+    // The main menu's backdrop (M19c): StreamingAssets/showcase.json, loaded like a save but never saved or counted as
+    // changed. False (and the current city stays) when the file is missing or can't be read.
+    public bool LoadShowcase()
+    {
+        if (!IsReady()) return false;
+
+        string path = Path.Combine(Application.streamingAssetsPath, k_ShowcaseFileName);
+        if (!SaveSystem.TryRead(path, out SaveData data, out string error, m_GameManager.Ages, m_GameManager.Techs))
+        {
+            Debug.LogWarning($"SaveGameController: no showcase city ({error}).", this);
+            return false;
+        }
+
+        ShowcaseActive = false;
+        int skipped = Apply(data);
+        if (skipped > 0) Debug.LogWarning($"SaveGameController: the showcase city could not restore {skipped} building(s); regenerate it.", this);
+        CurrentName = "";
+        ShowcaseActive = true;
         return true;
     }
 
@@ -229,6 +267,7 @@ public sealed class SaveGameController : MonoBehaviour
         SaveData data = SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs, startAge,
             disasters, (ulong)Environment.TickCount);
         data.CityName = cityName ?? "";
+        ShowcaseActive = false;
         Apply(data);
         CurrentName = "";
         Dirty = false;
