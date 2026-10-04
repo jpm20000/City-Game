@@ -16,10 +16,13 @@ public readonly struct ServiceSource
     public readonly ServiceKind CivicKind;  // civic service line (M14); None = not a civic building
     public readonly int CivicRadius;        // cells its civic service reaches (Chebyshev from the footprint) (M14)
     public readonly float CivicStrength;    // 0..1, how well it covers a cell in reach (M14)
+    public readonly float UpkeepPerDay;     // the building's own upkeep at 100% funding (M15); 0 = not listed
+    public readonly float ResearchPerDay;   // its research points per day at 100% funding (M15)
 
     public ServiceSource(Vector2Int origin, Vector2Int size, int coverageRadius, int powerSupply,
         float pollution = 0f, int pollutionRadius = 0, int waterSupply = 0, int waterRadius = 0,
-        ServiceKind civicKind = ServiceKind.None, int civicRadius = 0, float civicStrength = 0f)
+        ServiceKind civicKind = ServiceKind.None, int civicRadius = 0, float civicStrength = 0f,
+        float upkeepPerDay = 0f, float researchPerDay = 0f)
     {
         Origin = origin;
         Size = size;
@@ -32,5 +35,7 @@ public readonly struct ServiceSource
         CivicKind = civicKind;
         CivicRadius = civicRadius;
         CivicStrength = civicStrength;
+        UpkeepPerDay = upkeepPerDay;
+        ResearchPerDay = researchPerDay;
     }
 }

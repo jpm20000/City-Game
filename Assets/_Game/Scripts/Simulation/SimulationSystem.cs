@@ -8,10 +8,13 @@ public sealed class SimulationSystem
 {
     private readonly GridData m_Grid;
     private readonly BalanceConfig m_Config;
-    private IReadOnlyList<ServiceSource> m_Sources = Array.Empty<ServiceSource>();
+    private IReadOnlyList<ServiceSource> m_Sources = Array.Empty<ServiceSource>();   // as placed (100% funding)
+    private IReadOnlyList<ServiceSource> m_Funded = Array.Empty<ServiceSource>();    // what the spatial systems see (M15)
     private ServiceStats m_LastServices;    // measured in the last Tick / Restore (education share for research)
 
     public EconomySystem Economy { get; }
+    // Funding per budget line (M15); a change re-feeds the funded sources to the spatial systems.
+    public BudgetSystem Budget { get; }
     public PopulationSystem Population { get; }
     public DemandSystem Demand { get; }
     public GrowthSystem Growth { get; }
@@ -47,12 +50,19 @@ public sealed class SimulationSystem
         set
         {
             m_Sources = value ?? Array.Empty<ServiceSource>();
-            Power.SetSources(m_Sources);
-            Water.SetSources(m_Sources);
-            Coverage.Recompute(m_Sources);
-            Pollution.SetSources(m_Sources);
-            Civic.SetSources(m_Sources);
+            ApplySources();
         }
+    }
+
+    // Feeds the spatial systems the sources with each line's funding applied (the placed list itself at 100%).
+    private void ApplySources()
+    {
+        m_Funded = Budget.IsDefault ? m_Sources : Budget.FundAll(m_Sources);
+        Power.SetSources(m_Funded);
+        Water.SetSources(m_Funded);
+        Coverage.Recompute(m_Funded);
+        Pollution.SetSources(m_Funded);
+        Civic.SetSources(m_Funded);
     }
 
     public SimulationSystem(GridData grid, RoadNetwork roads, BalanceConfig config,
@@ -67,6 +77,7 @@ public sealed class SimulationSystem
         if (ages != null) Tech = new TechSystem(ages, techs, config);
         Capacity = new CapacityModel(config, ages);
         Economy = new EconomySystem(config);
+        Budget = new BudgetSystem(config);
         Population = new PopulationSystem(config, Capacity);
         Demand = new DemandSystem(config);
         Power = new PowerSystem(grid, config, Capacity);
@@ -74,20 +85,22 @@ public sealed class SimulationSystem
         Coverage = new CoverageSystem(grid.Width, grid.Height);
         Pollution = new PollutionSystem(grid, config, Capacity, ages, () => TechModifiers);
         Civic = new CivicSystem(grid, config, Capacity, () => Population.Population, ages);
-        LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic);
+        LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic,
+            () => Budget.EffectFactor(BudgetLine.Parks));
         Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water);
         grid.OnResized += () =>
         {
             Coverage.Resize(grid.Width, grid.Height);
-            Coverage.Recompute(m_Sources);
+            Coverage.Recompute(m_Funded);
         };
+        Budget.Changed += ApplySources;
     }
 
     // The Power term only counts in ages whose upgrades need power; the Water term in ages needing water.
     public ServiceStats MeasureServices()
     {
         return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution, LandValue, Water,
-            Civic);
+            Civic, Budget.EffectFactor(BudgetLine.Parks));
     }
 
     // Research points earned per day at the current population: filled commercial jobs, research
@@ -100,7 +113,8 @@ public sealed class SimulationSystem
         if (Tech == null) return default;
         int jobs = Population.Jobs;
         float filledCommercial = jobs > 0 ? (float)Population.CommercialJobs * Population.Employed / jobs : 0f;
-        return new ResearchBreakdown(filledCommercial * m_Config.ResearchPerCommercialJob, Modifiers.ResearchPerDay,
+        return new ResearchBreakdown(filledCommercial * m_Config.ResearchPerCommercialJob,
+            Modifiers.ResearchPerDay + Budget.ResearchDelta(m_Sources),
             Population.Population * m_LastServices.EducatedShare * m_Config.ResearchPerEducatedResident,
             Tech.Modifiers.ResearchMultiplier);
     }
@@ -120,6 +134,25 @@ public sealed class SimulationSystem
         Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial, TechModifiers);
     }
 
+    // Today's money in and out (M15): the numbers Tick charges. Placed buildings' upkeep follows each
+    // line's funding; roads and pipes are fixed costs.
+    public BudgetBreakdown Ledger()
+    {
+        CityModifiers modifiers = Modifiers;
+        float residential = Population.Employed * m_Config.IncomePerWorker * Economy.TaxResidential;
+        float commercial = Population.CommercialJobs * m_Config.IncomePerCommercialJob * Economy.TaxCommercial;
+        float industrial = Population.IndustrialJobs * m_Config.IncomePerIndustrialJob * Economy.TaxIndustrial;
+
+        var byLine = new float[BudgetSystem.Lines];
+        float sourceUpkeep = Budget.Accumulate(m_Sources, byLine, out float fundingDelta);
+        float roads = m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay;
+        float pipes = m_Grid.CountPipes() * m_Config.PipeUpkeepPerDay;
+        float multiplier = TechModifiers.UpkeepMultiplier;
+        float expense = (modifiers.UpkeepPerDay + fundingDelta + roads + pipes) * multiplier;
+        return new BudgetBreakdown(residential, commercial, industrial, byLine, modifiers.UpkeepPerDay - sourceUpkeep,
+            roads, pipes, multiplier, expense);
+    }
+
     public void Tick()
     {
         CityModifiers modifiers = Modifiers;
@@ -135,12 +168,8 @@ public sealed class SimulationSystem
         Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, m_LastServices,
             tech.HappinessBonus);
 
-        float income = Population.Employed * m_Config.IncomePerWorker * Economy.TaxResidential
-            + Population.CommercialJobs * m_Config.IncomePerCommercialJob * Economy.TaxCommercial
-            + Population.IndustrialJobs * m_Config.IncomePerIndustrialJob * Economy.TaxIndustrial;
-        float expense = (modifiers.UpkeepPerDay + m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay
-            + m_Grid.CountPipes() * m_Config.PipeUpkeepPerDay) * tech.UpkeepMultiplier;
-        Economy.ApplyDay(income, expense);
+        BudgetBreakdown ledger = Ledger();
+        Economy.ApplyDay(ledger.Income, ledger.Expense);
 
         Tech?.Step(ResearchIncome());
     }

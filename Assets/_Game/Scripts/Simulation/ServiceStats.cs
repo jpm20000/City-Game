@@ -34,7 +34,7 @@ public readonly struct ServiceStats
     // needing no water) leaves UnwateredHousingShare at 0; civic null leaves the civic terms at 0.
     public static ServiceStats Measure(GridData grid, BalanceConfig config, CoverageSystem coverage, PowerSystem power,
         CapacityModel capacityModel = null, bool countPower = true, PollutionSystem pollution = null,
-        LandValueSystem landValue = null, WaterSystem water = null, CivicSystem civic = null)
+        LandValueSystem landValue = null, WaterSystem water = null, CivicSystem civic = null, float parkFactor = 1f)
     {
         bool countWater = water != null && water.Mode != WaterRule.None;
         capacityModel ??= new CapacityModel(config);
@@ -60,7 +60,7 @@ public readonly struct ServiceStats
                 if (capacity == 0) continue;
 
                 housing += capacity;
-                bonus += capacity * Mathf.Min(coverage.GetCoverage(cell) * config.ServiceBonusEach, config.ServiceBonusCap);
+                bonus += capacity * Mathf.Min(coverage.GetCoverage(cell) * config.ServiceBonusEach * parkFactor, config.ServiceBonusCap);
                 if (countPower && !power.IsPowered(cell)) unpowered += capacity;
                 if (countWater && !water.HasWater(cell)) unwatered += capacity;
                 if (pollution != null) polluted += capacity * PollutionPenaltyAt(config, pollution.GetPollution(cell));

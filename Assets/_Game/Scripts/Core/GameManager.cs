@@ -265,7 +265,7 @@ public sealed class GameManager : MonoBehaviour
             BuildingDefinition def = b.Definition;
             m_Sources.Add(new ServiceSource(b.Origin, CellUtils.EffectiveSize(def.Size, b.Rotation),
                 def.CoverageRadius, def.PowerSupply, def.Pollution, def.PollutionRadius, def.WaterSupply, def.WaterRadius,
-                def.CivicKind, def.CivicRadius, def.CivicStrength));
+                def.CivicKind, def.CivicRadius, def.CivicStrength, def.UpkeepPerDay, def.ResearchPerDay));
         }
         Simulation.Sources = m_Sources;
         m_PowerDirty = true;

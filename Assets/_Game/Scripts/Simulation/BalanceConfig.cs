@@ -132,6 +132,18 @@ public sealed class BalanceConfig : ScriptableObject
     [Tooltip("(M14) Research points per day per resident x the education cover at their home.")]
     [SerializeField] private float m_ResearchPerEducatedResident = 0.01f;
 
+    [Header("Budget (M15)")]
+    [Tooltip("(M15) Lowest funding a budget line can be set to (1 = 100%).")]
+    [SerializeField] private float m_FundingMin = 0.5f;
+    [Tooltip("(M15) Highest funding a budget line can be set to.")]
+    [SerializeField] private float m_FundingMax = 1.5f;
+    [Tooltip("(M15) Funding moves in steps of this.")]
+    [SerializeField] private float m_FundingStep = 0.1f;
+    [Tooltip("(M15) Above 100% funding, the effect grows by this share of the extra funding (0.5: 150% = x1.25).")]
+    [SerializeField] private float m_FundingOverSlope = 0.5f;
+    [Tooltip("(M15) Reach changes by this share of the effect change (0.5: 50% funding = x0.75 reach).")]
+    [SerializeField] private float m_FundingReachSlope = 0.5f;
+
     [Header("Research & ages")]
     [Tooltip("(tuned, M11g) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs). 0.25 puts each age at ~60-90 days of engaged play (AgeBalanceTests).")]
     [SerializeField] private float m_ResearchPerCommercialJob = 0.25f;
@@ -219,6 +231,12 @@ public sealed class BalanceConfig : ScriptableObject
     public float FirePenaltyCap => m_FirePenaltyCap;
     public float HealthPenalty => m_HealthPenalty;
     public float ResearchPerEducatedResident => m_ResearchPerEducatedResident;
+
+    public float FundingMin => m_FundingMin;
+    public float FundingMax => m_FundingMax;
+    public float FundingStep => m_FundingStep;
+    public float FundingOverSlope => m_FundingOverSlope;
+    public float FundingReachSlope => m_FundingReachSlope;
 
     public float ResearchPerCommercialJob => m_ResearchPerCommercialJob;
     public int RedevelopPerDay => m_RedevelopPerDay;

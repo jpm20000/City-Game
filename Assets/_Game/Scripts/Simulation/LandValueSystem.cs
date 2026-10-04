@@ -38,12 +38,13 @@ public sealed class LandValueSystem
     private readonly PollutionSystem m_Pollution;
     private readonly Func<TechModifiers> m_Tech;
     private readonly CivicSystem m_Civic;
+    private readonly Func<float> m_ParkFactor;
     private byte[] m_Heritage;
     private bool m_Dirty = true;
 
     // tech null = no tech bonus; civic null = no crime term.
     public LandValueSystem(GridData grid, BalanceConfig config, CoverageSystem coverage, PollutionSystem pollution,
-        Func<TechModifiers> tech = null, CivicSystem civic = null)
+        Func<TechModifiers> tech = null, CivicSystem civic = null, Func<float> parkFactor = null)
     {
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
@@ -51,6 +52,7 @@ public sealed class LandValueSystem
         m_Pollution = pollution ?? throw new ArgumentNullException(nameof(pollution));
         m_Tech = tech;
         m_Civic = civic;
+        m_ParkFactor = parkFactor;
         Allocate();
         grid.OnCellChanged += _ => m_Dirty = true;
         grid.OnResized += Allocate;
@@ -84,7 +86,8 @@ public sealed class LandValueSystem
     public LandValueBreakdown Explain(Vector2Int cell)
     {
         if (!m_Grid.InBounds(cell)) return default;
-        float services = Mathf.Min(m_Coverage.GetCoverage(cell) * m_Config.LandValuePerService, m_Config.LandValueServiceCap);
+        float parks = m_ParkFactor != null ? m_ParkFactor() : 1f;
+        float services = Mathf.Min(m_Coverage.GetCoverage(cell) * m_Config.LandValuePerService * parks, m_Config.LandValueServiceCap);
         float heritage = Mathf.Min(HeritageCount(cell) * m_Config.HeritageLandValueEach, m_Config.HeritageLandValueCap);
         float tech = (m_Tech?.Invoke() ?? TechModifiers.None).LandValueBonus;
         float pollution = -m_Pollution.GetPollution(cell) * m_Config.LandValuePerPollution;

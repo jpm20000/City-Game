@@ -79,6 +79,11 @@ MonoBehaviour:
   m_FirePenaltyCap: 0.06
   m_HealthPenalty: 0.08
   m_ResearchPerEducatedResident: 0.01
+  m_FundingMin: 0.5
+  m_FundingMax: 1.5
+  m_FundingStep: 0.1
+  m_FundingOverSlope: 0.5
+  m_FundingReachSlope: 0.5
   m_ResearchPerCommercialJob: 0.25
   m_RedevelopPerDay: 3
   m_ResearchQueueMax: 5
