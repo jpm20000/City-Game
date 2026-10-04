@@ -1,5 +1,5 @@
 // One day's money in and out (M15), for the ledger. Expense is what SimulationSystem.Tick charges;
-// the parts add up to it (UpkeepByLine + OtherUpkeep + Roads + Pipes, times TechUpkeepMultiplier).
+// the parts add up to it ((UpkeepByLine + OtherUpkeep + Roads + Pipes) x TechUpkeepMultiplier + Loans).
 public readonly struct BudgetBreakdown
 {
     public readonly float IncomeResidential;
@@ -10,10 +10,11 @@ public readonly struct BudgetBreakdown
     public readonly float Roads;
     public readonly float Pipes;
     public readonly float TechUpkeepMultiplier; // researched techs' upkeep multiplier (applies to all of the above)
+    public readonly float Loans;                // daily loan payments (not scaled by the upkeep multiplier)
     public readonly float Expense;
 
     public BudgetBreakdown(float incomeResidential, float incomeCommercial, float incomeIndustrial, float[] upkeepByLine,
-        float otherUpkeep, float roads, float pipes, float techUpkeepMultiplier, float expense)
+        float otherUpkeep, float roads, float pipes, float techUpkeepMultiplier, float loans, float expense)
     {
         IncomeResidential = incomeResidential;
         IncomeCommercial = incomeCommercial;
@@ -23,6 +24,7 @@ public readonly struct BudgetBreakdown
         Roads = roads;
         Pipes = pipes;
         TechUpkeepMultiplier = techUpkeepMultiplier;
+        Loans = loans;
         Expense = expense;
     }
 

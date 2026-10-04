@@ -195,7 +195,7 @@ public sealed class SaveMigrationTests
 
         SaveData data = Read(SaveSystem.ToJson(saved), withAges: false);
 
-        Assert.AreEqual(3, data.Version);
+        Assert.AreEqual(SaveData.CurrentVersion, data.Version);
         Assert.AreEqual(24 * 24, data.Pipes.Length);
         Assert.IsTrue(System.Array.TrueForAll(data.Pipes, p => p == 0));
         CollectionAssert.AreEqual(saved.Levels, data.Levels, "nothing else changes");
@@ -338,5 +338,28 @@ public sealed class SaveMigrationTests
         SaveData loaded = Read(SaveSystem.ToJson(data), true);
 
         Assert.AreEqual(TestAges.Renaissance, loaded.BuiltAges[5]);
+    }
+
+    // --- v3 -> v4 (M15) ---
+
+    [Test]
+    public void V3Save_MigratesToV4_WithFullFundingAndNoLoans()
+    {
+        var grid = new GridData(24, 24);
+        SimulationSystem sim = SeededCity.Run(grid, m_Config, 20);
+        SaveData saved = SaveSystem.Capture(grid, sim);
+        saved.Version = 3;
+        saved.Funding = null;
+        saved.Loans = null;
+        saved.Ordinances = null;
+
+        SaveData data = Read(SaveSystem.ToJson(saved), withAges: false);
+
+        Assert.AreEqual(4, data.Version);
+        Assert.AreEqual(BudgetSystem.Lines, data.Funding.Length);
+        Assert.IsTrue(System.Array.TrueForAll(data.Funding, f => f == 1f));
+        Assert.AreEqual(0, data.Loans.Count);
+        Assert.AreEqual(0, data.Ordinances.Count);
+        CollectionAssert.AreEqual(saved.Levels, data.Levels, "nothing else changes");
     }
 }

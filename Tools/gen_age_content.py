@@ -94,12 +94,13 @@ TECHS = [
 # (asset, id, display, year, max level, scale, power, techs to advance, required, pop, advance cost, starting techs, money, zone names,
 #  pollution scale, pollution radius (M12: workshops pollute little and close by, factories a lot, clean energy less),
 #  water rule (M13: 1 Coverage = wells and fountains, 2 Piped = towers and pumps on the road network),
-#  fire risk (M14: timber towns burn, brick and steel less))
+#  fire risk (M14: timber towns burn, brick and steel less),
+#  loan amount (M15))
 AGES = [
-    ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"], 0.3, 1, 1, 0.6),
-    ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"], 0.5, 2, 1, 0.45),
-    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity", "waterworks"], 50000, ["", "", ""], 1.0, 3, 2, 0.35),
-    ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""], 0.6, 3, 2, 0.2),
+    ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"], 0.3, 1, 1, 0.6, 10000),
+    ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"], 0.5, 2, 1, 0.45, 15000),
+    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity", "waterworks"], 50000, ["", "", ""], 1.0, 3, 2, 0.35, 25000),
+    ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""], 0.6, 3, 2, 0.2, 40000),
 ]
 
 tech_guid = {t[1]: guid("tech_" + t[1]) for t in TECHS}
@@ -115,13 +116,13 @@ for asset, tid, display, age, cost, prereqs, effects, desc in TECHS:
     write(os.path.join(ROOT, "Techs", asset + ".asset"), text, tech_guid[tid])
 
 age_guid = {}
-for asset, aid, display, year, maxl, scale, power, toadv, req, pop, cost, starting, money, zones, pscale, pradius, water, fire in AGES:
+for asset, aid, display, year, maxl, scale, power, toadv, req, pop, cost, starting, money, zones, pscale, pradius, water, fire, loan in AGES:
     g = guid("age_" + aid)
     age_guid[aid] = g
     text = header(GUID_AGE_DEF, asset, "AgeDefinition")
     text += "  m_Id: %s\n  m_DisplayName: %s\n  m_StartYear: %d\n  m_MaxLevel: %d\n  m_CapacityScale: %s\n" % (aid, display, year, maxl, scale)
     text += "  m_UpgradesNeedPower: %d\n  m_Water: %d\n" % (1 if power else 0, water)
-    text += "  m_PollutionScale: %s\n  m_PollutionRadius: %d\n  m_FireRisk: %s\n  m_TechsToAdvance: %d\n" % (pscale, pradius, fire, toadv)
+    text += "  m_PollutionScale: %s\n  m_PollutionRadius: %d\n  m_FireRisk: %s\n  m_LoanAmount: %s\n  m_TechsToAdvance: %d\n" % (pscale, pradius, fire, loan, toadv)
     text += "  m_RequiredTechs: %s\n" % array([ref(tech_guid[t]) for t in req])
     text += "  m_PopulationToEnter: %d\n  m_AdvanceCost: %s\n" % (pop, cost)
     text += "  m_StartingTechs: %s\n" % array([ref(tech_guid[t]) for t in starting])

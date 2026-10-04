@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -35,7 +36,9 @@ public static class SaveSystem
             BuiltAges = grid.ExportBuiltAges(),
             Historic = grid.ExportHistoric(),
             Pipes = grid.ExportPipes(),
+            Funding = sim.Budget.ExportFunding(),
         };
+        foreach (Loan loan in sim.Budget.Loans) data.Loans.Add(new LoanRecord(loan.Amount, loan.DailyPayment, loan.DaysLeft));
         TechSystem tech = sim.Tech;
         if (tech != null)
         {
@@ -115,6 +118,13 @@ public static class SaveSystem
                 tech.StartNew(Math.Max(0, tech.Ages.Legacy));   // not migrated with these databases
             }
         }
+
+        var loans = new List<Loan>();
+        if (data.Loans != null)
+        {
+            foreach (LoanRecord record in data.Loans) loans.Add(new Loan(record.Amount, record.DailyPayment, record.DaysLeft));
+        }
+        sim.Budget.Restore(data.Funding, loans);
 
         sim.Restore(
             data.Money, data.IncomePerDay, data.ExpensePerDay,

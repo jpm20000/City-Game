@@ -344,4 +344,43 @@ public sealed class SaveSystemTests
         Assert.AreEqual(999f, loaded.Money);
         Assert.IsFalse(File.Exists(path + ".tmp"));
     }
+
+    // M15 (save v4): funding, an open loan and a changed economy survive a save, and the loaded city
+    // plays on exactly like the original.
+    [Test]
+    public void SaveWithFundingAndLoan_ThenContinue_MatchesUninterruptedRun()
+    {
+        ServiceSource plant = new ServiceSource(new Vector2Int(0, 9), new Vector2Int(3, 3), 0, 400, upkeepPerDay: 100f);
+        ServiceSource park = new ServiceSource(new Vector2Int(14, 14), new Vector2Int(2, 2), 4, 0, upkeepPerDay: 5f);
+        GridData gridA = new GridData(24, 24);
+        SeededCity.Seed(gridA);
+        SimulationSystem a = new SimulationSystem(gridA, new RoadNetwork(gridA), m_Config);
+        a.Sources = new[] { plant, park };
+        a.Modifiers = new CityModifiers { UpkeepPerDay = 105f };
+        a.Budget.SetFunding(BudgetLine.Parks, 1.5f);
+        a.Budget.SetFunding(BudgetLine.Power, 0.7f);
+        Run(a, 20);
+        Assert.IsTrue(a.TakeLoan());
+        Run(a, 20);
+
+        SaveData saved = SaveSystem.Capture(gridA, a);
+        Assert.AreEqual(1, saved.Loans.Count);
+        Assert.AreEqual(340, saved.Loans[0].DaysLeft);
+
+        SimulationSystem b = LoadIntoNew(saved, out GridData gridB, new[] { plant, park });
+        b.Modifiers = a.Modifiers;
+        Assert.AreEqual(0.7f, b.Budget.GetFunding(BudgetLine.Power), 1e-6f);
+        Assert.AreEqual(1.5f, b.Budget.GetFunding(BudgetLine.Parks), 1e-6f);
+        Assert.AreEqual(a.Power.Supply, b.Power.Supply);
+        Assert.AreEqual(1, b.Budget.Loans.Count);
+
+        Run(a, 30);
+        Run(b, 30);
+
+        Assert.AreEqual(a.Population.Population, b.Population.Population);
+        Assert.AreEqual(a.Population.AverageHappiness, b.Population.AverageHappiness);
+        Assert.AreEqual(a.Economy.Money, b.Economy.Money, 1e-2f);
+        Assert.AreEqual(a.Budget.Loans[0].DaysLeft, b.Budget.Loans[0].DaysLeft);
+        AssertSameGrid(gridA, gridB);
+    }
 }

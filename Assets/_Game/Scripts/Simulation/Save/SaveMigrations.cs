@@ -27,8 +27,15 @@ public static class SaveMigrations
             V2ToV3(data);
             data.Version = 3;
         }
+        if (data.Version == 3)
+        {
+            V3ToV4(data);
+            data.Version = 4;
+        }
 
         data.Buildings ??= new();
+        data.Loans ??= new();
+        data.Ordinances ??= new();
         data.Researched ??= new();
         data.ResearchQueue ??= new();
         data.ActiveResearch ??= "";
@@ -74,6 +81,15 @@ public static class SaveMigrations
     private static void V2ToV3(SaveData data)
     {
         data.Pipes = new byte[Math.Max(0, data.Width * data.Height)];
+    }
+
+    // v4 adds funding, loans and ordinances (M15). Older cities fund every line at 100% and owe nothing.
+    private static void V3ToV4(SaveData data)
+    {
+        data.Funding = new float[BudgetSystem.Lines];
+        for (int i = 0; i < data.Funding.Length; i++) data.Funding[i] = 1f;
+        data.Loans = new List<LoanRecord>();
+        data.Ordinances = new List<string>();
     }
 
     // A city saved without ages played by today's rules: it becomes an Industrial city with every

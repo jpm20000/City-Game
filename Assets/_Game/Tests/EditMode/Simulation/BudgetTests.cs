@@ -242,4 +242,81 @@ public sealed class BudgetTests
         Assert.AreEqual(1, sim.Coverage.GetCoverage(new Vector2Int(8 + 6, 8)), "funded reach 6 after the resize");
         Assert.AreEqual(0, sim.Coverage.GetCoverage(new Vector2Int(8 + 7, 8)));
     }
+
+    // --- Loans (15b) ---
+
+    [Test]
+    public void Loan_PaysFlatInterestInEqualDailyPaymentsOverTheTerm()
+    {
+        SimulationSystem sim = Empty();
+        float before = sim.Economy.Money;
+        Assert.IsTrue(sim.TakeLoan());
+        Assert.AreEqual(25000f, sim.LoanOffer(), "no ages: the config amount");
+        Assert.AreEqual(before + 25000f, sim.Economy.Money, 1e-3f, "the principal arrives at once");
+
+        float payment = 25000f * 1.10f / 360f;
+        Assert.AreEqual(payment, sim.Budget.Loans[0].DailyPayment, 1e-3f);
+        Assert.AreEqual(payment, sim.Ledger().Loans, 1e-3f);
+        Assert.AreEqual(payment, sim.Ledger().Expense, 1e-3f, "loan payments are an expense line");
+    }
+
+    [Test]
+    public void Loan_EndsAfterTheTerm_AndTotalPaidIsPrincipalPlusInterest()
+    {
+        SimulationSystem sim = Empty();
+        sim.TakeLoan();
+        float paid = 0f;
+        for (int day = 0; day < 359; day++)
+        {
+            sim.Tick();
+            paid += sim.Economy.ExpensePerDay;
+        }
+        Assert.AreEqual(1, sim.Budget.Loans.Count, "one payment still to go");
+        sim.Tick();
+        paid += sim.Economy.ExpensePerDay;
+        Assert.AreEqual(0, sim.Budget.Loans.Count, "paid off after 360 days");
+        Assert.AreEqual(27500f, paid, 0.5f);
+        sim.Tick();
+        Assert.AreEqual(0f, sim.Economy.ExpensePerDay, 1e-4f, "no more payments");
+    }
+
+    [Test]
+    public void Loan_RepaidEarly_CostsTheRemainingPrincipal()
+    {
+        SimulationSystem sim = Empty();
+        sim.TakeLoan();
+        for (int day = 0; day < 90; day++) sim.Tick();
+        float expected = 25000f * 270f / 360f;
+        Assert.AreEqual(expected, sim.Budget.RemainingPrincipal(0), 1e-2f);
+
+        float before = sim.Economy.Money;
+        Assert.IsTrue(sim.RepayLoan(0));
+        Assert.AreEqual(before - expected, sim.Economy.Money, 1e-2f);
+        Assert.AreEqual(0, sim.Budget.Loans.Count);
+        Assert.IsFalse(sim.RepayLoan(0), "nothing left to repay");
+    }
+
+    [Test]
+    public void Loan_RepayNeedsTheMoney()
+    {
+        SimulationSystem sim = Empty();
+        sim.TakeLoan();
+        sim.Economy.Restore(100f, 0f, 0f, 0.1f, 0.1f, 0.1f);
+        Assert.IsFalse(sim.RepayLoan(0));
+        Assert.AreEqual(1, sim.Budget.Loans.Count);
+        Assert.AreEqual(100f, sim.Economy.Money, 1e-3f);
+    }
+
+    [Test]
+    public void Loan_LimitedToMaxLoans_AndAllowedInDebt()
+    {
+        SimulationSystem sim = Empty();
+        sim.Economy.Restore(-5000f, 0f, 0f, 0.1f, 0.1f, 0.1f);
+        Assert.IsTrue(sim.TakeLoan(), "in debt is exactly when you need one");
+        Assert.AreEqual(20000f, sim.Economy.Money, 1e-3f);
+        Assert.IsTrue(sim.TakeLoan());
+        Assert.IsFalse(sim.TakeLoan(), "MaxLoans 2");
+        Assert.AreEqual(2, sim.Budget.Loans.Count);
+        Assert.AreEqual(2 * 25000f * 1.10f / 360f, sim.Budget.DailyLoanPayments, 1e-3f);
+    }
 }

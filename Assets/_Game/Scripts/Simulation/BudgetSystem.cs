@@ -12,12 +12,16 @@ public sealed class BudgetSystem
 
     private readonly BalanceConfig m_Config;
     private readonly float[] m_Funding;
+    private readonly List<Loan> m_Loans = new();
+    private readonly Func<float> m_InterestMultiplier;
 
     // Raised after any funding change (SimulationSystem re-feeds the funded sources).
     public event Action Changed;
 
-    public BudgetSystem(BalanceConfig config)
+    // interestMultiplier: researched techs' loan interest multiplier (null = 1).
+    public BudgetSystem(BalanceConfig config, Func<float> interestMultiplier = null)
     {
+        m_InterestMultiplier = interestMultiplier;
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
         m_Funding = new float[LineCount];
         for (int i = 0; i < LineCount; i++) m_Funding[i] = 1f;
@@ -50,9 +54,11 @@ public sealed class BudgetSystem
         }
     }
 
-    // Load / new game: sets every line (missing entries stay 100%) and raises Changed once.
-    public void Restore(IReadOnlyList<float> funding)
+    // Load / new game: sets every line (missing entries stay 100%) and the open loans, then raises Changed once.
+    public void Restore(IReadOnlyList<float> funding, IReadOnlyList<Loan> loans = null)
     {
+        m_Loans.Clear();
+        if (loans != null) m_Loans.AddRange(loans);
         for (int i = 0; i < LineCount; i++)
         {
             float f = funding != null && i < funding.Count ? funding[i] : 1f;
@@ -62,6 +68,55 @@ public sealed class BudgetSystem
     }
 
     public float[] ExportFunding() => (float[])m_Funding.Clone();
+
+    // --- Loans ---
+
+    public IReadOnlyList<Loan> Loans => m_Loans;
+
+    public bool CanBorrow => m_Loans.Count < m_Config.MaxLoans;
+
+    // Opens a loan of the given principal: repaid in equal daily payments over LoanTermDays, with
+    // LoanInterest (x the techs' multiplier) added flat. The caller credits the principal. Null at MaxLoans.
+    public Loan? Borrow(float amount)
+    {
+        if (!CanBorrow || amount <= 0f) return null;
+        float interest = m_Config.LoanInterest * (m_InterestMultiplier?.Invoke() ?? 1f);
+        int term = m_Config.LoanTermDays;
+        var loan = new Loan(amount, amount * (1f + interest) / term, term);
+        m_Loans.Add(loan);
+        return loan;
+    }
+
+    // Daily payments of every open loan.
+    public float DailyLoanPayments
+    {
+        get
+        {
+            float total = 0f;
+            foreach (Loan loan in m_Loans) total += loan.DailyPayment;
+            return total;
+        }
+    }
+
+    // What paying a loan off now costs: the principal still owed (the unpaid interest is waived).
+    public float RemainingPrincipal(int index)
+    {
+        Loan loan = m_Loans[index];
+        return loan.Amount * loan.DaysLeft / m_Config.LoanTermDays;
+    }
+
+    public void RemoveLoan(int index) => m_Loans.RemoveAt(index);
+
+    // One day passed: every loan is a day closer to done (the last payment was in that day's ledger).
+    public void StepLoans()
+    {
+        for (int i = m_Loans.Count - 1; i >= 0; i--)
+        {
+            Loan loan = m_Loans[i];
+            if (loan.DaysLeft <= 1) m_Loans.RemoveAt(i);
+            else m_Loans[i] = new Loan(loan.Amount, loan.DailyPayment, loan.DaysLeft - 1);
+        }
+    }
 
     // Effect (strength, supply, park cheer, school RP): f up to 100%, half as much above.
     public float EffectFactor(BudgetLine line) => EffectFactorAt(m_Config, m_Funding[(int)line]);
@@ -165,5 +220,20 @@ public sealed class BudgetSystem
             if (s.ResearchPerDay > 0f && LineOf(s) == BudgetLine.Education) delta += s.ResearchPerDay * (effect - 1f);
         }
         return delta;
+    }
+}
+
+// An open loan (M15): Amount is the principal, DailyPayment the flat payment (principal + interest over the term).
+public readonly struct Loan
+{
+    public readonly float Amount;
+    public readonly float DailyPayment;
+    public readonly int DaysLeft;
+
+    public Loan(float amount, float dailyPayment, int daysLeft)
+    {
+        Amount = amount;
+        DailyPayment = dailyPayment;
+        DaysLeft = daysLeft;
     }
 }

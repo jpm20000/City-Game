@@ -211,4 +211,16 @@ public sealed class ContentTests
             }
         }
     }
+
+    [Test]
+    public void Ages_OfferLoansThatGrowWithTheAge()
+    {
+        float previous = 0f;
+        for (int i = 0; i < m_Ages.Count; i++)
+        {
+            Assert.Greater(m_Ages[i].LoanAmount, previous, $"{m_Ages[i].Id} loan amount");
+            previous = m_Ages[i].LoanAmount;
+        }
+        Assert.AreEqual(m_Config.LoanAmount, m_Ages[m_Ages.Legacy].LoanAmount, "the age-less amount is the Industrial one");
+    }
 }

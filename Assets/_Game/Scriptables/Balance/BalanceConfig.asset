@@ -84,6 +84,10 @@ MonoBehaviour:
   m_FundingStep: 0.1
   m_FundingOverSlope: 0.5
   m_FundingReachSlope: 0.5
+  m_LoanAmount: 25000
+  m_MaxLoans: 2
+  m_LoanInterest: 0.1
+  m_LoanTermDays: 360
   m_ResearchPerCommercialJob: 0.25
   m_RedevelopPerDay: 3
   m_ResearchQueueMax: 5

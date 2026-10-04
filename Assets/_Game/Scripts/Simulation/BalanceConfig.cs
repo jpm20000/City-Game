@@ -143,6 +143,14 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_FundingOverSlope = 0.5f;
     [Tooltip("(M15) Reach changes by this share of the effect change (0.5: 50% funding = x0.75 reach).")]
     [SerializeField] private float m_FundingReachSlope = 0.5f;
+    [Tooltip("(M15) Loan principal when the sim has no ages (AgeDefinition.LoanAmount otherwise).")]
+    [SerializeField] private float m_LoanAmount = 25000f;
+    [Tooltip("(M15) Most loans open at once.")]
+    [SerializeField] private int m_MaxLoans = 2;
+    [Tooltip("(M15) Flat interest over the whole term (0.10 = repay 110%).")]
+    [SerializeField] private float m_LoanInterest = 0.10f;
+    [Tooltip("(M15) Days a loan is repaid over (one year).")]
+    [SerializeField] private int m_LoanTermDays = 360;
 
     [Header("Research & ages")]
     [Tooltip("(tuned, M11g) Research points per day for each filled commercial job (filled = CommercialJobs x Employed / Jobs). 0.25 puts each age at ~60-90 days of engaged play (AgeBalanceTests).")]
@@ -237,6 +245,10 @@ public sealed class BalanceConfig : ScriptableObject
     public float FundingStep => m_FundingStep;
     public float FundingOverSlope => m_FundingOverSlope;
     public float FundingReachSlope => m_FundingReachSlope;
+    public float LoanAmount => m_LoanAmount;
+    public int MaxLoans => m_MaxLoans;
+    public float LoanInterest => m_LoanInterest;
+    public int LoanTermDays => m_LoanTermDays;
 
     public float ResearchPerCommercialJob => m_ResearchPerCommercialJob;
     public int RedevelopPerDay => m_RedevelopPerDay;

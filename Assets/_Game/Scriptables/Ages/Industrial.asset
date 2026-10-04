@@ -22,6 +22,7 @@ MonoBehaviour:
   m_PollutionScale: 1.0
   m_PollutionRadius: 3
   m_FireRisk: 0.35
+  m_LoanAmount: 25000
   m_TechsToAdvance: 4
   m_RequiredTechs: []
   m_PopulationToEnter: 350

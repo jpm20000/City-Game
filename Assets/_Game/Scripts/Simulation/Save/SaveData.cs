@@ -7,7 +7,7 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
     public const int NoAge = -1;
 
     public int Version = CurrentVersion;
@@ -46,7 +46,28 @@ public sealed class SaveData
     // v3 (M13): water pipes (1 = pipe under the cell).
     public byte[] Pipes;
 
+    // v4 (M15): funding per BudgetLine (null / short = 100%), open loans and enacted ordinance ids.
+    public float[] Funding;
+    public List<LoanRecord> Loans = new();
+    public List<string> Ordinances = new();
+
     public List<BuildingRecord> Buildings = new();
+}
+
+// An open loan (M15).
+[Serializable]
+public struct LoanRecord
+{
+    public float Amount;
+    public float DailyPayment;
+    public int DaysLeft;
+
+    public LoanRecord(float amount, float dailyPayment, int daysLeft)
+    {
+        Amount = amount;
+        DailyPayment = dailyPayment;
+        DaysLeft = daysLeft;
+    }
 }
 
 // A player-placed building, re-placed on load by definition id.

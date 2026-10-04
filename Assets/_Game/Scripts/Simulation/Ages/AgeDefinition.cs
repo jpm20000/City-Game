@@ -30,6 +30,10 @@ public sealed class AgeDefinition : ScriptableObject
     [Tooltip("Fire risk of blocks built in this age (timber burns, brick and steel less); 0 = BalanceConfig.FireRisk.")]
     [SerializeField] private float m_FireRisk;
 
+    [Header("Budget (M15)")]
+    [Tooltip("Principal of a loan taken in this age; 0 = BalanceConfig.LoanAmount.")]
+    [SerializeField] private float m_LoanAmount;
+
     [Header("Entering this age")]
     [Tooltip("Techs of the previous age that must be researched before advancing into this age.")]
     [SerializeField] private int m_TechsToAdvance;
@@ -57,6 +61,7 @@ public sealed class AgeDefinition : ScriptableObject
     public float PollutionScale => m_PollutionScale;
     public int PollutionRadius => m_PollutionRadius;
     public float FireRisk => m_FireRisk;
+    public float LoanAmount => m_LoanAmount;
     public int TechsToAdvance => m_TechsToAdvance;
     public TechDefinition[] RequiredTechs => m_RequiredTechs ?? Array.Empty<TechDefinition>();
     public int PopulationToEnter => m_PopulationToEnter;
@@ -82,8 +87,9 @@ public sealed class AgeDefinition : ScriptableObject
         bool upgradesNeedPower = true, int techsToAdvance = 0, int populationToEnter = 0,
         float advanceCost = 0f, TechDefinition[] requiredTechs = null, TechDefinition[] startingTechs = null,
         float startingMoney = 50000f, float pollutionScale = 1f, int pollutionRadius = 0, WaterRule water = WaterRule.None,
-        float fireRisk = 0f)
+        float fireRisk = 0f, float loanAmount = 0f)
     {
+        m_LoanAmount = loanAmount;
         m_FireRisk = fireRisk;
         m_Water = water;
         m_PollutionScale = pollutionScale;

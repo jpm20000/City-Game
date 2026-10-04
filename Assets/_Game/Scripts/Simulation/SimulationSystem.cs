@@ -148,9 +148,36 @@ public sealed class SimulationSystem
         float roads = m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay;
         float pipes = m_Grid.CountPipes() * m_Config.PipeUpkeepPerDay;
         float multiplier = TechModifiers.UpkeepMultiplier;
-        float expense = (modifiers.UpkeepPerDay + fundingDelta + roads + pipes) * multiplier;
+        float loans = Budget.DailyLoanPayments;
+        float expense = (modifiers.UpkeepPerDay + fundingDelta + roads + pipes) * multiplier + loans;
         return new BudgetBreakdown(residential, commercial, industrial, byLine, modifiers.UpkeepPerDay - sourceUpkeep,
-            roads, pipes, multiplier, expense);
+            roads, pipes, multiplier, loans, expense);
+    }
+
+    // The principal a loan taken now would carry: the age's LoanAmount, else the config default.
+    public float LoanOffer()
+    {
+        float amount = Tech != null ? Tech.CurrentAgeDefinition.LoanAmount : 0f;
+        return amount > 0f ? amount : m_Config.LoanAmount;
+    }
+
+    // Takes a loan: the principal is credited at once, the payments come with the daily ledger.
+    // False at MaxLoans. Allowed in debt (that is what it is for).
+    public bool TakeLoan()
+    {
+        float offer = LoanOffer();
+        if (Budget.Borrow(offer) == null) return false;
+        Economy.Refund(offer);
+        return true;
+    }
+
+    // Pays loan `index` off early for its remaining principal; false when the city cannot afford it.
+    public bool RepayLoan(int index)
+    {
+        if (index < 0 || index >= Budget.Loans.Count) return false;
+        if (!Economy.Spend(Budget.RemainingPrincipal(index))) return false;
+        Budget.RemoveLoan(index);
+        return true;
     }
 
     public void Tick()
@@ -170,6 +197,7 @@ public sealed class SimulationSystem
 
         BudgetBreakdown ledger = Ledger();
         Economy.ApplyDay(ledger.Income, ledger.Expense);
+        Budget.StepLoans();
 
         Tech?.Step(ResearchIncome());
     }
