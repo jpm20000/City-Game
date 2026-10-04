@@ -1425,13 +1425,180 @@ research line, `NotificationController`.
   array-based (no per-cell `Vector2Int` allocations or `UnityEngine.Object` checks), and measure
   it in 14d.
 
+### M15 — Budget depth (plan, 2026-10-04)
+
+**Goal:** money becomes something the player steers, not just watches. Every service the player
+places sits on a **budget line** with a funding slider (50–150%): funding scales the line's upkeep,
+and with diminishing returns its reach and effect: park cheer, power and water supply, well reach,
+civic cover and school research. **Loans** carry a city through a big purchase or a deficit and are
+repaid daily with interest. **Ordinances** are city-wide policies unlocked by techs (about three per
+age), each with a daily cost and a mix of benefits and drawbacks. They give most of the remaining
+effect-less techs their content. The Taxes panel grows into a **Budget panel** with a daily ledger
+that names where the money comes from and goes.
+
+**Done when:**
+- Each budget line whose buildings are unlocked has a funding slider. Moving it changes that line's
+  upkeep in the ledger at once, and the Services / Water / Power / Coverage views show the new reach
+  and strength. At 50% a Police Station covers reach 6 at strength 0.5 for $15/day; at 150% reach 9
+  at 1.0 (capped) for $45/day. Underfunding power below the draw browns out the furthest blocks (the M9 shortage
+  path: toast, unpowered cells, no upgrades).
+- A loan can be taken from the Budget panel (amount by age, at most 2 at once), is repaid daily for a
+  year, and can be paid off early for its remaining principal. A city in debt that takes a loan
+  leaves the debt banner behind.
+- Ordinances unlock through techs (content table below), are enacted / repealed from the Budget
+  panel, charge their daily cost, and their effects show up where the player looks: happiness
+  tooltip ("Ordinances" line), demand meters, the Services views (crime / fire risk / sickness), the
+  pollution view and the tech panel's research line.
+- The ledger (income by zone; upkeep by line, roads, pipes, loans, ordinances) adds up to the HUD's
+  net/day.
+- Save v4 stores funding, loans and enacted ordinances; v3 (and the v1 fixture) migrate; save → load
+  → continue equals an uninterrupted run.
+- At default settings (100% funding, no loans, no ordinances) every existing number is unchanged:
+  the seeded city, `IndustrialStart_RealContent_Baseline` (220 / 0.631) and `AgeBalanceTests`.
+  `AgeBalanceTests` also pass with `EngagedCity` using ordinances and loans. All EditMode tests are
+  green, and a UI-only virtual-input play-through passes.
+
+#### Design decisions (defaults — change any before the step that uses them)
+
+| Topic | Decision |
+|---|---|
+| Baseline | **No baseline change** (no question needed this time): the defaults are identity (funding 100% → factor 1, no loans, no ordinances), so the age-less sim and every recorded number stay as they are. Funding and loans also work without ages (loan amount from `BalanceConfig`); ordinances need techs, so the age-less sim has none. A test pins that a city at 100% funding equals one built before M15. |
+| Budget lines | **Asked 2026-10-04: civic + parks + utilities.** `BudgetLine` enum (saved by value, append only): `Parks, Power, Water, Order, Fire, Health, Education`. Roads and pipes stay unfunded fixed costs. |
+| What a line's funding scales | **Each effect follows its own line**: park reach and park bonus → Parks; plant supply → Power; tower / pump supply and well / fountain reach → Water; civic reach and strength → the civic line (Education also scales the school's flat `ResearchPerDay`). **Upkeep** is charged to one line per building, by priority civic > power > water > parks (`BudgetSystem.LineOf(source)`): the Fountain pays on Water although its cheer follows Parks, and the Monastery / Academy pay on Education. Pollution is not funded (an underfunded plant pollutes the same). |
+| Funding range | **Asked 2026-10-04: 50–150%**, in 10% steps, default 100%, per line. |
+| Funding curves | Effect factor `E(f) = f` up to 100%, `1 + FundingOverSlope × (f − 1)` above (`FundingOverSlope` 0.5, so 150% → ×1.25). Reach factor `R(f) = 1 + FundingReachSlope × (E(f) − 1)` (`FundingReachSlope` 0.5: 50% → ×0.75, 150% → ×1.125); reach = `max(1, round(radius × R))`. Supply = `round(supply × E)`. Civic strength = `min(1, strength × E)`, so a full-strength tier gains reach only. Upkeep × `f`. Diminishing returns on purpose: overfunding stretches an old tier until the next unlocks, but never beats building the next tier (checked in 15e). |
+| How funding enters the sim | `SimulationSystem` keeps the raw `Sources` and builds a **funded copy** (each `ServiceSource` with its reach / supply / strength scaled) whenever `Sources` or funding change; Power, Water, Coverage, Pollution and Civic get the funded copy. One place, no per-subsystem funding code. Parks also scale the per-park weights: `ServiceBonusEach` and `LandValuePerService` × `E(parks)` (caps unchanged), read once per measure. `ServiceSource` gains optional trailing `UpkeepPerDay` and `ResearchPerDay` so the sim can charge `Σ upkeep × (f − 1)` and add `Σ school RP × (E − 1)` on top of `CityModifiers` (which stay the 100% totals, so old call sites keep their meaning). |
+| Funding changes at runtime | A slider writes `Budget.SetFunding(line, f)`, which marks the funded sources dirty; `GameManager.LateUpdate` applies it at most once a frame (the M9 power-dirty pattern), because a funding change on Power / Water rebuilds the network topology. |
+| Loans | Amount per age: `AgeDefinition.LoanAmount` (generator column) Medieval $10,000, Renaissance $15,000, Industrial $25,000, Modern $40,000 (≈ half the starting money); without ages `BalanceConfig.LoanAmount` $25,000. At most `MaxLoans` 2 at once. Flat interest `LoanInterest` 10% over `LoanTermDays` 360 (one year): daily payment = amount × 1.1 / 360 ($76.39 for $25,000). Repay early = the remaining principal (amount × days left / term; the unpaid interest is waived). Taking a loan is allowed in debt (that's what it's for); there is no bankruptcy (debt keeps its banner). Banking gains `LoanInterestMultiplier` 0.5 (5%). Payments are an expense line, **not** scaled by the tech upkeep multiplier. |
+| Ordinances | `OrdinanceDefinition` (Simulation asmdef ScriptableObject: Id, DisplayName, Description, `RequiredTech`, `CostPerDay`, `CostPerResident`, `Effects` = a `TechEffect` list) listed in the **`TechDatabase` asset** (`Ordinances`), so the sim still takes "both databases or neither" and `TechDatabase.Validate` checks each one's tech exists. Unlocked when its `RequiredTech` is researched (the building pattern; the tech panel lists it beside building unlocks). Enacted ones live in `TechSystem` (`Tech.Ordinances`: `IsUnlocked`, `IsEnacted`, `Enact`, `Repeal`, `DailyCost(population)`), and their effects fold into `Tech.Modifiers` with the techs'. Toggle any time, no enact fee; the daily cost is charged while enacted. A repeal of an ordinance whose tech is no longer researched can't happen (techs are never lost). |
+| New effect types | `TechEffectType` appends `CivicNeedMultiplier` (Target = `Order`/`Fire`/`Health`: crime / fire risk / sickness × Value; read by `CivicSystem` once per measure through a `() => TechModifiers` getter like `PollutionSystem`) and `LoanInterestMultiplier`. Ordinances reuse the rest (happiness, demand, research, pollution, land value, upkeep). |
+| Ordinance happiness | Kept apart from tech happiness: `TechModifiers.OrdinanceHappiness` → a new `HappinessBreakdown.Ordinances` term (optional constructor arg, in `Total`), so the tooltip shows it and `Happiness.Technology` (asserted 0.05 in the baseline) is untouched. |
+| Ledger | `SimulationSystem.Budget()` → `BudgetBreakdown {IncomeResidential, IncomeCommercial, IncomeIndustrial, Upkeep[line], OtherUpkeep (placed buildings on no line), Roads, Pipes, TechUpkeepMultiplier, Loans, Ordinances, Income, Expense}` — the same numbers `Tick` charges (one formula, `Tick` uses it). |
+| Saves | **v4**: `Funding` (float per `BudgetLine`), `Loans` (`LoanRecord {Amount, DailyPayment, DaysLeft}`), `Ordinances` (enacted ids). `SaveMigrations.V3ToV4`: funding 1, no loans, no ordinances. Unknown ordinance ids are dropped like unknown techs. |
+| Toasts | Loan taken / last payment made; "In debt — a loan can tide you over" once per debt spell while a loan slot is free; ordinance unlocks named in the research-complete toast; the existing power / water shortage toasts cover underfunded utilities. |
+| UI | `TaxPanel` grows into **`BudgetPanel`** (script and prefab renamed with their `.meta`s, so GUIDs survive) in the `SidePanels` slot, opened by the HUD button renamed "Budget" (`HUD/Budget/TaxesButton`). Four tabs (`ToolButton`s): **Taxes** (the R/C/I sliders + the ledger), **Services** (one funding slider per line that has an unlocked building — `PowerUnlocked` / `WaterUnlocked` / `CivicUnlocked` / a park unlocked — with its upkeep at that funding and "reach ×0.75, effect ×0.5"), **Loans** (offer: amount, daily payment, total; active loans with days left and Repay), **Ordinances** (unlocked ones as toggles with cost/day at today's population and effects; the next locked ones muted with "needs X"). HUD net/day tooltip = the ledger totals. `SelectionPanel` on a placed service: "Funding 75%: reach 3 (base 4), strength 0.38 (0.5)". `InfoOverlay`'s civic placement preview builds its preview cover from funded values. |
+
+#### Content (first pass; numbers are tunables)
+
+Ordinances (in `Tools/gen_age_content.py`, deterministic GUIDs; costs are per day, "/res" = per resident):
+
+| Age | Ordinance (Id) | Tech | Cost | Effects |
+|---|---|---|---|---|
+| Medieval | Feast Days `feast_days` | Charters | $0.03/res | happiness +0.03, commercial demand ×1.05 |
+| Medieval | Curfew `curfew` | Town Watch | $3 | crime ×0.7, happiness −0.01, commercial demand ×0.9 |
+| Medieval | Herb Gardens `herb_gardens` | Herbalism | $0.02/res | sickness ×0.85 |
+| Renaissance | Fire Code `fire_code` | Architecture | $0.02/res | fire risk ×0.7, industrial demand ×0.95 |
+| Renaissance | Street Lighting `street_lighting` | Civic Planning | $0.03/res | crime ×0.8, happiness +0.01 |
+| Renaissance | Public Lectures `public_lectures` | Printing Press | $0.04/res | research ×1.1 |
+| Industrial | Smoke Abatement `smoke_abatement` | Factories | $0.03/res | pollution ×0.8, industrial demand ×0.9 |
+| Industrial | Building Code `building_code` | Steel Frames | $0.02/res | fire risk ×0.75, land value +0.02 |
+| Industrial | Workmen's Fares `workmens_fares` | Electric Trams | $0.03/res | residential demand ×1.1 |
+| Industrial | Free Clinics `free_clinics` | Public Sanitation | $0.04/res | sickness ×0.8 |
+| Modern | Neighbourhood Watch `neighbourhood_watch` | Mass Media | $2 | crime ×0.8, happiness +0.01 |
+| Modern | Car-free Sundays `car_free_sundays` | Automobiles | $0 | pollution ×0.9, happiness +0.02, commercial demand ×0.95 |
+
+Tech descriptions gain "Enables the X ordinance." Factories, Steel Frames, Electric Trams, Mass Media
+and Automobiles get their first content; Railways and Smart Grid stay free for M16. Banking gains
+`LoanInterestMultiplier` 0.5 ("Loans at half the interest"). `AgeDefinition.LoanAmount` is a new
+generator column. No tech costs or `TechsToAdvance` change.
+
+#### Architecture
+
+**Pure, in the Simulation asmdef:**
+
+| New / changed | Notes |
+|---|---|
+| `BudgetLine` (new) | `Parks, Power, Water, Order, Fire, Health, Education`. |
+| `BudgetSystem` (new, `Simulation.Budget`) | Funding per line (`GetFunding` / `SetFunding`, clamped and snapped to 10%), `EffectFactor(line)`, `ReachFactor(line)`, `LineOf(source)`, `Fund(source)` → the funded copy; loans (`CanBorrow`, `LoanOffer(ages)`, `Borrow`, `Repay(index)`, `DailyLoanPayments`, `StepLoans()` counting days down); `Changed` flag the sim reads to rebuild funded sources. `Restore(funding, loans)`. |
+| `ServiceSource` | `+ UpkeepPerDay`, `+ ResearchPerDay` (optional trailing args). |
+| `SimulationSystem` | Owns `Budget`; keeps raw and funded sources; `RefreshFunding()` (re-feeds the subsystems); `Budget()` ledger used by `Tick`; research adds the funded school RP delta; `Restore` takes the budget state. |
+| `ServiceStats` / `LandValueSystem` | Park weights × `E(parks)` (an optional factor; 1 = old numbers). |
+| `OrdinanceDefinition` (new), `TechDatabase.Ordinances` | Data + validation (tech exists, ids unique). |
+| `TechSystem` | `Ordinances` (enacted set, unlock by `RequiredTech`), folds enacted effects into `Modifiers`; `Restore` takes enacted ids. |
+| `TechEffectType` / `TechModifiers` | `+ CivicNeedMultiplier`, `+ LoanInterestMultiplier`; `CivicNeed(kind)`, `LoanInterestMultiplier`, `OrdinanceHappiness`. |
+| `CivicSystem` | Crime / fire risk / sickness × `CivicNeed(kind)` (also in `HomeNeeds` and `GetCrime`, read once per measure). |
+| `HappinessBreakdown` / `PopulationSystem` | `+ Ordinances` term. |
+| `AgeDefinition` | `+ LoanAmount`. |
+| `BalanceConfig` | `FundingMin` 0.5, `FundingMax` 1.5, `FundingStep` 0.1, `FundingOverSlope` 0.5, `FundingReachSlope` 0.5, `LoanAmount` 25,000, `MaxLoans` 2, `LoanInterest` 0.10, `LoanTermDays` 360, tagged "(M15)" and mirrored in the asset. |
+| `SaveData` / `SaveMigrations` / `SaveSystem` | v4 fields, `V3ToV4`, capture / apply. |
+
+**Runtime (`Assembly-CSharp`):** `GameManager` passes `UpkeepPerDay` / `ResearchPerDay` into sources,
+applies funding changes once a frame, `BudgetLineUnlocked(line)`; `GameEvents.BudgetChanged`
+(+ `ResetSubscribers`); `BudgetPanel` (was `TaxPanel`), HUD button and net/day tooltip,
+`SelectionPanel` funding line, `HappinessTooltip` Ordinances line, `TechPanel` ordinance unlocks,
+`NotificationController` loan / debt / unlock toasts, `InfoOverlay` funded preview.
+
+#### Steps (each one fits a session and is committed on its own)
+
+- **15a Funding (pure).** `BudgetLine`, `BudgetSystem` funding and curves, `ServiceSource` upkeep /
+  research args (and `GameManager` filling them), funded sources in `SimulationSystem`, park weights,
+  the ledger (`Budget()`, used by `Tick`), `BalanceConfig` fields. No UI or save yet (always 100% in
+  the game, so it stays playable and unchanged). Tests (new `BudgetTests.cs`): 100% funding = the
+  pre-M15 numbers (seeded city, Industrial baseline); the curves at 50 / 100 / 150%; civic strength
+  capped at 1; reach never below 1; underfunded power browns out the furthest cells and blocks
+  upgrades; well reach and tower supply follow Water; the Fountain's cheer follows Parks but its
+  upkeep is on Water; school RP follows Education; upkeep × funding per line in the ledger; ledger
+  totals = what `Tick` charges; funding survives `GridData.Resize`.
+- **15b Loans and save v4 (pure).** Loans in `BudgetSystem`, `AgeDefinition.LoanAmount` (generator
+  column), the loan expense line; save v4 with funding, loans and an (empty until 15c) ordinance list;
+  `V3ToV4` + test; the v1 fixture still migrates. Tests: payment schedule and total, early repayment
+  = remaining principal, `MaxLoans`, borrowing in debt, loans end after 360 days; save mid-loan with
+  non-default funding → load → continue = uninterrupted run.
+- **15c Ordinances (pure + content).** `OrdinanceDefinition`, `TechDatabase.Ordinances` + validation,
+  `TechSystem.Ordinances`, the two effect types, `CivicSystem` need multipliers, the Ordinances
+  happiness term, Banking's loan effect; the 12 ordinances and descriptions in the generator; save
+  round trip of enacted ordinances (unknown ids dropped). `ContentTests`: every ordinance has a
+  reachable tech, each age has 2–5, ids unique. Tests: unlock by tech, effects fold and unfold on
+  enact / repeal, daily cost by population, crime / fire / sickness multipliers reach the happiness
+  terms and the land-value crime line, `Happiness.Technology` unchanged by ordinances.
+- **15d UI.** `BudgetPanel` with the four tabs (prefab work through RunCommand, `scene-prefab-editing`),
+  HUD "Budget" button and net/day tooltip, `SelectionPanel` funding line, tooltip / tech panel /
+  toasts, funded civic preview. Play-mode screenshots of each tab in an Industrial city with every line
+  unlocked; check the panel fits under the HUD at 1080 and that slider drags don't stall a frame on a
+  96² map (the topology rebuild).
+- **15e Balance, play-through, docs.** `EngagedCity` learns the budget (an option, default off, so the
+  current runs stay the regression baseline): enact an ordinance when its happiness / demand gain is
+  worth more than its cost at today's population (a simple value table, recorded), take one loan when
+  saving for a must-build for more than N days, leave funding at 100% (the human lever). Probe table
+  per ordinance at mid-age (cost/day vs. effect) — tune so none is free and none is useless; check
+  overfunding an old tier is worse value per covered cell than the next tier. `AgeBalanceTests` must
+  pass with the option on and off. Tick on the full 96² Modern city (funded sources add nothing per
+  tick; ordinance multipliers are one read per measure) — benchmark only if it grows > 0.1 ms. UI-only
+  play-through: New Medieval → grow → research Charters / Town Watch → enact Feast Days and Curfew
+  (tooltip and Services crime view change) → Budget: Order funding 50% (reach shrinks in the view,
+  upkeep drops in the ledger) → spend into debt → take a loan (banner gone, payment in the ledger) →
+  repay it early; New Industrial → Power funding 50% → shortage toast and unpowered cells → 150% →
+  restored → save, load, everything kept. Docs: GamePlan §13 (a new *Budget (M15)* section plus notes
+  in Services & power, Civic services, Ages and Save / load), §8 / §12 status, `AGENTS.md` Project
+  bullet, `CLAUDE.md` header.
+
+#### Risks / open questions
+
+- **Utilities funding is a brown-out switch.** Underfunded power / water leaves grown cells unserved
+  (happiness penalty, no upgrades, water-held cells), which can confuse. The Services tab shows the
+  supply at the chosen funding against today's demand ("600 → 300 units, demand 420") and warns
+  before it drops below demand.
+- **Topology rebuild on drag:** a Power / Water funding change re-feeds sources, which rebuilds the
+  utility topology. Applying once a frame bounds it; if a 96² drag still stutters, apply on slider
+  release only.
+- **Ordinance stacking:** multipliers stack with techs and with each other (crime ×0.7 × 0.8). Keep
+  each small; the probe table in 15e checks that the best ordinance mix can't replace building civic
+  services (a city with every crime ordinance and no order buildings still pays most of the crime term).
+- **Loans as free money:** with flat 10% interest and no bankruptcy, a player could chain loans. Two
+  at a time and a year's term keep it bounded; if the engaged player abuses it, raise the interest or
+  require a free slot after repayment for 30 days.
+- **Medieval pacing (84 of 90 days):** the engaged player's new budget mode must not slow the age. Its
+  ordinance purchases wait for a surplus, like research buildings past the first.
+- **Fountain upkeep line:** charging the Fountain on Water while its cheer follows Parks is a
+  simplification; revisit if the panel text reads oddly.
+
 ### Where M13–M19 plug in (integration notes)
 Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code that exists today; decide the details in each milestone's plan.
 
 - **M12 Land value & local pollution — done** (see §13 Land value & pollution). Original outline: per-cell pollution (industrial cells emit in an age-scaled radius) replaces the city-wide `PollutionPenalty` term in `PopulationSystem`; per-cell land value from parks/services, pollution and the heritage bonus (`GridData.IsHistoric` raises value around kept cells). Build both like `CoverageSystem` (per-cell arrays, lazy recompute, `OnResized`). Level 3 gains a land-value gate → new `GrowthBlocker`. Pollution and Land value info views.
 - **M13 Water — done** (see §13 Water; full plan above). Original outline: `AgeDefinition.UpgradesNeedWater` already exists (unused) — add it to `AgeRules` and gate upgrades in `GrowthSystem` beside the power gate. Early ages: wells and fountains as coverage sources; Industrial and Modern: towers and pumps feeding pipes under roads, a copy of `PowerSystem`'s network and allocation model (`ServiceSource` + `BuildingDefinition` get a water supply). HUD group, view and toasts follow the power pattern.
 - **M14 Civic services — done** (see §13 Civic services; full plan above). Original outline: (M13 adds: `BuildingDefinition.ObsoleteAge` + `GameManager.IsObsolete` are the hook for "outdated, replace with X"; `UtilityNetwork` is the base for any further road-borne network; the toolbar now scales itself down when it overflows.) order, fire, health and education lines with per-age `BuildingDefinition`s unlocked by existing techs (e.g. fire station → Steam Power). Education buildings produce RP via `ResearchPerDay`. Health and crime become `HappinessBreakdown` terms (+ the happiness tooltip); per-cell crime and fire risk use the coverage pattern. Obsolete placed services get "outdated, replace with X" hints in `SelectionPanel`.
-- **M15 Budget depth:** per-service funding scales a service's radius and effect (`ServiceSource` / `CoverageSystem`); loans with interest live in `EconomySystem` (saved → version bump); ordinances are tech-unlocked toggles (a new `TechEffectType` if needed). `TaxPanel` grows into a budget panel in the `SidePanels` slot.
+- **M15 Budget depth — planned** (full plan above, 2026-10-04). Original outline: per-service funding scales a service's radius and effect (`ServiceSource` / `CoverageSystem`); loans with interest live in `EconomySystem` (saved → version bump); ordinances are tech-unlocked toggles (a new `TechEffectType` if needed). `TaxPanel` grows into a budget panel in the `SidePanels` slot.
 - **M16 Traffic:** statistical load per road cell from the homes↔jobs flow (no agents); congestion lowers road access quality and happiness. Road tiers (dirt → cobble → paved → avenue → highway) become a per-road byte in `GridData` (saved → version bump), are unlocked by tech (the `UnlockRoadTier` idea in §12) and drawn per tier by `RoadTilemapView`. Traffic view. Watch the 96² benchmark.
 - **M17 Disasters & events:** fire spreads between cells without fire coverage, plague in the Medieval age without health coverage, plant breakdowns; random events with choices arrive as toasts or popups. Use a seeded RNG whose state is saved; an on/off switch goes in the New City dialog (and `SaveData`).
 - **M18 Art & atmosphere:** hand-made per-age prefabs go into the `AgeVisualSet` slots under the prefab contract (pivot at the ground centre of a 1×1 cell, +Y up, 1 unit = 1 cell, layer 9, a collider on the root, shared materials only, one or two materials; GamePlan §12). Also per-age road tiles, day/night lighting, music and ambience. Re-run `PerfBenchmark`.
@@ -1458,7 +1625,7 @@ feeding pipes under roads (Industrial and Modern, a copy of the `PowerSystem` ne
 Per-cell crime and fire risk, health as a happiness term. Obsolete-service "replace with" hints.
 Gives the tech trees most of their content.
 
-**M15 — Budget depth.** Per-service funding sliders (funding scales radius/effect), loans with
+**M15 — Budget depth** (full plan above). Per-service funding sliders (funding scales radius/effect), loans with
 interest and repayment, a few ordinances per age (unlocked by tech). Expands the TaxPanel into a
 budget panel.
 
@@ -1490,8 +1657,8 @@ Industrial age; the age-less sim needs piped water by decision; save v3 stores p
 fire, health and education lines with one building per age, crime / fire risk / sickness as ramped happiness terms, crime in
 land value, research from schooled residents, outdated tiers leave the toolbar; the age-less sim pays the civic needs by
 decision, Industrial start re-recorded at 220 pop / 0.631; no save change; Services views, panel lines, toasts; `AgeBalanceTests`
-84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). Next: M15 (budget depth) — expand its outline below
-into a full plan first.
+84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). Next: M15 (budget depth) — plan written
+(2026-10-04, see above); 15a is the next step.
 
 ---
 
