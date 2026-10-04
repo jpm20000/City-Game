@@ -690,6 +690,17 @@ as a byte per road in `GridData` and unlocked by techs (new tech Macadam); highw
 dragging a better tier; Traffic view; save v5. Traffic runs in the age-less sim too (decision). Steps 16a road tiers
 + save v5 · 16b traffic (pure) · 16c UI · 16d balance / perf / play-through / docs — **all done (2026-10-04)**; the as-built notes are in §13 *Traffic (M16)*.
 
+### M17 — Disasters & events — planned (2026-10-04)
+
+Full plan: [Docs/milestones/M17.md](milestones/M17.md). One seeded RNG (`SimRandom`, state saved) drives fires (from
+M14 fire risk; spread block to block, roads as firebreaks, put out by fire cover; burnt grown blocks become rubble
+and **placed buildings burn down too**, by decision), plague (Medieval / Renaissance, from sickness; kills residents,
+Plague happiness term), plant / tower / pump breakdowns (by tech age and funding; repair for 20% of cost; Smart Grid
+×0.25) and 13 random events with choices in a **pausing popup** (temporary effects folded into `TechModifiers`).
+A Disasters & events switch in New City (on for new cities, **off for migrated saves**); the age-less sim never
+runs them, so no baseline moves. `AgeBalanceTests` off and on for fixed seeds. Save v6. Steps 17a RNG + switch +
+save v6 · 17b fire · 17c plague + breakdowns · 17d events · 17e UI · 17f balance / perf / play-through / docs.
+
 ### Where M13–M19 plug in (integration notes)
 Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code that exists today; decide the details in each milestone's plan.
 
@@ -698,7 +709,7 @@ Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code t
 - **M14 Civic services — done** (see §13 Civic services; plan in `Docs/milestones/M14.md`). Original outline: (M13 adds: `BuildingDefinition.ObsoleteAge` + `GameManager.IsObsolete` are the hook for "outdated, replace with X"; `UtilityNetwork` is the base for any further road-borne network; the toolbar now scales itself down when it overflows.) order, fire, health and education lines with per-age `BuildingDefinition`s unlocked by existing techs (e.g. fire station → Steam Power). Education buildings produce RP via `ResearchPerDay`. Health and crime become `HappinessBreakdown` terms (+ the happiness tooltip); per-cell crime and fire risk use the coverage pattern. Obsolete placed services get "outdated, replace with X" hints in `SelectionPanel`.
 - **M15 Budget depth — done** (plan in `Docs/milestones/M15.md`). Original outline: per-service funding scales a service's radius and effect (`ServiceSource` / `CoverageSystem`); loans with interest live in `EconomySystem` (saved → version bump); ordinances are tech-unlocked toggles (a new `TechEffectType` if needed). `TaxPanel` grows into a budget panel in the `SidePanels` slot.
 - **M16 Traffic — done:** statistical load per road cell from the homes↔jobs flow (no agents); congestion lowers road access quality and happiness. Road tiers (dirt → cobble → paved → avenue → highway) become a per-road byte in `GridData` (saved → version bump), are unlocked by tech (the `UnlockRoadTier` idea in §12) and drawn per tier by `RoadTilemapView`. Traffic view. Watch the 96² benchmark.
-- **M17 Disasters & events:** fire spreads between cells without fire coverage, plague in the Medieval age without health coverage, plant breakdowns; random events with choices arrive as toasts or popups. Use a seeded RNG whose state is saved; an on/off switch goes in the New City dialog (and `SaveData`).
+- **M17 Disasters & events** (plan in `Docs/milestones/M17.md`): fire spreads between cells without fire coverage, plague in the Medieval age without health coverage, plant breakdowns; random events with choices arrive as toasts or popups. Use a seeded RNG whose state is saved; an on/off switch goes in the New City dialog (and `SaveData`).
 - **M18 Art & atmosphere:** hand-made per-age prefabs go into the `AgeVisualSet` slots under the prefab contract (pivot at the ground centre of a 1×1 cell, +Y up, 1 unit = 1 cell, layer 9, a collider on the root, shared materials only, one or two materials; GamePlan §12). Also per-age road tiles, day/night lighting, music and ambience. Re-run `PerfBenchmark`.
 - **M19 Release:** main menu, settings (audio, keybinds, UI scale), multiple save slots with thumbnails (`SaveGameController` is single-slot `city.json` today), a first-age tutorial and a Windows player build (see `perf-benchmark` for building a player and reverting the settings churn it leaves behind).
 
@@ -714,7 +725,7 @@ budget panel.
 agents). Congestion reduces road access quality and happiness. Road tiers by age (dirt →
 cobble → paved → avenue → highway), unlocked by tech, with capacity and cost. Traffic view.
 
-**M17 — Disasters & events.** Fire spreads between cells without fire coverage (a big threat
+**M17 — Disasters & events** (plan in `Docs/milestones/M17.md`). Fire spreads between cells without fire coverage (a big threat
 in the timber ages), plague in the Medieval age without health coverage, plant breakdowns.
 Random events with choices are delivered as toasts or popups. Can be toggled in New City.
 
@@ -740,7 +751,7 @@ land value, research from schooled residents, outdated tiers leave the toolbar; 
 decision, Industrial start re-recorded at 220 pop / 0.631; no save change; Services views, panel lines, toasts; `AgeBalanceTests`
 84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). **M15 done** (steps 15a–15e: funding per budget line, 50-150%, scaling upkeep and, with diminishing returns, reach, supply and strength; loans by age; 12 tech-unlocked ordinances; a Budget panel with the day's ledger; save v4; the default settings change nothing, Industrial start still 220 pop / 0.631; `AgeBalanceTests` 84 / 61 / 73 days with and without the budget player; 229 EditMode tests green plus the UI-only play-through). Next: M16 (traffic) — planned in `Docs/milestones/M16.md` (2026-10-04); start with step 16a.
 
-**M16 done** (steps 16a–16d: byte road tiers dirt / cobble / paved / avenue / highway with tech-unlocked content and Macadam, highways without frontage, save v5; `TrafficSystem` Dial's-algorithm flow with a Traffic happiness term and land-value line; tiered placement, upgrade drags, per-tier sprites, Traffic view and panel / tooltip / toast hooks; the engaged player lays best-tier roads and upgrades jams. `AgeBalanceTests` 84 / 61 / 57 days (budget 84 / 58 / 54), seeded baselines unchanged, traffic flow 0.29 ms on a 96² city in a player build, 260 EditMode tests green plus a UI-only play-through with 0 failed checks). Next: M17.
+**M16 done** (steps 16a–16d: byte road tiers dirt / cobble / paved / avenue / highway with tech-unlocked content and Macadam, highways without frontage, save v5; `TrafficSystem` Dial's-algorithm flow with a Traffic happiness term and land-value line; tiered placement, upgrade drags, per-tier sprites, Traffic view and panel / tooltip / toast hooks; the engaged player lays best-tier roads and upgrades jams. `AgeBalanceTests` 84 / 61 / 57 days (budget 84 / 58 / 54), seeded baselines unchanged, traffic flow 0.29 ms on a 96² city in a player build, 260 EditMode tests green plus a UI-only play-through with 0 failed checks). Next: M17 (disasters & events) — planned in `Docs/milestones/M17.md` (2026-10-04); start with step 17a.
 
 ---
 
