@@ -648,7 +648,7 @@ public sealed class PlacementController : MonoBehaviour
 
     private void SetHint(string text, bool valid)
     {
-        CursorHint = text;
+        CursorHint = KeyBindings.Fill(text);
         CursorHintValid = valid;
     }
 

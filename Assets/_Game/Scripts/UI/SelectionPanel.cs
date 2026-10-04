@@ -686,7 +686,7 @@ public sealed class SelectionPanel : MonoBehaviour
 
     private void Line(string text)
     {
-        if (!string.IsNullOrEmpty(text)) m_Text.AppendLine(text);
+        if (!string.IsNullOrEmpty(text)) m_Text.AppendLine(KeyBindings.Fill(text));
     }
 
     private static string ZoneName(ZoneType zone)

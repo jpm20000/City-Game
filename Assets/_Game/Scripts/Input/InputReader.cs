@@ -6,6 +6,11 @@ public sealed class InputReader : MonoBehaviour
     [SerializeField] private InputActionAsset m_InputActions;
 
     private InputActionMap m_Map;
+    private InputActionAsset m_Clone;
+
+    // The runtime copy of the actions: the Controls tab (KeyBindings) rebinds on it.
+    public static InputReader Instance { get; private set; }
+    public InputActionAsset Asset => m_Clone;
 
     private InputAction m_PanAction;
     private InputAction m_ZoomAction;
@@ -50,7 +55,10 @@ public sealed class InputReader : MonoBehaviour
             return;
         }
 
+        Instance = this;
         InputActionAsset clone = Instantiate(m_InputActions);
+        m_Clone = clone;
+        KeyBindings.Load(clone);
         m_Map = clone.FindActionMap("Gameplay", throwIfNotFound: true);
 
         m_PanAction = m_Map.FindAction("Pan", throwIfNotFound: true);
@@ -74,5 +82,6 @@ public sealed class InputReader : MonoBehaviour
     private void OnDestroy()
     {
         m_Map?.Disable();
+        if (Instance == this) Instance = null;
     }
 }

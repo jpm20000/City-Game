@@ -91,6 +91,7 @@ public sealed class NotificationController : MonoBehaviour
     // Longer messages stay up longer (about 30 characters a second).
     private void ShowToast(string message)
     {
+        message = KeyBindings.Fill(message);
         if (m_ToastText != null) m_ToastText.text = message;
         m_ToastTimer = Mathf.Max(m_ToastDuration, message.Length / 30f);
         SetToastAlpha(1f);

@@ -4,14 +4,14 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-// The Settings window (M19d): tabs for Audio, Display, Interface and Gameplay (Controls arrive in 19e). It is a counted
+// The Settings window (M19d): tabs for Audio, Display, Interface, Gameplay and Controls (M19e, the rebindable keys). It is a counted
 // window, so opened in a game it pauses it, and opened from the title it leaves the showcase running. Every control
 // writes GameSettings at once and applies itself (the screen, the UI scale); a Reset button restores one tab's defaults.
 public sealed class SettingsPanel
 {
-    public enum Tab { Audio, Display, Interface, Gameplay }
+    public enum Tab { Audio, Display, Interface, Gameplay, Controls }
 
-    private static readonly string[] TabNames = { "Audio", "Display", "Interface", "Gameplay" };
+    private static readonly string[] TabNames = { "Audio", "Display", "Interface", "Gameplay", "Controls" };
     private static readonly string[] ModeNames = { "Full screen", "Borderless window", "Windowed" };
     private const float LabelWidth = 250f;
 
@@ -21,6 +21,7 @@ public sealed class SettingsPanel
     private readonly RectTransform m_Content;
     private readonly List<Button> m_TabButtons = new();
     private Tab m_Tab;
+    private string m_Status = string.Empty;
 
     public bool IsOpen => m_Window.IsOpen;
     public Tab CurrentTab => m_Tab;
@@ -61,6 +62,7 @@ public sealed class SettingsPanel
         EscapeRouter.Register(this, EscapeRouter.Window, () =>
         {
             if (!IsOpen) return false;
+            if (KeyBindings.SwallowEscape) return true;
             Hide();
             return true;
         });
@@ -98,6 +100,7 @@ public sealed class SettingsPanel
             case Tab.Audio: BuildAudio(); break;
             case Tab.Display: BuildDisplay(); break;
             case Tab.Interface: BuildInterface(); break;
+            case Tab.Controls: BuildControls(); break;
             default: BuildGameplay(); break;
         }
     }
@@ -115,6 +118,7 @@ public sealed class SettingsPanel
                 GameSettings.ResetInterface();
                 UiScaling.Apply();
                 break;
+            case Tab.Controls: KeyBindings.ResetAll(); m_Status = string.Empty; break;
             default: GameSettings.ResetGameplay(); break;
         }
         SelectTab(m_Tab);
@@ -192,6 +196,35 @@ public sealed class SettingsPanel
         SwitchRow("Disasters & events in new cities", () => GameSettings.DisastersByDefault, v => GameSettings.DisastersByDefault = v);
         SwitchRow("Pause the game on a random event", () => GameSettings.PauseOnEvents, v => GameSettings.PauseOnEvents = v);
         SwitchRow("Confirm before demolishing a building", () => GameSettings.ConfirmDemolish, v => GameSettings.ConfirmDemolish = v);
+    }
+
+    private void BuildControls()
+    {
+        foreach (KeyBindings.Entry entry in KeyBindings.Entries)
+        {
+            KeyBindings.Entry captured = entry;
+            RectTransform row = NewRow(entry.Label);
+            Button key = null;
+            key = UiKit.MakeButton(row, KeyBindings.Label(entry), () =>
+            {
+                UiKit.SetLabel(key, "Press a key…");
+                key.GetComponent<Image>().color = UiKit.AccentColor;
+                m_Status = "Press the new key, or Esc to cancel.";
+                KeyBindings.Rebind(captured, message =>
+                {
+                    m_Status = message;
+                    if (m_Window.IsOpen && m_Tab == Tab.Controls) SelectTab(Tab.Controls);
+                });
+            }, 170f);
+            UiKit.MakeButton(row, "Reset", () =>
+            {
+                KeyBindings.Reset(captured);
+                m_Status = string.Empty;
+                SelectTab(Tab.Controls);
+            }, 80f, KeyBindings.IsDefault(entry) ? UiKit.DisabledColor : (Color?)null);
+        }
+        TMP_Text status = UiKit.Text(m_Content, string.IsNullOrEmpty(m_Status) ? "Esc, F1, 1-4 (speed), the arrow keys and the mouse are fixed." : m_Status, 14, UiKit.MutedColor);
+        status.name = "ControlsStatus";
     }
 
     // ---- rows -------------------------------------------------------------------------------------------

@@ -437,7 +437,7 @@ public sealed class ToolbarController : MonoBehaviour
     private void ShowTooltip(ToolButton button)
     {
         if (m_TooltipRoot == null || string.IsNullOrEmpty(button.Tooltip)) return;
-        m_TooltipText.text = button.Tooltip;
+        m_TooltipText.text = KeyBindings.Fill(button.Tooltip);
         float delay = GameSettings.TooltipDelay;
         if (delay <= 0f)
         {
