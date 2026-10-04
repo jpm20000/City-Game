@@ -263,6 +263,7 @@ internal sealed class EngagedCity
     {
         Research();
         Expand();
+        if (UseBudget) ManageBudget();
         Build();
         int age = Sim.Tech.CurrentAge;
         Sim.Tick();
@@ -270,6 +271,82 @@ internal sealed class EngagedCity
         if (Sim.Tech.CurrentAge != age) AgeEntries.Add((Day, Sim.Tech.CurrentAge, Sim.Population.Population));
         if (Sim.Population.Population >= m_Config.SmallTownGracePopulation) MinHappiness = Mathf.Min(MinHappiness, Sim.Population.AverageHappiness);
         MinMoney = Mathf.Min(MinMoney, Sim.Economy.Money);
+    }
+
+    // --- Budget (M15e) ---
+    // Off by default, so every earlier run stays the regression baseline. On, the player also enacts the
+    // ordinances that answer a happiness loss it has (or that cost nothing it cannot carry), keeps funding at
+    // 100% (that lever is the human's), and takes one loan when it has been saving for a must-build for a while.
+    public bool UseBudget { get; set; }
+    public int LoansTaken { get; private set; }
+    private int m_SavingDays;
+
+    public string BudgetReport()
+    {
+        var names = new List<string>();
+        foreach (OrdinanceDefinition o in Sim.Tech.EnactedOrdinances) names.Add(o.Id);
+        return $"budget: loans taken {LoansTaken}, open {Sim.Budget.Loans.Count}, ordinances [{string.Join(", ", names)}], ordinance cost/day {Sim.Ledger().Ordinances:F1}";
+    }
+
+    private const float OrdinanceSurplusFactor = 4f;   // the day's surplus must be this many times the ordinance's cost
+
+    private void ManageBudget()
+    {
+        TechSystem tech = Sim.Tech;
+        int population = Sim.Population.Population;
+        float surplus = Sim.Economy.IncomePerDay - Sim.Economy.ExpensePerDay;
+
+        // A shrinking surplus repeals what costs money.
+        if (surplus < 0f)
+        {
+            foreach (OrdinanceDefinition enacted in new List<OrdinanceDefinition>(tech.EnactedOrdinances))
+            {
+                if (enacted.DailyCost(population) > 0f) tech.Repeal(enacted);
+            }
+        }
+        else if (!SavingForUtilities && !SavingForCivic() && Sim.Economy.Money >= Cushion)
+        {
+            foreach (OrdinanceDefinition ordinance in Techs.Ordinances)
+            {
+                if (tech.IsEnacted(ordinance) || !tech.IsUnlocked(ordinance) || !WantsOrdinance(ordinance)) continue;
+                if (surplus < OrdinanceSurplusFactor * ordinance.DailyCost(population)) continue;
+                tech.Enact(ordinance);
+                break;   // one a day
+            }
+        }
+
+        // Loans: a long wait for a must-build takes one loan; it is repaid once the pressure is off.
+        m_SavingDays = SavingForUtilities || SavingForCivic() ? m_SavingDays + 1 : 0;
+        if (m_SavingDays >= 10 && Sim.Budget.Loans.Count == 0 && Sim.TakeLoan()) LoansTaken++;
+        if (m_SavingDays == 0 && Sim.Budget.Loans.Count > 0 && Sim.Economy.Money > Sim.Budget.RemainingPrincipal(0) + 3f * Cushion)
+        {
+            Sim.RepayLoan(0);
+        }
+    }
+
+    // What the ordinance is for: a happiness term it can raise, a need it answers or a flat gain.
+    private bool WantsOrdinance(OrdinanceDefinition ordinance)
+    {
+        HappinessBreakdown h = Sim.Population.Happiness;
+        foreach (TechEffect effect in ordinance.Effects)
+        {
+            switch (effect.Type)
+            {
+                case TechEffectType.HappinessBonus:
+                    if (effect.Value > 0f) return true;
+                    break;
+                case TechEffectType.CivicNeedMultiplier:
+                    ServiceKind kind = (ServiceKind)System.Enum.Parse(typeof(ServiceKind), effect.Target);
+                    if (LineTerm(kind) <= -CivicTrigger) return true;
+                    break;
+                case TechEffectType.PollutionMultiplier:
+                    if (h.Pollution <= -0.02f) return true;
+                    break;
+                case TechEffectType.ResearchMultiplier:
+                    return true;
+            }
+        }
+        return false;
     }
 
     // Advance as soon as allowed; otherwise keep the cheapest available tech (current age first) going.

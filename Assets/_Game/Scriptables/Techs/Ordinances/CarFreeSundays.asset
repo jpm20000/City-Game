@@ -17,7 +17,7 @@ MonoBehaviour:
   m_Description: 'One quiet day a week. Pollution -10%, happiness +2%, commercial demand -5%.'
   m_RequiredTech: {fileID: 11400000, guid: d7adb7fa767a51d48437b1292562b9dd, type: 2}
   m_CostPerDay: 0
-  m_CostPerResident: 0
+  m_CostPerResident: 0.02
   m_Effects:
   - Type: 5
     Target: 

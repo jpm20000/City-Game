@@ -131,7 +131,7 @@ ORDINANCES = [
      "A doctor in every district. Sickness -20%."),
     ("NeighbourhoodWatch", "neighbourhood_watch", "Neighbourhood Watch", "mass_media", 2, 0, [civic_need("Order", 0.8), happy(0.01)],
      "Residents report what they see. Crime -20%, happiness +1%."),
-    ("CarFreeSundays", "car_free_sundays", "Car-free Sundays", "automobiles", 0, 0, [pollution(0.9), happy(0.02), demand(C, 0.95)],
+    ("CarFreeSundays", "car_free_sundays", "Car-free Sundays", "automobiles", 0, 0.02, [pollution(0.9), happy(0.02), demand(C, 0.95)],
      "One quiet day a week. Pollution -10%, happiness +2%, commercial demand -5%."),
 ]
 ORDINANCE_OF_TECH = {o[3]: o[2] for o in ORDINANCES}

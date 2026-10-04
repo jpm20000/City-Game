@@ -22,12 +22,15 @@ public sealed class AgeBalanceTests
         Object.DestroyImmediate(m_Config);
     }
 
-    [Test]
-    public void FromMedieval_EachAgeTakes45To90Days_AndReachesModern()
+    // M15e: also with the budget player (ordinances and a loan when saving): the same targets.
+    [TestCase(false)]
+    [TestCase(true)]
+    public void FromMedieval_EachAgeTakes45To90Days_AndReachesModern(bool useBudget)
     {
-        var city = new EngagedCity(m_Config, 0);
+        var city = new EngagedCity(m_Config, 0) { UseBudget = useBudget };
         for (int day = 0; day < 300 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
         TestContext.WriteLine(city.Report());
+        TestContext.WriteLine(city.BudgetReport());
 
         Assert.AreEqual(3, city.Sim.Tech.CurrentAge, "reaches the Modern age within 300 days");
         for (int i = 1; i < city.AgeEntries.Count; i++)
@@ -40,16 +43,19 @@ public sealed class AgeBalanceTests
     }
 
     // A city started in any later age keeps growing and stays solvent.
-    [TestCase(1)]
-    [TestCase(2)]
-    [TestCase(3)]
-    public void LaterStart_KeepsGrowing(int startAge)
+    [TestCase(1, false)]
+    [TestCase(2, false)]
+    [TestCase(3, false)]
+    [TestCase(2, true)]
+    [TestCase(3, true)]
+    public void LaterStart_KeepsGrowing(int startAge, bool useBudget)
     {
-        var city = new EngagedCity(m_Config, startAge);
+        var city = new EngagedCity(m_Config, startAge) { UseBudget = useBudget };
         city.RunDays(60);
         int at60 = city.Sim.Population.Population;
         city.RunDays(60);
         TestContext.WriteLine(city.Report());
+        TestContext.WriteLine(city.BudgetReport());
 
         Assert.Greater(at60, 150);
         Assert.Greater(city.Sim.Population.Population, at60 * 2, "still growing between day 60 and 120");
