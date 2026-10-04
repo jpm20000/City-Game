@@ -260,11 +260,12 @@ public sealed class InfoOverlay : GridTilemapView
         if (m_Previewing)
         {
             m_PreviewSources.Clear();
-            m_PreviewSources.AddRange(Simulation.Sources);
-            m_PreviewSources.Add(new ServiceSource(m_Placement.PreviewOrigin,
+            // M15: the preview shows what funding makes of the new building and of the placed ones.
+            m_PreviewSources.AddRange(Simulation.Budget.IsDefault ? Simulation.Sources : Simulation.Budget.FundAll(Simulation.Sources));
+            m_PreviewSources.Add(Simulation.Budget.Fund(new ServiceSource(m_Placement.PreviewOrigin,
                 CellUtils.EffectiveSize(tool.Size, m_Placement.PreviewRotation), tool.CoverageRadius, tool.PowerSupply,
                 waterSupply: tool.WaterSupply, waterRadius: tool.WaterRadius,
-                civicKind: tool.CivicKind, civicRadius: tool.CivicRadius, civicStrength: tool.CivicStrength));
+                civicKind: tool.CivicKind, civicRadius: tool.CivicRadius, civicStrength: tool.CivicStrength)));
             m_PreviewPower.SetSources(m_PreviewSources);
             m_PreviewWater.SetSources(m_PreviewSources);
             m_PreviewCoverage.Recompute(m_PreviewSources);

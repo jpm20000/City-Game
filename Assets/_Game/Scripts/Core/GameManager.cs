@@ -181,6 +181,35 @@ public sealed class GameManager : MonoBehaviour
         return Simulation.Tech.Ages[Simulation.Tech.Ages.IndexOf(def.ObsoleteAge)].DisplayName;
     }
 
+    // Whether a budget line has anything to fund yet (M15): a building of it is unlocked. Always true
+    // without age data. Parks: any building with a park reach.
+    public bool BudgetLineUnlocked(BudgetLine line)
+    {
+        if (Simulation == null || Simulation.Tech == null || m_BuildingDatabase == null) return true;
+        switch (line)
+        {
+            case BudgetLine.Power: return PowerUnlocked;
+            case BudgetLine.Water: return WaterUnlocked;
+            case BudgetLine.Order: return CivicUnlocked(ServiceKind.Order);
+            case BudgetLine.Fire: return CivicUnlocked(ServiceKind.Fire);
+            case BudgetLine.Health: return CivicUnlocked(ServiceKind.Health);
+            case BudgetLine.Education: return CivicUnlocked(ServiceKind.Education);
+        }
+        foreach (BuildingDefinition def in m_BuildingDatabase.Entries)
+        {
+            if (def != null && def.CoverageRadius > 0 && IsUnlocked(def)) return true;
+        }
+        return false;
+    }
+
+    // Funding, a loan or an ordinance changed (the Budget panel): the networks and views re-read the funded
+    // state at the next LateUpdate, and listeners hear about it.
+    public void NotifyBudgetChanged()
+    {
+        m_PowerDirty = true;
+        GameEvents.RaiseBudgetChanged();
+    }
+
     // Whether any power source can be built (or is already researched for): the Power HUD group,
     // Power view and power toasts stay hidden until then. Always true without age data.
     public bool PowerUnlocked

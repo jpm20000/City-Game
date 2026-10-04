@@ -144,6 +144,14 @@ public sealed class SelectionPanel : MonoBehaviour
             Line($"{CivicLine(def.CivicKind)} within {def.CivicRadius} cells, strength {def.CivicStrength:P0}.");
             string reached = def.CivicKind == ServiceKind.Fire ? "buildings" : def.CivicKind == ServiceKind.Order ? "homes and shops" : "homes";
             Line($"Reaches {CellsReached(building)} {reached}. [V] Services view.");
+            BudgetSystem budget = m_GameManager.Simulation.Budget;
+            BudgetLine line = BudgetLineOf(def.CivicKind);
+            if (!Mathf.Approximately(budget.GetFunding(line), 1f))
+            {
+                ServiceSource funded = budget.Fund(new ServiceSource(building.Origin, Vector2Int.one, 0, 0,
+                    civicKind: def.CivicKind, civicRadius: def.CivicRadius, civicStrength: def.CivicStrength));
+                Line($"<color=#F2C14E>Funding {budget.GetFunding(line):P0}</color>: reach {funded.CivicRadius} (full {def.CivicRadius}), strength {funded.CivicStrength:P0} (full {def.CivicStrength:P0}).");
+            }
             BuildingDefinition replacement = m_GameManager.ReplacementFor(def);
             if (replacement != null)
             {
@@ -151,6 +159,17 @@ public sealed class SelectionPanel : MonoBehaviour
             }
         }
         m_Action = Action.Demolish;
+    }
+
+    private static BudgetLine BudgetLineOf(ServiceKind kind)
+    {
+        switch (kind)
+        {
+            case ServiceKind.Order: return BudgetLine.Order;
+            case ServiceKind.Fire: return BudgetLine.Fire;
+            case ServiceKind.Health: return BudgetLine.Health;
+            default: return BudgetLine.Education;
+        }
     }
 
     private static string CivicLine(ServiceKind kind)

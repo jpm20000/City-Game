@@ -22,6 +22,7 @@ public static class GameEvents
     public static event Action ResearchChanged;                    // research progress / plan / income changed (per tick, load)
     public static event Action<string> TechCompleted;              // tech Id
     public static event Action<int> AgeChanged;                    // new age index (after advancing)
+    public static event Action BudgetChanged;                      // funding, a loan or an ordinance changed (M15)
     public static event Action<int> Redeveloped;                   // outdated cells rebuilt in the current age this tick
 
     public static void RaiseMoneyChanged(float money) => MoneyChanged?.Invoke(money);
@@ -43,6 +44,7 @@ public static class GameEvents
     public static void RaiseTechCompleted(string techId) => TechCompleted?.Invoke(techId);
     public static void RaiseAgeChanged(int age) => AgeChanged?.Invoke(age);
     public static void RaiseRedeveloped(int count) => Redeveloped?.Invoke(count);
+    public static void RaiseBudgetChanged() => BudgetChanged?.Invoke();
 
     // Static events survive play sessions when domain reload is disabled; drop stale subscribers.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -67,5 +69,6 @@ public static class GameEvents
         TechCompleted = null;
         AgeChanged = null;
         Redeveloped = null;
+        BudgetChanged = null;
     }
 }

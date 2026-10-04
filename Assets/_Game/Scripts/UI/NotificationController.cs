@@ -228,6 +228,12 @@ public sealed class NotificationController : MonoBehaviour
         string message = $"<color=#73D973>Research complete:</color> {done.DisplayName}";
         if (unlocked.Count > 0) message += $" — <b>{string.Join(", ", unlocked)}</b> unlocked";
         if (replaces.Count > 0) message += $" ({string.Join("; ", replaces)} — they keep working, but are outdated)";
+        var ordinances = new List<string>();
+        foreach (OrdinanceDefinition ordinance in tech.Techs.Ordinances)
+        {
+            if (ordinance != null && ordinance.RequiredTech == done) ordinances.Add(ordinance.DisplayName);
+        }
+        if (ordinances.Count > 0) message += $" — ordinance <b>{string.Join(", ", ordinances)}</b> available in Budget";
         if (tech.Active == null) message += ". Pick the next project in Research.";
         ShowToast(message);
     }
@@ -394,7 +400,8 @@ public sealed class NotificationController : MonoBehaviour
         if (m_Banner.activeSelf != inDebt) m_Banner.SetActive(inDebt);
         if (inDebt && m_BannerText != null)
         {
-            m_BannerText.text = $"In debt: -${-money:N0}. Raise taxes or cut upkeep — roads and buildings are locked until you're out of debt.";
+            string loanHint = m_GameManager != null && m_GameManager.Simulation.Budget.CanBorrow ? " A loan in Budget can tide you over." : "";
+            m_BannerText.text = $"In debt: -${-money:N0}. Raise taxes or cut upkeep — roads and buildings are locked until you're out of debt.{loanHint}";
         }
     }
 
