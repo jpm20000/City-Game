@@ -67,7 +67,7 @@ public sealed class DayNightCycle : MonoBehaviour
         m_Overlay = overlay;
         m_Kit = kit;
 
-        foreach (Light light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+        foreach (Light light in FindObjectsByType<Light>())
         {
             if (light.type == LightType.Directional) { m_Sun = light; break; }
         }
@@ -79,7 +79,7 @@ public sealed class DayNightCycle : MonoBehaviour
         m_BaseAmbient = RenderSettings.ambientIntensity;
 
         var found = new System.Collections.Generic.List<Tilemap>();
-        foreach (Tilemap map in FindObjectsByType<Tilemap>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (Tilemap map in FindObjectsByType<Tilemap>(FindObjectsInactive.Include))
         {
             if (map.name == "Ground" || map.name == "Roads" || map.name == "Pipes" || map.name == "Zones") found.Add(map);
         }

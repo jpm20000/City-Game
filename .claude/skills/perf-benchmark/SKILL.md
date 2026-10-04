@@ -37,6 +37,8 @@ Editor frame times mislead: Hierarchy/editor overhead makes GameObject create/de
 
 | M18b (generated building kit: 1 renderer per block on one shared `Kit.mat`) | 1.40 ms | 1.65 ms | 2.3-2.6 ms | 2.23 ms (`Disasters.Step` 1.475 ms) |
 
+| M18f (vehicles: 79 driving at default zoom, 91 with the whole map in view; same run with `VehicleView` off: 1.25 ms / 1.65 ms) | 1.26 ms (1.37 idle-paused with vehicles) | 1.65 ms | 2.35-2.70 ms | 2.31 ms (`Disasters.Step` 1.477 ms) |
+
 \* The stress city starts with a quarter of its blocks outdated, so the redevelop scan runs over the whole map every tick.
 \*\* Since M13e `PerfBenchmark.FeedUtilities` feeds power and water from sim-only sources on the west edge and lays a pipe along every block, so both networks carry flow; earlier rows had no plants, so the power network never filled. A recompute is O(cells) and runs twice on a day with upgrades; the edit-every-frame rows include the per-frame `PowerChanged` / `WaterChanged` recompute.
 
