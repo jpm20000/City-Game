@@ -711,6 +711,17 @@ SFX and per-age ambience with empty per-age music slots, a Sound panel, and cosm
 load. Steps 18a art pipeline · 18b building kit · 18c roads and ground · 18d day/night · 18e audio · 18f vehicles ·
 18g perf / play-through / docs — **all done (2026-10-04)**; the as-built notes are in §13 (Core / Buildings: *Art pipeline*, *Building kit*, *Road and ground art*, *Day/night*, *Audio*, *Vehicles*).
 
+### M19 — Release — planned (2026-10-04)
+
+Full plan: [Docs/milestones/M19.md](milestones/M19.md). A main menu over a bundled showcase city, a pause menu with
+one Esc router, named saves with thumbnails, quicksave and three rotating autosaves (save v7: city name and tutorial
+progress; the legacy `city.json` is imported), one Settings screen (audio, display, UI scale, gameplay, rebindable
+keys) that takes over the M18 Sound panel, a non-blocking Medieval tutorial (12 objectives, button highlights,
+blocker help), and a Windows release (non-development player, zip, Inno Setup installer, `-smokeTest`). No sim
+change. Steps 19a save slots + v7 · 19b pause menu / save browser / Esc · 19c main menu + showcase · 19d settings ·
+19e controls · 19f tutorial · 19g Windows release · 19h play-through / docs. Open before 19g: the game title, company
+name and version.
+
 ### Where M13–M19 plug in (integration notes)
 Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code that exists today; decide the details in each milestone's plan.
 
@@ -721,7 +732,7 @@ Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code t
 - **M16 Traffic — done:** statistical load per road cell from the homes↔jobs flow (no agents); congestion lowers road access quality and happiness. Road tiers (dirt → cobble → paved → avenue → highway) become a per-road byte in `GridData` (saved → version bump), are unlocked by tech (the `UnlockRoadTier` idea in §12) and drawn per tier by `RoadTilemapView`. Traffic view. Watch the 96² benchmark.
 - **M17 Disasters & events** (plan in `Docs/milestones/M17.md`): fire spreads between cells without fire coverage, plague in the Medieval age without health coverage, plant breakdowns; random events with choices arrive as toasts or popups. Use a seeded RNG whose state is saved; an on/off switch goes in the New City dialog (and `SaveData`).
 - **M18 Art & atmosphere** (plan in `Docs/milestones/M18.md`): hand-made per-age prefabs go into the `AgeVisualSet` slots under the prefab contract (pivot at the ground centre of a 1×1 cell, +Y up, 1 unit = 1 cell, layer 9, a collider on the root, shared materials only, one or two materials; GamePlan §12). Also per-age road tiles, day/night lighting, music and ambience. Re-run `PerfBenchmark`.
-- **M19 Release:** main menu, settings (audio, keybinds, UI scale), multiple save slots with thumbnails (`SaveGameController` is single-slot `city.json` today), a first-age tutorial and a Windows player build (see `perf-benchmark` for building a player and reverting the settings churn it leaves behind).
+- **M19 Release** (plan in `Docs/milestones/M19.md`): main menu, settings (audio, keybinds, UI scale), multiple save slots with thumbnails (`SaveGameController` is single-slot `city.json` today), a first-age tutorial and a Windows player build (see `perf-benchmark` for building a player and reverting the settings churn it leaves behind).
 
 ### M15–M19 outline (detailed plans written when each milestone starts)
 
@@ -743,7 +754,7 @@ Random events with choices are delivered as toasts or popups. Can be toggled in 
 along with per-age road tiles, day/night lighting, and per-age music and ambience. Optional extra:
 cosmetic carts/cars on busy roads (visual only).
 
-**M19 — Release.** Main menu, settings (audio, keybinds, UI scale), multiple save slots with
+**M19 — Release** (plan in `Docs/milestones/M19.md`). Main menu, settings (audio, keybinds, UI scale), multiple save slots with
 thumbnails, a tutorial for the first age, and a Windows player build.
 
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). **M11 done** (steps 11a–11g,
