@@ -24,6 +24,13 @@ Prefer creating and wiring assets through `Unity_RunCommand` while the Editor is
 - Building prefabs: root has `BuildingInstance` + a collider (selection raycasts hit it), layer 9; decorations go under a collider-less `Decor` child referenced by `BuildingInstance.m_Decor` (authored in world units on top of the base); shared materials only (copy an existing `Art/*.mat` and set `_BaseColor`).
 - In editor scripts, `go.GetComponent<T>() ?? go.AddComponent<T>()` is unsafe (Unity fake-null); use an explicit `!= null` check.
 
+## Generated art (M18)
+- **Building kit, vehicles:** menu *CityBuilder > Generate Building Kit* (`Scripts/Editor/BuildingKitGenerator.cs`, designs in `KitDesigns.cs`, vehicles in `KitVehicles.cs`) writes the palette textures, `Kit.mat`, meshes, prefabs, the `AgeVisualSet` `Prefabs` slots and `VehicleSet`; deterministic and in place. **Append** palette swatches, never insert (indices are baked into meshes). A hand-made prefab replaces a slot in the Inspector, but a re-run overwrites the slots it owns. `ArtContract` (*Validate Art*) checks any prefab you import.
+- **Run it only after the compile finished:** `EditorApplication.ExecuteMenuItem` right after editing the generator runs the *old* code (the Editor has not reloaded yet); check the console for compile errors, wait, then run. The first kit was regenerated that way and missed a fix for a whole session.
+- **Tiles and audio:** `Tools/gen_tiles.py`, `Tools/gen_audio.py` (stdlib only); Unity rewrites the `.meta`s on import, keep its version (the scripts then reuse the GUID in it).
+- After `OpenScene(Single)` load every asset you assign again (a stale reference serialises as `{fileID: 0}` or throws on `new SerializedObject`).
+- Runtime changes to a shared material asset stick in the Editor: `DayNightCycle` restores `Kit.mat`'s emission on destroy / quit; check `git status` after Play for float-format churn in `Art/*.mat` and revert it.
+
 ## Assets
 - ScriptableObjects: `ScriptableObject.CreateInstance<T>()` + `AssetDatabase.CreateAsset`, set private fields via `SerializedObject`, `EditorUtility.SetDirty`, `AssetDatabase.SaveAssets()`.
 - Age / tech / age-visual content is **generated**, not hand-edited: edit the tables in `Tools/gen_age_content.py` and run it (deterministic GUIDs keep references stable), then `AssetDatabase.Refresh()`.

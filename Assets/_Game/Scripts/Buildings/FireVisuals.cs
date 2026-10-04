@@ -28,11 +28,13 @@ public sealed class FireVisuals : MonoBehaviour
     private readonly List<Flame> m_Pool = new();
     private int m_LastSteps = -1;
     private float m_NextScan;
+    private GrowthVisuals m_Growth;
 
     public void Init(GameManager game, GridSystem gridSystem)
     {
         m_Game = game;
         m_GridSystem = gridSystem;
+        m_Growth = FindAnyObjectByType<GrowthVisuals>();
         m_FireMaterial = MakeMaterial("FlameMaterial", new Color(1f, 0.42f, 0.08f));
         m_SmokeMaterial = MakeMaterial("SmokeMaterial", new Color(0.22f, 0.22f, 0.25f));
         m_SickMaterial = MakeMaterial("SickMaterial", new Color(0.72f, 0.85f, 0.10f));
@@ -145,6 +147,9 @@ public sealed class FireVisuals : MonoBehaviour
             Vector3 world = m_GridSystem.CellToWorld(cell);
             int level = grid.GetBuildingLevel(cell);
             world.y = level > 0 ? 0.35f + 0.3f * level : 0.45f;
+            // The kit's buildings are taller than the placeholder blocks were: the flame sits in the upper part of the
+            // actual visual (its smoke rises above the roof) instead of inside a tower.
+            if (level > 0 && m_Growth != null) world.y = Mathf.Max(world.y, m_Growth.VisualTop(cell) * 0.7f);
             if (sick) world.y += 0.35f;
             flame.Root.position = world;
             flame.Root.gameObject.SetActive(true);

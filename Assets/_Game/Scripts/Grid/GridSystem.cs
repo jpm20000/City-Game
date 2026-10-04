@@ -72,13 +72,15 @@ public sealed class GridSystem : MonoBehaviour
     {
         EnsureInitialized();
         m_GridSize = size;
-        if ((size == m_PaintedSize && !m_GroundDirty) || (m_GroundTile == null && m_GroundVariants == null)) return;
+        // An empty array counts as none (a stale or cleared set must never divide by its length below).
+        TileBase[] variants = m_GroundVariants != null && m_GroundVariants.Length > 0 ? m_GroundVariants : null;
+        if ((size == m_PaintedSize && !m_GroundDirty) || (m_GroundTile == null && variants == null)) return;
 
         m_GroundTilemap.ClearAllTiles();
         Vector3Int min = LogicalToTileCell(new Vector2Int(0, size.y - 1));
         BoundsInt block = new BoundsInt(min, new Vector3Int(size.x, size.y, 1));
         TileBase[] tiles = new TileBase[size.x * size.y];
-        if (m_GroundVariants == null)
+        if (variants == null)
         {
             System.Array.Fill(tiles, m_GroundTile);
         }
@@ -89,7 +91,7 @@ public sealed class GridSystem : MonoBehaviour
             {
                 for (int tx = 0; tx < size.x; tx++)
                 {
-                    tiles[ty * size.x + tx] = m_GroundVariants[GroundHash(tx, size.y - 1 - ty) % (uint)m_GroundVariants.Length];
+                    tiles[ty * size.x + tx] = variants[GroundHash(tx, size.y - 1 - ty) % (uint)variants.Length];
                 }
             }
         }

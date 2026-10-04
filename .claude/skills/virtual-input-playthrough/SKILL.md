@@ -31,6 +31,15 @@ Every action goes through Input System events, so the EventSystem, `InputReader`
 ## Reporting
 End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; distinguish driver bugs (fix and rerun) from game bugs (fix in the game, add a test where the sim is involved).
 
+## Notes from the M18 play-through (UI-only, 23 checks, 0 failed)
+- Scenario for a **presentation** milestone: New City by dialog, roads / zones by input, Skip by the debug panel, then check *effects* through state the systems already expose: `AudioController.PlayLog` (effects played), the ground `Tilemap`'s sprite names, `Tilemap.color` / `Light.intensity` / the `Kit.mat` emission for the night, `VehicleView.ActiveCount`, `GrowthVisuals` children (kit prefab names, `transform.forward` toward a road), the active `AudioSource` clip names for the ambience.
+- **Time-based fades need real time:** `yield return new WaitForSecondsRealtime(1.5f)` (not frames) before reading the night factor or vehicle counts; the Editor in the background runs few frames.
+- Debug-panel buttons made at runtime are found by their text (`ButtonWithText(DebugPanel, "Time of day")`); each press cycles noon / dusk / midnight / calendar.
+- A DEBUG age jump that keeps the scenario short: `tech.StartNew(age); GameEvents.RaiseAgeChanged(age)` (grants the earlier techs, redevelopment follows with Skip).
+- Runtime-built panels (Sound): find the button by name (`UI/HUD/Game/SoundButton`), the panel by component, sliders by `GetComponentsInChildren<Slider>`; click a slider at a fraction of its track from `GetWorldCorners`.
+- Put `finally` cleanups behind null checks: when Awake failed once, the driver's `finally` threw and hid the real error.
+- Reset PlayerPrefs-backed settings (volumes, mute, Lock to day) at the end; they persist in the Editor.
+
 ## Notes from the M15 play-through (UI-only, Budget panel)
 - **Find runtime-built UI by what it says, not by order.** `FindObjectsByType` order is unspecified, so "the first Enact button" was a different ordinance each run: find the `TMP_Text` with the row's label and take the `Button` in its parent. Buttons made at runtime are named `<label>Button` (`Take loanButton`, `Repay $18,750Button`: match by prefix).
 - **Click a slider track at a fraction of its width** (world corners to screen, inset by the handle half-width): 0 = minimum, 1 = maximum, 0.5 = the middle step. Setup shortcuts are fine when labelled DEBUG: the debug panel's Seed button plus two Skip clicks gave a 220-pop Industrial city.

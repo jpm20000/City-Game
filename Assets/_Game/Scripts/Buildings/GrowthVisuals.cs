@@ -137,6 +137,16 @@ public sealed class GrowthVisuals : MonoBehaviour
 
     // Info views recolour grown buildings (the ground overlay is mostly hidden under them). Return
     // null from the function to keep a cell's own colours; pass null to restore all of them.
+    // The top of a grown cell's visual in world Y (0 when there is none): the kit's towers reach about 3, the
+    // placeholder blocks 0.5-2.5, so markers that sit on a building (fire, plague) read it instead of a fixed height.
+    public float VisualTop(Vector2Int cell)
+    {
+        if (!m_Cells.TryGetValue(cell, out Grown grown)) return 0f;
+        if (grown.Prefab != null && grown.Prefab.Renderers.Length > 0) return grown.Prefab.Renderers[0].bounds.max.y;
+        if (grown.Body != null) return grown.Body.Renderer.bounds.max.y;
+        return 0f;
+    }
+
     public void SetColorOverride(Func<Vector2Int, Color?> colorOverride)
     {
         m_ColorOverride = colorOverride;
