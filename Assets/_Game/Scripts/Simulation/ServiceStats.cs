@@ -48,6 +48,7 @@ public readonly struct ServiceStats
         int housing = 0;
         int unpowered = 0;
         int unwatered = 0;
+        float ramp = civic != null ? civic.Ramp : 0f;
 
         for (int y = 0; y < grid.Height; y++)
         {
@@ -66,11 +67,11 @@ public readonly struct ServiceStats
                 if (landValue != null) heritage += capacity * HeritageBonusAt(config, landValue.HeritageCount(cell));
                 if (civic != null)
                 {
-                    CivicBreakdown needs = civic.Explain(cell);
-                    crime += capacity * CrimePenaltyAt(config, needs.Crime);
-                    fire += capacity * FirePenaltyAt(config, needs.FireRisk);
-                    sick += capacity * HealthPenaltyAt(config, needs.Sickness);
-                    educated += capacity * needs.Education;
+                    civic.HomeNeeds(cell, capacity, ramp, out float cellCrime, out float cellFire, out float cellSick, out float cellEducation);
+                    crime += capacity * CrimePenaltyAt(config, cellCrime);
+                    fire += capacity * FirePenaltyAt(config, cellFire);
+                    sick += capacity * HealthPenaltyAt(config, cellSick);
+                    educated += capacity * cellEducation;
                 }
             }
         }

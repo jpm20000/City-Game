@@ -501,6 +501,16 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Action = Action.Unzone;
     }
 
+    // What would raise this cell's land value, from what is lowering it (M14d: crime → order cover).
+    private string LandValueFixes(Vector2Int cell)
+    {
+        LandValueBreakdown value = m_GameManager.Simulation.LandValue.Explain(cell);
+        string fixes = "add parks";
+        if (value.Crime < -0.005f) fixes += ", keep order (a watch house or police nearby)";
+        if (value.Pollution < -0.005f) fixes += " or move industry away";
+        return fixes;
+    }
+
     private string BlockerText(Vector2Int cell, ZoneType zone, string verb)
     {
         DemandSnapshot demand = m_GameManager.Demand.Snapshot;
@@ -533,7 +543,7 @@ public sealed class SelectionPanel : MonoBehaviour
                 return "<color=#9AA3B2>Historic (kept) — highest level for its age.</color>";
             case GrowthBlocker.LowLandValue:
                 return $"<color=#F2C14E>{verb} waiting:</color> land value {m_GameManager.Simulation.LandValue.GetLandValue(cell):P0}, " +
-                       $"level 3 needs {m_GameManager.Balance.LandValueForLevel3:P0} — add parks or move industry away.";
+                       $"level 3 needs {m_GameManager.Balance.LandValueForLevel3:P0} — {LandValueFixes(cell)}.";
             default:
                 return string.Empty;
         }

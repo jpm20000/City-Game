@@ -30,6 +30,11 @@ Where things live: standing rules → `AGENTS.md` (**Roadmap M11–M19**); plans
 - Balance targets still met (`AgeBalanceTests`), benchmark re-run if the plan asked for it.
 - Docs: GamePlan §13 (systems as built), §12 (milestone marked done, step notes, status paragraph naming the next milestone) and §8 status; `AGENTS.md` Project bullet ("done / next") and `CLAUDE.md` header line ("M0–M1x are done"); update the plug-in notes for later milestones if this one changed the code they build on.
 
+## Lessons from M14 (carry forward)
+- **Steps done without the Editor owe an Editor pass.** 14b / 14c ran in the sim harness; 14d started by compiling, running the Test Runner and taking the owed screenshots before any new work. List what is owed in the step note so the next session can't miss it.
+- **A must-build the harness player never builds is a balance bug in the harness first.** Trace it day by day (why was each line skipped: cash, upkeep, no spot) before touching prices; the Hospital needed a player rule (build on cash when the deficit is covered) *and* a price cut.
+- **Measure the hot path, not the recompute.** Civic cover recomputes in 0.02 ms, but the per-home needs read on every tick cost 0.22 ms until they got a fast path; time `ServiceStats.Measure` with and without the new term.
+
 ## Lessons from M13 (carry forward)
 - **Check plan assumptions against validators before content work.** M13's plan made Waterworks a required tech of the Industrial age; `TechDatabase.Validate` only allows required techs from an earlier age, so it followed the Electricity precedent (a starting tech) instead.
 - **Every new must-build needs the harness player to respond — and to save for it.** The engaged player that kept buying parks and roads while a tower was blocking growth stalled the Industrial age for 100+ days (see `balance-tuning`).

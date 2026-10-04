@@ -3,7 +3,7 @@
 ## Project
 - Unity **6000.6.3f1**, URP 17.6.0, Linear, PC target, new Input System only (`activeInputHandler: 1`).
 - Isometric 2.5D city-builder with an abstract (statistical) simulation. Design, roadmap and the per-system reference: `Docs/GamePlan.md` (§12 roadmap, §13 systems).
-- **Roadmap M10–M19** (`Docs/GamePlan.md` §12): the city spans history through 4 ages (Medieval 750, Renaissance 1450, Industrial 1760, Modern 1945) with research, a tech tree and a selectable starting age. M10 (map size, perf, New City), M11 (ages, research, save v2), M12 (local pollution, land value, heritage) and M13 (water: wells, towers, pipes, save v3) are **done**; **M14 is next**. Standing rules: see **Roadmap M11–M19** below; where each later milestone plugs in: `Docs/GamePlan.md` §12.
+- **Roadmap M10–M19** (`Docs/GamePlan.md` §12): the city spans history through 4 ages (Medieval 750, Renaissance 1450, Industrial 1760, Modern 1945) with research, a tech tree and a selectable starting age. M10 (map size, perf, New City), M11 (ages, research, save v2), M12 (local pollution, land value, heritage), M13 (water: wells, towers, pipes, save v3) and M14 (civic services: order, fire, health, education) are **done**; **M15 is next**. Standing rules: see **Roadmap M11–M19** below; where each later milestone plugs in: `Docs/GamePlan.md` §12.
 - Game code lives under `Assets/_Game/` (never at `Assets/` root). Default scene: `Assets/_Game/Scenes/Main.unity`.
 
 ## Build / run / test
@@ -37,7 +37,7 @@ Step-by-step procedures live in skills (load the one that fits the task); per-sy
 - **Not `IsometricZAsY`** — `Docs/GamePlan.md` §2/§5 is stale on this point.
 
 ## Roadmap M11–M19
-Detailed plans live in `Docs/GamePlan.md` §12 (M11–M13 have their full plans and step notes there; M14–M19 are outlines).
+Detailed plans live in `Docs/GamePlan.md` §12 (M11–M14 have their full plans and step notes there; M15–M19 are outlines).
 
 **Workflow:** follow the `milestone-workflow` skill — plan in GamePlan §12 first, commit each step on its own; a milestone is done when EditMode tests are green, a **UI-only virtual-input play-through** of its loop passes (`virtual-input-playthrough`) and the docs (GamePlan §13 Systems reference + §8/§12 status; this file only if a convention changed) are updated.
 

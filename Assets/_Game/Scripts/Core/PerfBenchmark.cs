@@ -150,7 +150,7 @@ public sealed class PerfBenchmark : MonoBehaviour
 
     // M13: power and water fed in along the west edge (sim-only sources, no buildings drawn) and a
     // water pipe along the middle row of every block, so both networks carry real flow when the
-    // tick recomputes them.
+    // tick recomputes them. M14d: plus sim-only civic cover.
     private static void FeedUtilities(GameManager gameManager)
     {
         GridData grid = gameManager.Grid;
@@ -158,6 +158,17 @@ public sealed class PerfBenchmark : MonoBehaviour
         for (int y = 1; y < grid.Height; y += 10)
         {
             sources.Add(new ServiceSource(new Vector2Int(1, y), Vector2Int.one, 0, 20000, waterSupply: 20000));
+        }
+        // M14: civic cover of every line on a 15-cell grid, so the civic terms read real cover.
+        var kinds = new[] { ServiceKind.Order, ServiceKind.Fire, ServiceKind.Health, ServiceKind.Education };
+        int k = 0;
+        for (int y = 6; y < grid.Height; y += 15)
+        {
+            for (int x = 6; x < grid.Width; x += 15)
+            {
+                sources.Add(new ServiceSource(new Vector2Int(x, y), new Vector2Int(2, 2), 0, 0,
+                    civicKind: kinds[k++ % kinds.Length], civicRadius: 8, civicStrength: 1f));
+            }
         }
         gameManager.Simulation.Sources = sources;
         for (int y = 2; y < grid.Height; y += 5)

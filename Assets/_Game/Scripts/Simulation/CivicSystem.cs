@@ -94,7 +94,18 @@ public sealed class CivicSystem
         return Mathf.Clamp01((float)(population - free) / (full - free));
     }
 
-    public float GetCrime(Vector2Int cell) => Explain(cell).Crime;
+    // Crime alone (land value reads it per cell): the zone and capacity checks first, so empty land and
+    // industry skip the capacity lookup.
+    public float GetCrime(Vector2Int cell)
+    {
+        if (!m_Grid.InBounds(cell)) return 0f;
+        ZoneType zone = m_Grid.GetZone(cell);
+        if (zone != ZoneType.Residential && zone != ZoneType.Commercial || m_Grid.GetBuildingLevel(cell) == 0) return 0f;
+        int capacity = m_Capacity.CapacityOf(m_Grid, cell);
+        if (capacity == 0) return 0f;
+        return Mathf.Min(1f, capacity * m_Config.CrimePerCapacity) * Ramp * (1f - Cover.GetStrength(ServiceKind.Order, cell));
+    }
+
     public float GetFireRisk(Vector2Int cell) => Explain(cell).FireRisk;
     public float GetSickness(Vector2Int cell) => Explain(cell).Sickness;
 
@@ -118,6 +129,22 @@ public sealed class CivicSystem
 
         return new CivicBreakdown(ramp, crimePotential, order, crimePotential * ramp * (1f - order),
             fireBase, fire, fireBase * ramp * (1f - fire), health, sickness, education);
+    }
+
+    // Hot path for ServiceStats.Measure (14d): a grown home's needs, given the capacity it already
+    // looked up and the ramp read once per measure. Same numbers as Explain.
+    public void HomeNeeds(Vector2Int cell, int capacity, float ramp, out float crime, out float fireRisk, out float sickness,
+        out float education)
+    {
+        int width = m_Grid.Width;
+        int i = cell.y * width + cell.x;
+        float order = Cover.StrengthAt(ServiceKind.Order, i);
+        float fire = Cover.StrengthAt(ServiceKind.Fire, i);
+        float health = Cover.StrengthAt(ServiceKind.Health, i);
+        education = Cover.StrengthAt(ServiceKind.Education, i);
+        crime = Mathf.Min(1f, capacity * m_Config.CrimePerCapacity) * ramp * (1f - order);
+        fireRisk = FireRiskOfAge(m_Grid.GetBuiltAge(cell)) * ramp * (1f - fire);
+        sickness = ramp * (1f - health);
     }
 
     private float FireRiskOfAge(int builtAge)

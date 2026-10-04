@@ -6,7 +6,7 @@ Project conventions and standing rules live in `AGENTS.md` (shared with OpenCode
 
 @AGENTS.md
 
-Design intent, balance formulas, the milestone roadmap (§12) and the systems reference (§13) are in `Docs/GamePlan.md` (where an earlier section disagrees with §13 or `AGENTS.md`, those describe the code as built). M0–M13 are done; §12 holds the M10–M19 ages roadmap (M14 next) — when starting a milestone, expand its outline there into a §11-style plan (goal, done-when, lettered steps, risks) before implementing.
+Design intent, balance formulas, the milestone roadmap (§12) and the systems reference (§13) are in `Docs/GamePlan.md` (where an earlier section disagrees with §13 or `AGENTS.md`, those describe the code as built). M0–M14 are done; §12 holds the M10–M19 ages roadmap (M15 next) — when starting a milestone, expand its outline there into a §11-style plan (goal, done-when, lettered steps, risks) before implementing.
 
 ## Claude Code specifics
 
@@ -20,4 +20,5 @@ Design intent, balance formulas, the milestone roadmap (§12) and the systems re
   - `perf-benchmark` — development player build + `-perfBenchmark`, baselines, cleaning up build churn.
   - `balance-tuning` — `BalanceConfig` / content tuning with the `SeededCity` and `EngagedCity` harnesses.
 - **Save slot:** the HUD Save button / F5 / `SaveGameController.Save()` overwrite the player's real save (`%USERPROFILE%/AppData/LocalLow/DefaultCompany/City Game/city.json`). Back it up to the scratchpad before anything that saves and restore it afterwards.
-- **Shell edits:** in the Bash tool a heredoc whose body contains apostrophes (e.g. C# strings like `"can't"`) or non-ASCII characters (`×`, `—`) can fail to parse or match even when quoted (`<<'EOF'`). For multi-line patches, write a Python script to the scratchpad with the Write tool and run it, and have it assert that every replacement matched.
+- **Shell edits:** in the Bash tool a heredoc whose body contains apostrophes (e.g. C# strings like `"can't"`) or non-ASCII characters (`×`, `—`) can fail to parse or match even when quoted (`<<'EOF'`). For multi-line patches, write a Python script to the scratchpad with the Write tool and run it, and have it assert that every replacement matched. Most docs and scripts are CRLF: let Python's default text mode write them (never `newline=""`, which turns the whole file into LF), and note that a heredoc also collapses `\n` to `
+` inside the script.

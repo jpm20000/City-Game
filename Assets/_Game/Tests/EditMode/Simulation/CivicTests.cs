@@ -313,4 +313,42 @@ public sealed class CivicTests
         var ageless = new SimulationSystem(new GridData(8, 8), new RoadNetwork(new GridData(8, 8)), m_Config);
         Assert.AreEqual(0f, ageless.ResearchIncome(), "no research without ages");
     }
+
+    // 14d: the tick's fast paths (GetCrime for land value, HomeNeeds for ServiceStats) give exactly
+    // Explain's numbers on every cell of a mixed city.
+    [Test]
+    public void FastPaths_MatchExplain()
+    {
+        m_Population = 400;   // part-way up the ramp
+        var zones = new[] { ZoneType.None, ZoneType.Residential, ZoneType.Commercial, ZoneType.Industrial };
+        for (int y = 0; y < 16; y++)
+        {
+            for (int x = 0; x < 16; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                m_Grid.SetZone(cell, zones[(x * 7 + y * 3) % 4]);
+                m_Grid.SetBuildingLevel(cell, (byte)((x + y * 5) % 4));
+            }
+        }
+        CivicSystem civic = Civic(Station(new Vector2Int(3, 3), ServiceKind.Order, 4, 0.5f),
+            Station(new Vector2Int(10, 9), ServiceKind.Fire, 3, 0.75f), Station(new Vector2Int(8, 2), ServiceKind.Health, 5, 0.85f),
+            Station(new Vector2Int(2, 12), ServiceKind.Education, 4, 0.6f));
+        var capacity = new CapacityModel(m_Config);
+        for (int y = 0; y < 16; y++)
+        {
+            for (int x = 0; x < 16; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                CivicBreakdown e = civic.Explain(cell);
+                Assert.AreEqual(e.Crime, civic.GetCrime(cell), 1e-6f, $"crime at {cell}");
+                int c = capacity.CapacityOf(m_Grid, cell);
+                if (m_Grid.GetZone(cell) != ZoneType.Residential || c == 0) continue;
+                civic.HomeNeeds(cell, c, civic.Ramp, out float crime, out float fire, out float sick, out float education);
+                Assert.AreEqual(e.Crime, crime, 1e-6f, $"home crime at {cell}");
+                Assert.AreEqual(e.FireRisk, fire, 1e-6f, $"fire risk at {cell}");
+                Assert.AreEqual(e.Sickness, sick, 1e-6f, $"sickness at {cell}");
+                Assert.AreEqual(e.Education, education, 1e-6f, $"education at {cell}");
+            }
+        }
+    }
 }

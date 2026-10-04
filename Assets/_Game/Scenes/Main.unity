@@ -8149,6 +8149,16 @@ MonoBehaviour:
   m_NewestAge: {r: 0.32, g: 0.6, b: 0.96, a: 0.65}
   m_Historic: {r: 0.95, g: 0.8, b: 0.3, a: 0.8}
   m_OutdatedShade: 0.6
+  m_OrderCover: {r: 0.36, g: 0.55, b: 0.94, a: 0.6}
+  m_FireCover: {r: 0.95, g: 0.45, b: 0.25, a: 0.6}
+  m_HealthCover: {r: 0.35, g: 0.85, b: 0.4, a: 0.6}
+  m_EducationCover: {r: 0.69, g: 0.48, b: 0.85, a: 0.65}
+  m_CivicUncovered: {r: 0.95, g: 0.3, b: 0.25, a: 0.55}
+  m_NeedLow: {r: 0.82, g: 0.84, b: 0.8, a: 1}
+  m_NeedHigh: {r: 0.9, g: 0.22, b: 0.18, a: 1}
+  m_CrimeFull: 0.5
+  m_FireRiskFull: 0.6
+  m_SicknessFull: 1
 --- !u!483693784 &1643352241
 TilemapRenderer:
   serializedVersion: 2

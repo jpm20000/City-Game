@@ -54,6 +54,9 @@ public sealed class CivicCoverage
         }
     }
 
+    // By flat index (y * width + x), unchecked: the hot path for CivicSystem.HomeNeeds.
+    internal float StrengthAt(ServiceKind kind, int index) => m_Strength[(int)kind][index];
+
     // 0..1; 0 off-map or for ServiceKind.None.
     public float GetStrength(ServiceKind kind, Vector2Int cell)
     {

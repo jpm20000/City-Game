@@ -31,6 +31,12 @@ Every action goes through Input System events, so the EventSystem, `InputReader`
 ## Reporting
 End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; distinguish driver bugs (fix and rerun) from game bugs (fix in the game, add a test where the sim is involved).
 
+## Notes from the M14 play-through (UI-only, 49 checks, 0 failed)
+- Scenario: Medieval 64² (wells, grow without services, tooltip, research the civic techs by clicking the next researchable step of their prerequisite chain, place from the toolbar, step the Services button) then Industrial 64² (plants and towers on the zoned row beside the road **before anything grows**, Constabulary, research Telegraph, read the outdated panel, Police Station by a held home).
+- **A rule that shares a gate with a stronger one needs the right cell.** Pollution (−0.2) dwarfs crime (−0.05) in land value and keeps growing with industry, so pick the held home after the city settles (5 skips) and only one whose land value *without* the crime line clears the gate.
+- Read the happiness tooltip by hovering the `HappinessTooltip` object and searching `TMP_Text`s for `<b>Happiness</b>`; the Services button is `GameObject.Find("ServicesView")` (made at runtime).
+- Signed terms: "the penalty fell" means the (negative) term went *up*; compare per unit of ramp when the population changes between readings.
+
 ## Notes from the M13 play-through (UI-only)
 - **View buttons toggle.** Clicking the active VIEW button turns the view off, and the chosen view survives New City; set `InfoOverlay.SetView(View.Off)` (or check `Chosen`) before a "click the view button" step, or a rerun in the same Play session fails it.
 - **Debug jumps are fine when labelled.** Climbing four ages on a 32² map takes hundreds of days; `tech.Restore(age, TechSystem.StartingTechs(...), "", 0, [])` + `GameEvents.RaiseAgeChanged(age)` jumps there (log it as DEBUG). It grants only the starting techs (no Public Sanitation → no pump button) and skips `GameManager.HandleAgeAdvanced`, so the calendar doesn't move and the HUD water line stays stale until the next grid change.

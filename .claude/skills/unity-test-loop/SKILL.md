@@ -76,6 +76,7 @@ Run `dotnet build -v q -nologo 2>&1 | grep -E "error|Build succeeded" | sort -u`
 ## Waiting for a reload, and probe tests (added in M12)
 - After editing `.cs`, `.asset` or prefab files the bridge answers "Unity not detected" for roughly 30–75 s. A foreground `python -c "import time; time.sleep(40)"` waits fine (plain `sleep` is blocked); retry the RunCommand afterwards — a second short wait is normal after bigger edits.
 - Run **several filters in one call**: `new ExecutionSettings(new Filter { testMode = TestMode.EditMode, groupNames = new[] { "AgeBalanceTests" } }, new Filter { testMode = TestMode.EditMode, testNames = new[] { "TuneProbe.Probe" } })`. Print `r.Output` from `TestFinished` to see `TestContext.WriteLine` text.
+- **Unfocused Editor (M14d):** after an edit the Editor often doesn't start the reload until the bridge pings it, so the first RunCommand answers "Unity not detected" and the next one ~45 s later works. Call any RunCommand right after editing, then wait. Don't edit scripts while in Play mode: the stop call can land mid-reload and leave the Editor playing.
 - **Probe tests:** for tuning or timing, drop a `[Test, Explicit]` class under `Tests/EditMode/Simulation/` that prints a table (population, happiness breakdown, blockers, `Stopwatch` ms) and run it by name. Delete it and its `.meta` before committing (check `git status` for stray `TuneProbe.cs`).
 - `Stopwatch` is blocked in RunCommand scripts but fine inside test code (`System.Diagnostics.Stopwatch`).
 

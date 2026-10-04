@@ -22,8 +22,12 @@ using Object = UnityEngine.Object;
 // game; each day a line whose happiness term (crime, fire risk, sickness) costs more than CivicTrigger
 // gets its best buildable building where uncovered homes pay the most (block middles for buildings up to
 // 2x2, a service block otherwise) if that removes enough of the loss, unless a new plant or tower is
-// wanted or the day's surplus wouldn't cover the building's upkeep. Techs leading to a needed line are
-// researched first, and research buildings past the first wait for the surplus to carry their upkeep.
+// wanted or the building's upkeep can't be carried. Techs leading to a needed line are researched first,
+// and research buildings past the first wait for the surplus to carry their upkeep.
+// M14d: lines go costliest first; buildings bigger than 2x2 may take a reserve block or open the next
+// one; a rich young city may build on its cash (60 days of the deficit) for a line costing 0.03+; such a
+// line also makes the player save for it (no new blocks, parks or cheaper civic buildings); an outdated
+// building whose zoned cells a newer one covers at least as strongly is demolished.
 // Building numbers come from the BuildingDatabase asset through SerializedObject, because
 // BuildingDefinition lives in Assembly-CSharp, which test assemblies can't reference.
 internal sealed class EngagedCity
@@ -61,6 +65,7 @@ internal sealed class EngagedCity
     private readonly List<Vector2Int> m_ZonedCells = new();
     private readonly List<Vector2Int> m_Reserve = new();       // opened on the way to a service block, not zoned yet
     private readonly Dictionary<string, int> m_Placed = new();
+    private readonly List<(Building b, Vector2Int origin)> m_Civic = new();   // placed civic buildings (M14d)
     private CityModifiers m_Modifiers;
     private int m_NextOccupant = 1;
 
@@ -219,7 +224,7 @@ internal sealed class EngagedCity
     // One block per day, the most-demanded zone first.
     private void Expand()
     {
-        if (SavingForUtilities) return;
+        if (SavingForUtilities || SavingForCivic()) return;
         ZoneType needed = NeededZone(onlyWhenFull: true);
         if (needed != ZoneType.None) OpenBlock(needed);
     }
@@ -359,14 +364,32 @@ internal sealed class EngagedCity
         (Sim.Rules.UpgradesNeedPower && Sim.Power.Supply < Sim.Power.Demand)
         || (Sim.Water.Mode == WaterRule.Piped && Sim.Water.Network.Supply < Sim.Water.Network.Demand);
 
+    // M14d: a line costing more than CivicSaveTrigger makes the player save for its best building
+    // (no new blocks or parks) when the day's surplus can carry its upkeep, as for utilities.
+    private const float CivicSaveTrigger = 0.03f;
+
+    private bool SavingForCivic()
+    {
+        foreach (ServiceKind line in s_NeedLines)
+        {
+            if (LineTerm(line) > -CivicSaveTrigger) continue;
+            if (!TryFind(b => b.CivicKind == line && !Outdated(b), out Building best)) continue;
+            if (!CanCarry(best)) continue;
+            if (Sim.Economy.Money - best.Cost < Cushion) return true;
+        }
+        return false;
+    }
+
     private void Build()
     {
         int population = Sim.Population.Population;
         bool saving = SavingForUtilities;
+        bool savingCivic = !saving && SavingForCivic();
         foreach (Building b in m_Buildings.Values)
         {
             if (b.Id == "house" || !CanBuild(b)) continue;   // House is placed by growth, not here
             if (saving && b.Supply <= 0 && b.WaterSupply <= 0) continue;
+            if (savingCivic && b.Radius > 0 && b.WaterRadius == 0) continue;   // no parks while saving for civic
             int want = 0;
             // M14: after the first research building, another only when the day's surplus carries its upkeep.
             if (b.Research > 0f && ResearchBuildings() > 0 && Sim.Economy.IncomePerDay - Sim.Economy.ExpensePerDay < b.Upkeep) continue;
@@ -379,7 +402,7 @@ internal sealed class EngagedCity
             if (Count(b.Id) < want) TryPlace(b);
         }
         DigWells();
-        if (!saving) RaiseLandValue();
+        if (!saving && !savingCivic) RaiseLandValue();
         if (!saving && !UtilityPending()) PlaceCivic();
     }
 
@@ -399,6 +422,18 @@ internal sealed class EngagedCity
     private const float CivicTrigger = 0.01f;
 
     private static readonly ServiceKind[] s_NeedLines = { ServiceKind.Order, ServiceKind.Fire, ServiceKind.Health };
+
+    // M14d: the day's surplus covers the upkeep, or the cash left after building covers CarryDays of
+    // the daily deficit it leaves (a rich young city can afford a hospital before its taxes can), but
+    // only for a line costing more than CivicSaveTrigger.
+    private const int CarryDays = 60;
+
+    private bool CanCarry(Building b)
+    {
+        float deficit = b.Upkeep - (Sim.Economy.IncomePerDay - Sim.Economy.ExpensePerDay);
+        if (deficit <= 0f) return true;
+        return LineTerm(b.CivicKind) <= -CivicSaveTrigger && Sim.Economy.Money - b.Cost - Cushion >= deficit * CarryDays;
+    }
 
     private int ResearchBuildings()
     {
@@ -424,12 +459,19 @@ internal sealed class EngagedCity
 
     private void PlaceCivic()
     {
-        foreach (ServiceKind line in s_NeedLines)
+        // The line costing the most goes first.
+        var lines = new List<ServiceKind>(s_NeedLines);
+        lines.Sort((a, b) => LineTerm(a).CompareTo(LineTerm(b)));
+        foreach (ServiceKind line in lines)
         {
             if (!NeedsLine(line)) continue;
             if (!TryFind(b => b.CivicKind == line && !Outdated(b), out Building best)) continue;
-            if (Sim.Economy.Money - best.Cost < Cushion) continue;
-            if (Sim.Economy.IncomePerDay - Sim.Economy.ExpensePerDay < best.Upkeep) continue;   // can't carry its upkeep
+            if (Sim.Economy.Money - best.Cost < Cushion)
+            {
+                if (LineTerm(line) <= -CivicSaveTrigger && CanCarry(best)) return;   // saving for it: buy nothing cheaper
+                continue;
+            }
+            if (!CanCarry(best)) continue;   // can't carry its upkeep
             PlaceCivic(best);
         }
     }
@@ -454,10 +496,16 @@ internal sealed class EngagedCity
                 if (spot != null) candidates.Add(spot.Value);
             }
         }
-        // Bigger buildings take an already open service block. Service slots stay for parks, plants
-        // and research buildings, and civic buildings never open blocks themselves: reaching the next
-        // service block can mean paying for a dozen blocks of roads.
-        if (!middle && m_FreeBlocks.Count > 0) candidates.Add(m_FreeBlocks[0]);
+        // Bigger buildings take an open service block, a block kept in reserve, or the next block in
+        // order (one block of roads; never OpenServiceBlock, which can pay for a dozen blocks of roads
+        // to reach the next service block). Service slots stay for parks, plants and research buildings.
+        Vector2Int? next = null;
+        if (!middle)
+        {
+            candidates.AddRange(m_FreeBlocks);
+            candidates.AddRange(m_Reserve);
+            if (m_Unopened.Count > 0) candidates.Add((next = m_Unopened[0].origin).Value);
+        }
 
         Vector2Int best = default;
         float bestGain = CivicMinGain * Mathf.Max(Sim.Population.Housing, 1);
@@ -471,8 +519,56 @@ internal sealed class EngagedCity
             found = true;
         }
         if (!found) return;
-        if (!middle) m_FreeBlocks.Remove(best);
+        if (best == next && !OpenBlock(ZoneType.None)) return;   // into m_Reserve (or m_FreeBlocks)
+        if (Sim.Economy.Money - b.Cost < Cushion) return;
+        if (!middle && !m_FreeBlocks.Remove(best)) m_Reserve.Remove(best);
         PlaceAt(b, best);
+        RetireOutdated(b.CivicKind);
+    }
+
+    // M14d: an outdated building whose zoned cells within reach a newer one of its line now covers at
+    // least as strongly is demolished, saving its upkeep (the player's "replace with X").
+    private void RetireOutdated(ServiceKind line)
+    {
+        for (int i = m_Civic.Count - 1; i >= 0; i--)
+        {
+            (Building old, Vector2Int origin) = m_Civic[i];
+            if (old.CivicKind != line || !Outdated(old) || !Redundant(i)) continue;
+            Grid.Release(origin, old.Size, 0);
+            m_Modifiers.UpkeepPerDay -= old.Upkeep;
+            Sim.Modifiers = m_Modifiers;
+            m_Sources.RemoveAll(s => s.Origin == origin && s.CivicKind == line);
+            Sim.Sources = m_Sources.ToArray();
+            m_Placed[old.Id]--;
+            m_Civic.RemoveAt(i);
+            Retired++;
+        }
+    }
+
+    public int Retired { get; private set; }
+
+    private bool Redundant(int index)
+    {
+        (Building old, Vector2Int origin) = m_Civic[index];
+        int r = old.CivicRadius;
+        for (int y = origin.y - r; y < origin.y + old.Size.y + r; y++)
+        {
+            for (int x = origin.x - r; x < origin.x + old.Size.x + r; x++)
+            {
+                Vector2Int cell = new Vector2Int(x, y);
+                if (!Grid.InBounds(cell) || Grid.GetZone(cell) == ZoneType.None) continue;   // only zoned cells matter
+                bool covered = false;
+                for (int j = 0; j < m_Civic.Count && !covered; j++)
+                {
+                    (Building other, Vector2Int o) = m_Civic[j];
+                    if (j == index || other.CivicKind != old.CivicKind || other.CivicStrength < old.CivicStrength) continue;
+                    int rr = other.CivicRadius;
+                    covered = x >= o.x - rr && x < o.x + other.Size.x + rr && y >= o.y - rr && y < o.y + other.Size.y + rr;
+                }
+                if (!covered) return false;
+            }
+        }
+        return true;
     }
 
     // The happiness loss (x capacity) the building would remove at this origin.
@@ -686,6 +782,7 @@ internal sealed class EngagedCity
             Sim.Sources = m_Sources.ToArray();
         }
         m_Placed[b.Id] = Count(b.Id) + 1;
+        if (b.CivicKind != ServiceKind.None && b.CivicRadius > 0) m_Civic.Add((b, origin));
     }
 
     // Opens blocks in order until a service block is open; the ones on the way are kept unzoned in
@@ -709,6 +806,8 @@ internal sealed class EngagedCity
             int span = i + 1 < AgeEntries.Count ? AgeEntries[i + 1].day - e.day : Day - e.day;
             sb.Append($"{Ages[e.age].Id} @d{e.day} (pop {e.population}, {span}d)  ");
         }
+        HappinessBreakdown h = Sim.Population.Happiness;
+        sb.Append($"\n  civic: crime {h.Crime:F3} fire {h.Fire:F3} health {h.Health:F3}, retired {Retired}, income {Sim.Economy.IncomePerDay:F0} - expense {Sim.Economy.ExpensePerDay:F0} (upkeep {m_Modifiers.UpkeepPerDay:F0})");
         sb.Append("\n  built: ");
         foreach (var pair in m_Placed) sb.Append($"{pair.Key}×{pair.Value} ");
         sb.Append("\n  ").Append(Diagnostics());

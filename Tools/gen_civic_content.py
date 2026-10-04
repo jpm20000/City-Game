@@ -83,7 +83,7 @@ BUILDINGS = [
         ("CrossA", CUBE, (0, 0.53, 0), (0.3, 0.02, 0.09), "green"),
         ("CrossB", CUBE, (0, 0.53, 0), (0.09, 0.02, 0.3), "green"),
     ]),
-    ("Hospital", "hospital", "Hospital", "health", "public_sanitation", (3, 2), 6000, 45, 9, 0.85, 0, 0.1, "wall", [
+    ("Hospital", "hospital", "Hospital", "health", "public_sanitation", (3, 2), 4500, 35, 9, 0.85, 0, 0.1, "wall", [
         ("Wing", CUBE, (0, 0.4, 0), (2.6, 0.8, 1.6), "wall"),
         ("Roof", CUBE, (0, 0.83, 0), (2.7, 0.06, 1.7), "health"),
         ("CrossA", CUBE, (0, 0.87, 0), (0.6, 0.02, 0.18), "green"),

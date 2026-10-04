@@ -18,8 +18,8 @@ MonoBehaviour:
   m_Icon: {fileID: 0}
   m_Prefab: {fileID: 3635553982773994972, guid: 5f01d291e78b5875953e5d2b81aff01a, type: 3}
   m_Size: {x: 3, y: 2}
-  m_Cost: 6000
-  m_UpkeepPerDay: 45
+  m_Cost: 4500
+  m_UpkeepPerDay: 35
   m_HousingCapacity: 0
   m_JobsProvided: 0
   m_HappinessEffect: 0
