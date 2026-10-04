@@ -34,6 +34,7 @@ public sealed class GameFlow : MonoBehaviour
     private PauseMenu m_Pause;
     private MainMenu m_MainMenu;
     private SettingsPanel m_Settings;
+    private TutorialCard m_Tutorial;
     private SaveBrowser m_Browser;
     private ConfirmDialog m_Confirm;
 
@@ -63,6 +64,7 @@ public sealed class GameFlow : MonoBehaviour
     public SettingsPanel Settings => m_Settings;
     public GameMenu Menu => m_Menu;
     public bool InMainMenu => m_InMainMenu;
+    public TutorialCard Tutorial => m_Tutorial;
 
     // The speed to store in a save: while a window has the game paused, the speed that will come back.
     public static GameSpeed SpeedToSave(TimeManager clock)
@@ -123,6 +125,7 @@ public sealed class GameFlow : MonoBehaviour
         m_Pause = new PauseMenu(canvas, this);
         m_Settings = new SettingsPanel(canvas, this);
         m_MainMenu = new MainMenu(canvas, this);
+        m_Tutorial = new TutorialCard(canvas, this, game, save);
 
         if (m_Menu != null)
         {
@@ -166,6 +169,7 @@ public sealed class GameFlow : MonoBehaviour
 
     private void Update()
     {
+        m_Tutorial?.Update();
         if (m_Input == null || !m_Input.CancelPressed) return;
         if (!EscapeRouter.Dispatch() && !m_InMainMenu) OpenPauseMenu();
     }
@@ -262,6 +266,7 @@ public sealed class GameFlow : MonoBehaviour
         if (m_LoadingShowcase) return;
         m_MonthsSinceAutosave = 0;
         m_LastMonth = m_Game.Clock.Month;
+        m_Tutorial?.CityLoaded();
         if (m_Windows.Count > 0) CloseAllWindows();
         if (m_InMainMenu) LeaveMainMenu();
     }
@@ -318,6 +323,9 @@ public sealed class GameFlow : MonoBehaviour
     }
 
     // Leaves the main menu without loading anything (Play-mode checks and tools that start from the current city).
+    // The title's Tutorial entry and the pause menu: a fresh tutorial city (unsaved changes are asked about first).
+    public void StartTutorial() => GuardDiscard(() => m_Save.StartTutorial());
+
     public void StartPlaying()
     {
         if (m_InMainMenu) LeaveMainMenu();

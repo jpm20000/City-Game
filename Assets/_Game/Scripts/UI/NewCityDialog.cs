@@ -27,6 +27,8 @@ public sealed class NewCityDialog : MonoBehaviour
 
     private Toggle m_DisastersToggle;      // (M17) built at runtime under the age hint
     private bool m_Disasters = true;
+    private bool m_Tutorial;
+    private Toggle m_TutorialToggle;
     private int m_SelectedSize;
     private int m_SelectedAge = -1;
     private System.Action m_Closer;
@@ -76,11 +78,18 @@ public sealed class NewCityDialog : MonoBehaviour
     private void BuildDisastersToggle(bool hasAges)
     {
         if (m_AgeHint == null || !hasAges) return;
+        m_DisastersToggle = BuildToggle("DisastersToggle", "Disasters & events (fires, plague, breakdowns, choices)", 1, m_Disasters, value => m_Disasters = value);
+        // M19f: the guided tutorial city (Medieval, 48 x 48, no disasters) replaces the choices above.
+        m_TutorialToggle = BuildToggle("TutorialToggle", "Guided tutorial (Medieval, 48 × 48, no disasters)", 2, m_Tutorial, value => m_Tutorial = value);
+    }
+
+    private Toggle BuildToggle(string name, string text, int offset, bool isOn, UnityEngine.Events.UnityAction<bool> onChanged)
+    {
         GameObject go = DefaultControls.CreateToggle(new DefaultControls.Resources());
-        go.name = "DisastersToggle";
+        go.name = name;
         Transform parent = m_AgeHint.transform.parent;
         go.transform.SetParent(parent, false);
-        go.transform.SetSiblingIndex(m_AgeHint.transform.GetSiblingIndex() + 1);
+        go.transform.SetSiblingIndex(m_AgeHint.transform.GetSiblingIndex() + offset);
         // A clear Image on the row makes all of it clickable (the stock toggle only reacts on its small box).
         var hit = go.AddComponent<Image>();
         hit.color = new Color(0f, 0f, 0f, 0f);
@@ -90,7 +99,7 @@ public sealed class NewCityDialog : MonoBehaviour
         var legacyLabel = go.GetComponentInChildren<Text>();
         TMP_Text label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
         label.transform.SetParent(go.transform, false);
-        label.text = "Disasters & events (fires, plague, breakdowns, choices)";
+        label.text = text;
         label.fontSize = m_AgeHint.fontSize;
         label.color = m_AgeHint.color;
         label.raycastTarget = false;
@@ -100,9 +109,10 @@ public sealed class NewCityDialog : MonoBehaviour
         labelRect.offsetMin = new Vector2(30f, 0f);
         labelRect.offsetMax = Vector2.zero;
         if (legacyLabel != null) Destroy(legacyLabel.gameObject);
-        m_DisastersToggle = go.GetComponent<Toggle>();
-        m_DisastersToggle.isOn = m_Disasters;
-        m_DisastersToggle.onValueChanged.AddListener(value => m_Disasters = value);
+        var toggle = go.GetComponent<Toggle>();
+        toggle.isOn = isOn;
+        toggle.onValueChanged.AddListener(onChanged);
+        return toggle;
     }
 
     public void Open()
@@ -114,6 +124,8 @@ public sealed class NewCityDialog : MonoBehaviour
         Select(System.Array.IndexOf(m_Sizes, current) >= 0 ? current : m_DefaultSize);
         m_Disasters = GameSettings.DisastersByDefault;
         if (m_DisastersToggle != null) m_DisastersToggle.isOn = m_Disasters;
+        m_Tutorial = false;
+        if (m_TutorialToggle != null) m_TutorialToggle.isOn = false;
         TechSystem tech = m_GameManager != null && m_GameManager.Simulation != null ? m_GameManager.Simulation.Tech : null;
         if (tech != null) SelectAge(tech.CurrentAge);
         m_Panel.SetActive(true);
@@ -166,10 +178,13 @@ public sealed class NewCityDialog : MonoBehaviour
         int size = m_SelectedSize;
         int age = m_SelectedAge;
         bool disasters = m_Disasters;
+        bool tutorial = m_Tutorial;
         void Make()
         {
             Close();
-            if (m_SaveGame != null) m_SaveGame.NewCity(new Vector2Int(size, size), age, disasters);
+            if (m_SaveGame == null) return;
+            if (tutorial) m_SaveGame.StartTutorial();
+            else m_SaveGame.NewCity(new Vector2Int(size, size), age, disasters);
         }
 
         // Unsaved changes in the current city are asked about first.

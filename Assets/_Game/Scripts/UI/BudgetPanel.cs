@@ -37,6 +37,8 @@ public sealed class BudgetPanel : MonoBehaviour
     private Tab m_Tab = Tab.Services;
     private bool m_Open;
 
+    public bool IsOpen => m_Open;
+
     private static readonly string[] LineNames = { "Parks", "Power", "Water", "Order", "Fire", "Health", "Schools" };
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

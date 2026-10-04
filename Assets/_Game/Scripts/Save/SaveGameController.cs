@@ -260,19 +260,30 @@ public sealed class SaveGameController : MonoBehaviour
 
     // startAge = age index (ignored without age data); -1 = the Industrial age.
     // disasters = the Disasters & events switch (M17); the RNG starts from the clock.
-    public void NewCity(Vector2Int size, int startAge, bool disasters = true, string cityName = "")
+    public void NewCity(Vector2Int size, int startAge, bool disasters = true, string cityName = "", bool tutorial = false)
     {
         if (!IsReady()) return;
 
         SaveData data = SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs, startAge,
             disasters, (ulong)Environment.TickCount);
         data.CityName = cityName ?? "";
+        data.Tutorial = tutorial ? 0 : SaveData.NoTutorial;
         ShowcaseActive = false;
         Apply(data);
         CurrentName = "";
         Dirty = false;
         string age = m_GameManager.CurrentAgeName;
         GameEvents.RaiseNotification(age != null ? $"New city — {size.x}×{size.y}, {age}" : $"New city — {size.x}×{size.y}");
+    }
+
+    // The guided tutorial city (M19f): Medieval, 48 x 48, disasters off.
+    public void StartTutorial() => NewCity(new Vector2Int(48, 48), 0, false, "Tutorial town", true);
+
+    // The tutorial card moved on (or was skipped): the index goes into the next save.
+    public void TutorialChanged(int index)
+    {
+        Tutorial = index;
+        Dirty = true;
     }
 
     // Returns how many saved buildings couldn't be re-placed (unknown id or blocked footprint).

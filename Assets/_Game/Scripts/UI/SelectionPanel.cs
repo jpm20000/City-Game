@@ -629,7 +629,7 @@ public sealed class SelectionPanel : MonoBehaviour
         return fixes;
     }
 
-    private string BlockerText(Vector2Int cell, ZoneType zone, string verb)
+    public string BlockerText(Vector2Int cell, ZoneType zone, string verb)
     {
         DemandSnapshot demand = m_GameManager.Demand.Snapshot;
         switch (m_GameManager.Simulation.Growth.GetBlocker(cell, demand))
