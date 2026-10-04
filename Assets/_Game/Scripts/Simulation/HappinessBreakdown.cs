@@ -17,11 +17,15 @@ public readonly struct HappinessBreakdown
     public readonly float Health;           // sickness at homes without health care (M14; ramped)
     public readonly float Ordinances;       // enacted ordinances' happiness (M15), apart from Technology
     public readonly float Traffic;          // commute congestion at homes (M16)
+    public readonly float Plague;           // an outbreak under way, by the share of housing infected (M17; negative)
+    public readonly float Events;           // running random events' happiness (M17)
 
     public HappinessBreakdown(float baseValue, float unemployment, float taxes, float pollution, float services, float power, float homeless,
         float technology = 0f, float heritage = 0f, float water = 0f, float crime = 0f,
-        float fire = 0f, float health = 0f, float ordinances = 0f, float traffic = 0f)
+        float fire = 0f, float health = 0f, float ordinances = 0f, float traffic = 0f, float plague = 0f, float events = 0f)
     {
+        Plague = plague;
+        Events = events;
         Traffic = traffic;
         Ordinances = ordinances;
         Crime = crime;
@@ -40,5 +44,5 @@ public readonly struct HappinessBreakdown
     }
 
     public float Total => UnityEngine.Mathf.Clamp01(Base + Unemployment + Taxes + Pollution + Services + Power + Homeless + Technology + Heritage + Water + Crime
-        + Fire + Health + Ordinances + Traffic);
+        + Fire + Health + Ordinances + Traffic + Plague + Events);
 }

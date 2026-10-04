@@ -448,7 +448,8 @@ public sealed class FireTests
         CertainSpread();
         var grid = new GridData(12, 12);
         SimulationSystem sim = NewSim(grid, population: 0);
-        var halved = new DisasterSystem(grid, m_Config, true, sim.Civic, sim.Water, () => folded, () => TestAges.Industrial);
+        var halved = new DisasterSystem(grid, m_Config, true, sim.Civic, sim.Water, () => folded, () => TestAges.Industrial,
+            sim.Population, sim.Capacity, sim.Budget, () => sim.Sources, () => 0f);
         Grow(grid, 2, 2);
         Grow(grid, 3, 2);
 

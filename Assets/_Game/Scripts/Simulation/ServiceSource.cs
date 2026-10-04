@@ -42,4 +42,11 @@ public readonly struct ServiceSource
         Cost = cost;
         TechAge = techAge;
     }
+
+    // The same source with its power and water supply replaced (a plant, tower or pump that is broken down gives 0).
+    public ServiceSource WithSupply(int powerSupply, int waterSupply)
+    {
+        return new ServiceSource(Origin, Size, CoverageRadius, powerSupply, Pollution, PollutionRadius, waterSupply, WaterRadius,
+            CivicKind, CivicRadius, CivicStrength, UpkeepPerDay, ResearchPerDay, Cost, TechAge);
+    }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 // Pure daily tick in the fixed order Demand -> Growth -> Population -> Economy -> Research -> Disasters (M17). Power,
 // water, coverage and pollution are derived views (the networks and pollution recompute lazily after any grid
@@ -64,6 +65,7 @@ public sealed class SimulationSystem
     private void ApplySources()
     {
         m_Funded = Budget.IsDefault ? m_Sources : Budget.FundAll(m_Sources);
+        if (Disasters.Breakdowns.AnyBroken) m_Funded = Disasters.Breakdowns.Apply(m_Funded);   // M17: broken sources give nothing
         Power.SetSources(m_Funded);
         Water.SetSources(m_Funded);
         Coverage.Recompute(m_Funded);
@@ -96,7 +98,9 @@ public sealed class SimulationSystem
         Civic = new CivicSystem(grid, config, Capacity, () => Population.Population, ages, () => TechModifiers);
         LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic,
             () => Budget.EffectFactor(BudgetLine.Parks), Traffic);
-        Disasters = new DisasterSystem(grid, config, ages != null, Civic, Water, () => TechModifiers, () => Tech != null ? Tech.CurrentAge : 0);
+        Disasters = new DisasterSystem(grid, config, ages != null, Civic, Water, () => TechModifiers, () => Tech != null ? Tech.CurrentAge : 0,
+            Population, Capacity, Budget, () => m_Sources, () => Tech != null ? Tech.CurrentAgeDefinition.PlagueRisk : 0f);
+        Disasters.Breakdowns.Changed += ApplySources;
         Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water, Disasters.IsRubble);
         grid.OnResized += () =>
         {
@@ -132,6 +136,32 @@ public sealed class SimulationSystem
         BuildingsDestroyed?.Invoke(destroyed);
     }
 
+    // The Plague happiness term from the outbreak as it stood after the last Step (0 when none or the switch is off).
+    private float PlagueTerm()
+    {
+        return Disasters.Enabled ? Disasters.Epidemic.HappinessTerm(Population.Housing) : 0f;
+    }
+
+    // What repairing the broken source at `origin` costs now (0 when it is working or unknown).
+    public float RepairCost(Vector2Int origin)
+    {
+        if (!Disasters.Breakdowns.IsBroken(origin)) return 0f;
+        foreach (ServiceSource source in m_Sources)
+        {
+            if (source.Origin == origin && BreakdownSystem.CanBreak(source)) return Disasters.Breakdowns.RepairCost(source);
+        }
+        return 0f;
+    }
+
+    // Pays for the repair and puts the source back to work; false when it isn't broken or the city can't pay.
+    public bool Repair(Vector2Int origin)
+    {
+        if (!Disasters.Breakdowns.IsBroken(origin)) return false;
+        float cost = RepairCost(origin);
+        if (cost > 0f && !Economy.Spend(cost)) return false;
+        return Disasters.Breakdowns.Repair(origin);
+    }
+
     // Recomputes the commute flow from today's population, employment and techs.
     private void UpdateTraffic()
     {
@@ -163,12 +193,13 @@ public sealed class SimulationSystem
         int population, float happiness)
     {
         Economy.Restore(money, incomePerDay, expensePerDay, taxResidential, taxCommercial, taxIndustrial);
+        if (Disasters.Breakdowns.Prune(m_Sources) > 0 || Disasters.Breakdowns.AnyBroken) ApplySources();   // saved breakdowns
         Population.RecountCapacity(m_Grid, Modifiers);
         Population.Restore(population, happiness);
         UpdateTraffic();
         m_LastServices = MeasureServices();
         Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, m_LastServices,
-            TechModifiers.HappinessBonus, TechModifiers.OrdinanceHappiness);
+            TechModifiers.HappinessBonus, TechModifiers.OrdinanceHappiness, PlagueTerm(), 0f);
         Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial, TechModifiers);
     }
 
@@ -232,7 +263,7 @@ public sealed class SimulationSystem
         Population.RecountCapacity(m_Grid, modifiers);
         m_LastServices = MeasureServices();
         Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, m_LastServices,
-            tech.HappinessBonus, tech.OrdinanceHappiness);
+            tech.HappinessBonus, tech.OrdinanceHappiness, PlagueTerm(), 0f);
 
         BudgetBreakdown ledger = Ledger();
         Economy.ApplyDay(ledger.Income, ledger.Expense);

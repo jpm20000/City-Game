@@ -136,6 +136,7 @@ public static class SaveMigrations
         data.Plague = new byte[count];
         data.PlagueCooldown = 0;
         data.PlagueRemainder = 0f;
+        data.PlagueDeaths = 0;
         data.Broken = new List<BrokenRecord>();
         data.PendingEvent = "";
         data.PendingDays = 0;

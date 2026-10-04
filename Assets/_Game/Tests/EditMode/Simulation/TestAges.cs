@@ -29,8 +29,8 @@ internal sealed class TestAges : IDisposable
 
         Ages = Make<AgeDatabase>();
         Ages.Init(
-            Age("medieval", 750, 2, 0.5f, false, WaterRule.Coverage),
-            Age("renaissance", 1450, 3, 0.75f, false, WaterRule.Coverage),
+            Age("medieval", 750, 2, 0.5f, false, WaterRule.Coverage, plagueRisk: 1f),
+            Age("renaissance", 1450, 3, 0.75f, false, WaterRule.Coverage, plagueRisk: 0.6f),
             Age("industrial", 1760, 3, 1f, true, WaterRule.Piped, new[] { electricity }),
             Age("modern", 1945, 3, 1.25f, true, WaterRule.Piped));
         Techs = Make<TechDatabase>();
@@ -70,11 +70,11 @@ internal sealed class TestAges : IDisposable
     }
 
     private AgeDefinition Age(string id, int year, int maxLevel, float scale, bool power, WaterRule water,
-        TechDefinition[] starting = null)
+        TechDefinition[] starting = null, float plagueRisk = 0f)
     {
         AgeDefinition age = Make<AgeDefinition>();
         age.Init(id, year, maxLevel, scale, power, advanceCost: 1f, startingTechs: starting,
-            startingMoney: 20000f + 10000f * year / 750f, water: water);
+            startingMoney: 20000f + 10000f * year / 750f, water: water, plagueRisk: plagueRisk);
         return age;
     }
 }

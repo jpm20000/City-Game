@@ -58,7 +58,7 @@ public sealed class PopulationSystem
 
     // techBonus = researched techs' happiness bonus (TechModifiers.HappinessBonus).
     public void Step(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services, float techBonus = 0f,
-        float ordinanceBonus = 0f)
+        float ordinanceBonus = 0f, float plagueTerm = 0f, float eventBonus = 0f)
     {
         // Residents above capacity (e.g. after a demolish) are homeless and leave this tick.
         Homeless = Mathf.Max(0, Population - Housing);
@@ -73,15 +73,15 @@ public sealed class PopulationSystem
 
         RecountEmployment();
 
-        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus, ordinanceBonus);
+        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus, ordinanceBonus, plagueTerm, eventBonus);
         AverageHappiness = Happiness.Total;
     }
 
     // Load / new game: rebuilds the breakdown for the UI without touching the saved AverageHappiness.
     public void RefreshHappinessBreakdown(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services,
-        float techBonus = 0f, float ordinanceBonus = 0f)
+        float techBonus = 0f, float ordinanceBonus = 0f, float plagueTerm = 0f, float eventBonus = 0f)
     {
-        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus, ordinanceBonus);
+        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus, ordinanceBonus, plagueTerm, eventBonus);
     }
 
     // Happiness lost to taxes above the threshold (positive number). Also used by the tax panel preview.
@@ -93,7 +93,7 @@ public sealed class PopulationSystem
     }
 
     private HappinessBreakdown ComputeHappiness(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services,
-        float techBonus, float ordinanceBonus)
+        float techBonus, float ordinanceBonus, float plagueTerm, float eventBonus)
     {
         // Unemployment, pollution, blackouts and dry homes ramp in with size: new towns are always
         // lopsided and can't afford a power plant yet.
@@ -114,7 +114,19 @@ public sealed class PopulationSystem
             -services.FirePenalty,
             -services.HealthPenalty,
             ordinanceBonus,
-            -services.TrafficPenalty);
+            -services.TrafficPenalty,
+            plagueTerm,
+            eventBonus);
+    }
+
+    // Residents who died (M17 plague): they leave at once, and workers / employment follow. Returns how many.
+    public int LoseResidents(int count)
+    {
+        int lost = Mathf.Clamp(count, 0, Population);
+        if (lost == 0) return 0;
+        Population -= lost;
+        RecountEmployment();
+        return lost;
     }
 
     // Load / new game. Call RecountCapacity first so the derived worker/job stats are current.

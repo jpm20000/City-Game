@@ -258,6 +258,8 @@ public sealed class DisasterTests
         d.PlagueCooldown = 120;
         d.PlagueRemainder = 0.25f;
         d.Broken.Add(new BrokenRecord(1, 2, 6));
+        var plant = new ServiceSource(new Vector2Int(1, 2), Vector2Int.one, 0, 600);
+        sim.Sources = new[] { plant };
         d.PendingEvent = "fair";
         d.PendingDays = 3;
         d.DaysToNextEvent = 40;
@@ -271,6 +273,7 @@ public sealed class DisasterTests
         var grid2 = new GridData(6, 6);
         SimulationSystem sim2 = NewSim(grid2);
         SaveSystem.ApplyGrid(loaded, grid2);
+        sim2.Sources = new[] { plant };     // a broken source's record needs the source to still stand
         SaveSystem.ApplySimulation(loaded, sim2);
         DisasterSystem r = sim2.Disasters;
 
@@ -305,6 +308,7 @@ public sealed class DisasterTests
         var grid = new GridData(4, 4);
         SimulationSystem sim = NewSim(grid);
         SaveSystem.ApplyGrid(data, grid);
+        sim.Sources = new[] { new ServiceSource(new Vector2Int(2, 2), Vector2Int.one, 0, 600) };
         SaveSystem.ApplySimulation(data, sim);
 
         Assert.AreEqual(1, sim.Disasters.Broken.Count);
@@ -384,13 +388,16 @@ public sealed class DisasterTests
     }
 
     [Test]
-    public void AgeDefinition_PlagueRisk_DefaultsToNone()
+    public void AgeDefinition_PlagueRisk_DefaultsToNone_AndTheTestAgesMirrorTheContent()
     {
         AgeDefinition age = ScriptableObject.CreateInstance<AgeDefinition>();
         age.Init("test", 750, plagueRisk: 0.6f);
         Assert.AreEqual(0.6f, age.PlagueRisk);
         Object.DestroyImmediate(age);
-        for (int i = 0; i < Ages.Count; i++) Assert.AreEqual(0f, Ages[i].PlagueRisk);
+        Assert.AreEqual(1f, Ages[TestAges.Medieval].PlagueRisk);
+        Assert.AreEqual(0.6f, Ages[TestAges.Renaissance].PlagueRisk);
+        Assert.AreEqual(0f, Ages[TestAges.Industrial].PlagueRisk);
+        Assert.AreEqual(0f, Ages[TestAges.Modern].PlagueRisk);
     }
 
     [Test]

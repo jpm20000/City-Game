@@ -40,6 +40,19 @@ MonoBehaviour:
   m_DryExtinguishFactor: 0.5
   m_FireBurnDays: 3
   m_RubbleDays: 15
+  m_PlagueMinPopulation: 120
+  m_PlagueOutbreakPerDay: 0.06
+  m_PlagueSpread: 0.12
+  m_PlagueRadius: 2
+  m_PlagueDays: 10
+  m_PlagueDeathRate: 0.01
+  m_PlaguePenalty: 0.5
+  m_PlaguePenaltyCap: 0.15
+  m_PlagueCooldownDays: 180
+  m_BreakdownPerDay: 0.006
+  m_BreakdownPerAgeBehind: 0.5
+  m_BreakdownDays: 10
+  m_RepairCostFraction: 0.2
   m_MaxGrowthPerDay: 3
   m_GrowthDemandThreshold: 0.15
   m_LevelCapacity: 040000000800000010000000i

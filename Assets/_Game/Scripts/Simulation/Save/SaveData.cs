@@ -60,6 +60,7 @@ public sealed class SaveData
     public byte[] Plague;
     public int PlagueCooldown;
     public float PlagueRemainder;
+    public int PlagueDeaths;
     public List<BrokenRecord> Broken = new();
     public string PendingEvent = "";
     public int PendingDays;

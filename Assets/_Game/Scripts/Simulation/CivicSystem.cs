@@ -183,6 +183,15 @@ public sealed class CivicSystem
         return risk * ramp * (1f - fire) * m_FireMultiplier;
     }
 
+    // A grown home's sickness (M17: the plague reads it for every home): the same number as Explain(cell).Sickness
+    // without the capacity lookup. 0 on anything that isn't a grown home.
+    public float HomeSickness(Vector2Int cell, float ramp)
+    {
+        if (m_Grid.GetZone(cell) != ZoneType.Residential || m_Grid.GetBuildingLevel(cell) == 0) return 0f;
+        RefreshNeeds();
+        return ramp * (1f - Cover.StrengthAt(ServiceKind.Health, cell.y * m_Grid.Width + cell.x)) * m_SickMultiplier;
+    }
+
     private float FireRiskOfAge(int builtAge)
     {
         return builtAge >= 0 && builtAge < m_FireRiskByAge.Length ? m_FireRiskByAge[builtAge] : m_Config.FireRisk;

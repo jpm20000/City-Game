@@ -13,6 +13,8 @@ public sealed class DisasterSystem
 
     public SimRandom Random { get; } = new SimRandom();
     public FireSystem Fire { get; }
+    public PlagueSystem Epidemic { get; }
+    public BreakdownSystem Breakdowns { get; }
 
     // Fire days of each burning cell (0 = not burning), rubble days left, and plague (0 = healthy,
     // 1..PlagueDays = days infected, PlagueRecovered = immune until the outbreak ends).
@@ -23,6 +25,7 @@ public sealed class DisasterSystem
 
     public int PlagueCooldown { get; set; }
     public float PlagueRemainder { get; set; }
+    public int PlagueDeaths { get; set; }
 
     // Plants, towers and pumps that are down, keyed by origin cell.
     public List<BrokenRecord> Broken { get; } = new();
@@ -35,15 +38,19 @@ public sealed class DisasterSystem
     public List<EventRecord> ActiveEvents { get; } = new();
     public List<EventRecord> RecentEvents { get; } = new();
 
-    // The fire system reads the civic cover, the water rule and the techs' hazard multipliers; age gives the
-    // current age index (placed buildings burn by it).
+    // The hazards read the civic cover, the water rule, the techs' hazard multipliers and the budget; age gives the
+    // current age index (placed buildings burn by it, plague risk and breakdowns follow it) and sources the placed
+    // sources as the sim keeps them (what can break down).
     public DisasterSystem(GridData grid, BalanceConfig config, bool hasAges, CivicSystem civic, WaterSystem water,
-        Func<TechModifiers> tech, Func<int> age)
+        Func<TechModifiers> tech, Func<int> age, PopulationSystem population, CapacityModel capacity, BudgetSystem budget,
+        Func<IReadOnlyList<ServiceSource>> sources, Func<float> plagueRisk)
     {
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_HasAges = hasAges;
         Allocate();
         Fire = new FireSystem(this, grid, config, civic, water, tech, age, Random);
+        Epidemic = new PlagueSystem(this, grid, config, civic, capacity, population, tech, plagueRisk, Random);
+        Breakdowns = new BreakdownSystem(this, config, sources, budget, tech, age, Random);
         grid.OnResized += () =>
         {
             Allocate();
@@ -80,16 +87,18 @@ public sealed class DisasterSystem
         Array.Clear(Plague, 0, Plague.Length);
         PlagueCooldown = 0;
         PlagueRemainder = 0f;
+        PlagueDeaths = 0;
         Broken.Clear();
         PendingEvent = "";
         PendingDays = 0;
         DaysToNextEvent = 0;
         ActiveEvents.Clear();
         RecentEvents.Clear();
+        Epidemic?.Recount();
     }
 
     // The daily step, called by SimulationSystem.Tick after research and before the traffic flow. The hazards
-    // arrive in 17b (fire, done), 17c (plague, breakdowns) and 17d (events), drawing from Random in that fixed order.
+    // arrive in 17b (fire, plague, breakdowns: done) and 17d (events), drawing from Random in that fixed order.
     public void Step()
     {
         if (!Enabled)
@@ -98,6 +107,8 @@ public sealed class DisasterSystem
             return;
         }
         Fire.Step();
+        Epidemic.Step();
+        Breakdowns.Step();
     }
 
     // Writes the switch, the RNG state and every hazard layer into a save.
@@ -110,6 +121,7 @@ public sealed class DisasterSystem
         data.Plague = (byte[])Plague.Clone();
         data.PlagueCooldown = PlagueCooldown;
         data.PlagueRemainder = PlagueRemainder;
+        data.PlagueDeaths = PlagueDeaths;
         data.Broken = new List<BrokenRecord>(Broken);
         data.PendingEvent = PendingEvent ?? "";
         data.PendingDays = PendingDays;
@@ -131,6 +143,7 @@ public sealed class DisasterSystem
         CopyLayer(data.Plague, Plague);
         PlagueCooldown = Math.Max(0, data.PlagueCooldown);
         PlagueRemainder = data.PlagueRemainder >= 0f && data.PlagueRemainder < 1f ? data.PlagueRemainder : 0f;
+        PlagueDeaths = Math.Max(0, data.PlagueDeaths);
 
         if (data.Broken != null)
         {
@@ -144,6 +157,7 @@ public sealed class DisasterSystem
         DaysToNextEvent = Math.Max(0, data.DaysToNextEvent);
         if (data.ActiveEvents != null) ActiveEvents.AddRange(data.ActiveEvents);
         if (data.RecentEvents != null) RecentEvents.AddRange(data.RecentEvents);
+        Epidemic.Recount();
     }
 
     private static void CopyLayer(byte[] source, byte[] target)

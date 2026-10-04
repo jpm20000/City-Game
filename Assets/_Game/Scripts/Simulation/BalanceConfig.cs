@@ -56,6 +56,30 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private int m_FireBurnDays = 3;
     [Tooltip("(M17) Days rubble blocks regrowth.")]
     [SerializeField] private int m_RubbleDays = 15;
+    [Tooltip("(M17) Plague needs at least this many residents.")]
+    [SerializeField] private int m_PlagueMinPopulation = 120;
+    [Tooltip("(M17) Daily chance of an outbreak = this x the age's PlagueRisk x the homes' mean sickness.")]
+    [SerializeField] private float m_PlagueOutbreakPerDay = 0.06f;
+    [Tooltip("(M17) Chance per day that an infected home infects a healthy one in reach, x the target's sickness.")]
+    [SerializeField] private float m_PlagueSpread = 0.12f;
+    [SerializeField] private int m_PlagueRadius = 2;
+    [Tooltip("(M17) Days a home stays infected (then it is immune until the outbreak ends).")]
+    [SerializeField] private int m_PlagueDays = 10;
+    [Tooltip("(M17) Share of an infected home's residents who die each day.")]
+    [SerializeField] private float m_PlagueDeathRate = 0.01f;
+    [Tooltip("(M17) Happiness lost per share of housing infected, capped.")]
+    [SerializeField] private float m_PlaguePenalty = 0.5f;
+    [SerializeField] private float m_PlaguePenaltyCap = 0.15f;
+    [Tooltip("(M17) Days after an outbreak before another can start.")]
+    [SerializeField] private int m_PlagueCooldownDays = 180;
+    [Tooltip("(M17) Daily breakdown chance per plant / tower / pump, before age, funding and techs.")]
+    [SerializeField] private float m_BreakdownPerDay = 0.006f;
+    [Tooltip("(M17) Extra breakdown rate per age the source's tech is behind the current age (x1 + this per age).")]
+    [SerializeField] private float m_BreakdownPerAgeBehind = 0.5f;
+    [Tooltip("(M17) Days a broken source gives nothing unless repaired.")]
+    [SerializeField] private int m_BreakdownDays = 10;
+    [Tooltip("(M17) Repairing a broken source costs this share of its build cost.")]
+    [SerializeField] private float m_RepairCostFraction = 0.2f;
 
     [Header("Growth")]
     [SerializeField] private int m_MaxGrowthPerDay = 3;
@@ -229,6 +253,19 @@ public sealed class BalanceConfig : ScriptableObject
     public float DryExtinguishFactor => m_DryExtinguishFactor;
     public int FireBurnDays => m_FireBurnDays;
     public int RubbleDays => m_RubbleDays;
+    public int PlagueMinPopulation => m_PlagueMinPopulation;
+    public float PlagueOutbreakPerDay => m_PlagueOutbreakPerDay;
+    public float PlagueSpread => m_PlagueSpread;
+    public int PlagueRadius => m_PlagueRadius;
+    public int PlagueDays => m_PlagueDays;
+    public float PlagueDeathRate => m_PlagueDeathRate;
+    public float PlaguePenalty => m_PlaguePenalty;
+    public float PlaguePenaltyCap => m_PlaguePenaltyCap;
+    public int PlagueCooldownDays => m_PlagueCooldownDays;
+    public float BreakdownPerDay => m_BreakdownPerDay;
+    public float BreakdownPerAgeBehind => m_BreakdownPerAgeBehind;
+    public int BreakdownDays => m_BreakdownDays;
+    public float RepairCostFraction => m_RepairCostFraction;
 
     public int MaxGrowthPerDay => m_MaxGrowthPerDay;
     public float GrowthDemandThreshold => m_GrowthDemandThreshold;
