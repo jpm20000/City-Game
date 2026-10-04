@@ -30,7 +30,10 @@ public static class CellUtils
         for (int i = 0; i < 4; i++)
         {
             int rotation = (start + i) & 3;
-            if (grid.IsRoad(cell + s_FacingSteps[rotation])) return rotation;
+            // GridData.IsRoad indexes the flat array without a bounds check, so an off-map neighbour must be
+            // skipped here (it would read the wrapped cell on the next row, or throw at y = 0).
+            Vector2Int next = cell + s_FacingSteps[rotation];
+            if (grid.InBounds(next) && grid.IsRoad(next)) return rotation;
         }
         return (int)(hash >> 20 & 3);
     }

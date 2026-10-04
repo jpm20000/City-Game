@@ -119,4 +119,16 @@ public sealed class CellUtilsTests
         var empty = new GridData(12, 12);
         for (uint pick = 0; pick < 4; pick++) Assert.AreEqual((int)pick, CellUtils.FacingRoad(empty, cell, pick << 20));
     }
+
+    // The grid stores cells in one flat array, so an off-map neighbour must not read the wrapped cell.
+    [Test]
+    public void FacingRoad_IgnoresOffMapNeighbours()
+    {
+        var grid = new GridData(12, 12);
+        grid.SetRoad(new Vector2Int(11, 4), true);      // the flat index just before (0, 5)
+        grid.SetRoad(new Vector2Int(0, 6), true);       // the one real road, +y
+        Assert.AreEqual(0, CellUtils.FacingRoad(grid, new Vector2Int(0, 5), 3u << 22), "west of x = 0 is off the map");
+        Assert.DoesNotThrow(() => CellUtils.FacingRoad(grid, new Vector2Int(0, 0), 0u));
+        Assert.DoesNotThrow(() => CellUtils.FacingRoad(grid, new Vector2Int(11, 11), 0xFFFFFFFFu));
+    }
 }

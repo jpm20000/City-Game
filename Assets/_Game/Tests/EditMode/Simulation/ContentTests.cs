@@ -125,10 +125,11 @@ public sealed class ContentTests
     }
 
     // AgeVisualSet (M11e) lives in Assembly-CSharp too, so it is found by type name and read through
-    // SerializedObject. Every age needs exactly one set; Industrial's must be plain so the Industrial
-    // age looks exactly like the pre-ages game.
+    // SerializedObject. Every age needs exactly one set; Industrial's fallback style (the placeholder
+    // blocks, used where a slot has no prefab) must stay plain. Since M18b the slots hold kit prefabs
+    // (ArtContractTests checks them), so Industrial no longer looks like the pre-ages game.
     [Test]
-    public void EveryAge_HasOneVisualSet_AndIndustrialIsPlain()
+    public void EveryAge_HasOneVisualSet_AndIndustrialFallbackIsPlain()
     {
         var sets = new Dictionary<string, SerializedObject>();
         foreach (string guid in AssetDatabase.FindAssets("t:AgeVisualSet"))
@@ -153,7 +154,6 @@ public sealed class ContentTests
                 Assert.AreEqual(0, style.FindPropertyRelative("Roof").enumValueIndex, $"{zone} L{level + 1} roof");
                 Assert.AreEqual(0f, style.FindPropertyRelative("RoofColor").colorValue.a, $"{zone} L{level + 1} roof colour");
                 Assert.AreEqual(1f, style.FindPropertyRelative("HeightScale").floatValue, $"{zone} L{level + 1} height");
-                Assert.AreEqual(0, style.FindPropertyRelative("Prefabs").arraySize, $"{zone} L{level + 1} prefabs");
             }
         }
     }

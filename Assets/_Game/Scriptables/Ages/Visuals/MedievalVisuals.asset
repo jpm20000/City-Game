@@ -14,49 +14,76 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AgeVisualSet
   m_AgeId: medieval
   m_Residential:
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 9090737996847375565, guid: 37caabcd2e39e4841aac968bd90a2d4f, type: 3}
+    - {fileID: 1924684365968371299, guid: 648677616275ffb4081550a20d1354a5, type: 3}
+    - {fileID: 851270542017753409, guid: 5b3e5f9e435bb1e41b387f3d25f8967e, type: 3}
     Tint: {r: 0.8, g: 0.7, b: 0.52, a: 0.55}
     Roof: 1
     RoofColor: {r: 0.62, g: 0.5, b: 0.3, a: 1}
     HeightScale: 0.9
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 4251365835440695569, guid: 0b39542e64b09e54387d9df2b41b09d7, type: 3}
+    - {fileID: 5625894073961771876, guid: 863176777dc4a754cb8f5f6b5c926c9f, type: 3}
+    - {fileID: 4993971849240773214, guid: 4db2c899e607b084b9548c543332138a, type: 3}
     Tint: {r: 0.8, g: 0.7, b: 0.52, a: 0.55}
     Roof: 1
     RoofColor: {r: 0.62, g: 0.5, b: 0.3, a: 1}
     HeightScale: 0.8
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 7400016227704240614, guid: d343e233c8acd964b971e7cfa77950d1, type: 3}
+    - {fileID: 6335843735063100491, guid: caf9db7adbda35d4980d810e2d24cc2e, type: 3}
+    - {fileID: 4260657727247370605, guid: 97d78b3fe9a6a40439b2dcb3fe4b92e9, type: 3}
     Tint: {r: 0.8, g: 0.7, b: 0.52, a: 0.55}
     Roof: 1
     RoofColor: {r: 0.62, g: 0.5, b: 0.3, a: 1}
     HeightScale: 0.75
   m_Commercial:
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 829720039950137948, guid: 9ee7b0182d138b94ba89fd6a126a0cad, type: 3}
+    - {fileID: 8393745896246371175, guid: d548a0e1c3f52544c9eab99febcc62fe, type: 3}
+    - {fileID: 8253835298412689420, guid: ef67305cd6f2bb247a893415991ebd94, type: 3}
     Tint: {r: 0.8, g: 0.7, b: 0.52, a: 0.55}
     Roof: 1
     RoofColor: {r: 0.4, g: 0.28, b: 0.2, a: 1}
     HeightScale: 0.85
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 7115598203829550093, guid: 54ca3caf5e1786642a2652b3e5bd77ad, type: 3}
+    - {fileID: 2884673777010128339, guid: 5628203519af6e841b18da2b9555a0ee, type: 3}
+    - {fileID: 7850988377025677166, guid: 0ffb3008166fabd4c923fc5bb9252692, type: 3}
     Tint: {r: 0.8, g: 0.7, b: 0.52, a: 0.55}
     Roof: 1
     RoofColor: {r: 0.4, g: 0.28, b: 0.2, a: 1}
     HeightScale: 0.8
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 7968520418135528685, guid: 8e572c6f8c0dc2644850496f6005cae7, type: 3}
+    - {fileID: 7159480792868615166, guid: 5c8095326da879845976efa7f891c1bc, type: 3}
+    - {fileID: 6330826143796361980, guid: e2378b68d909cea48a8d721e2739890f, type: 3}
     Tint: {r: 0.8, g: 0.7, b: 0.52, a: 0.55}
     Roof: 1
     RoofColor: {r: 0.4, g: 0.28, b: 0.2, a: 1}
     HeightScale: 0.75
   m_Industrial:
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 2359470432983040123, guid: c47175229b1ca3e4ebef1ef898405eaa, type: 3}
+    - {fileID: 3093021333252780541, guid: 8cbf95660d351a544b787b1f273ee198, type: 3}
+    - {fileID: 210545003073555201, guid: 7a66902ca6156b241ad7e2706f512474, type: 3}
     Tint: {r: 0.62, g: 0.52, b: 0.4, a: 0.5}
     Roof: 1
     RoofColor: {r: 0.35, g: 0.3, b: 0.26, a: 1}
     HeightScale: 0.9
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 3855290416547898679, guid: 6fc46183e8ca0ff47876a7b7d06b50ad, type: 3}
+    - {fileID: 933273812432297509, guid: 5acb9adeb080eaa4585bb8aa69693b8c, type: 3}
+    - {fileID: 5014591163845709882, guid: 209815bece5aa9d4d846d7fea8dca149, type: 3}
     Tint: {r: 0.62, g: 0.52, b: 0.4, a: 0.5}
     Roof: 1
     RoofColor: {r: 0.35, g: 0.3, b: 0.26, a: 1}
     HeightScale: 0.9
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 7972188519517062837, guid: f33b13c6f4ab1d24fb7babd669ae0198, type: 3}
+    - {fileID: 6371359968250928238, guid: d805802de78990141ab1e8f85d6c553c, type: 3}
+    - {fileID: 2454989565756453001, guid: 5b8d3aed43f0e6946b669ff25b44fd17, type: 3}
     Tint: {r: 0.62, g: 0.52, b: 0.4, a: 0.5}
     Roof: 1
     RoofColor: {r: 0.35, g: 0.3, b: 0.26, a: 1}

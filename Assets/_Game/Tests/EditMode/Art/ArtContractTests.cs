@@ -96,6 +96,43 @@ public sealed class ArtContractTests
         foreach (Material m in renderer.sharedMaterials) UnityEngine.Object.DestroyImmediate(m);
     }
 
+    // M18b: the generated kit fills every slot (4 ages x R/C/I x levels 1-3) with 3 variants, each one mesh
+    // on one renderer using the one shared Kit material, so the whole city batches.
+    [Test]
+    public void EveryVisualSlot_HoldsThreeKitVariants_OnTheSharedKitMaterial()
+    {
+        var kit = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Art/Kit/Kit.mat");
+        Assert.IsNotNull(kit, "Kit.mat");
+        var errors = new List<string>();
+        int slots = 0;
+        foreach (string guid in AssetDatabase.FindAssets("t:AgeVisualSet"))
+        {
+            var set = AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid));
+            var so = new SerializedObject(set);
+            foreach (string zone in new[] { "m_Residential", "m_Commercial", "m_Industrial" })
+            {
+                SerializedProperty levels = so.FindProperty(zone);
+                for (int level = 0; level < 3; level++)
+                {
+                    slots++;
+                    SerializedProperty prefabs = levels.GetArrayElementAtIndex(level).FindPropertyRelative("Prefabs");
+                    string where = $"{set.name} {zone} L{level + 1}";
+                    if (prefabs.arraySize != 3) errors.Add($"{where}: {prefabs.arraySize} variants, expected 3");
+                    for (int p = 0; p < prefabs.arraySize; p++)
+                    {
+                        var prefab = prefabs.GetArrayElementAtIndex(p).objectReferenceValue as GameObject;
+                        if (prefab == null) { errors.Add($"{where}: empty variant {p}"); continue; }
+                        Renderer[] renderers = prefab.GetComponentsInChildren<Renderer>(true);
+                        if (renderers.Length != 1) errors.Add($"{where} {prefab.name}: {renderers.Length} renderers, expected 1");
+                        else if (renderers[0].sharedMaterials.Length != 1 || renderers[0].sharedMaterial != kit) errors.Add($"{where} {prefab.name}: not on Kit.mat");
+                    }
+                }
+            }
+        }
+        Assert.AreEqual(36, slots, "4 ages x 9 slots");
+        Assert.IsEmpty(errors, string.Join("; ", errors));
+    }
+
     [Test]
     public void EveryPrefabInEveryVisualSet_MeetsTheContract()
     {
