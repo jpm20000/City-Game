@@ -78,6 +78,9 @@ public sealed class NewCityDialog : MonoBehaviour
         Transform parent = m_AgeHint.transform.parent;
         go.transform.SetParent(parent, false);
         go.transform.SetSiblingIndex(m_AgeHint.transform.GetSiblingIndex() + 1);
+        // A clear Image on the row makes all of it clickable (the stock toggle only reacts on its small box).
+        var hit = go.AddComponent<Image>();
+        hit.color = new Color(0f, 0f, 0f, 0f);
         var element = go.AddComponent<LayoutElement>();
         element.minHeight = 28f;
         element.preferredHeight = 28f;

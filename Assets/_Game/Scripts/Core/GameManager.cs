@@ -289,6 +289,14 @@ public sealed class GameManager : MonoBehaviour
             || (def.CivicKind != ServiceKind.None && def.CivicRadius > 0);
     }
 
+    // The age of the tech that unlocks the building (M17: older plants break down more often); -1 when unknown.
+    private int TechAgeOf(BuildingDefinition def)
+    {
+        if (string.IsNullOrEmpty(def.RequiredTech) || Simulation?.Tech == null) return -1;
+        TechDefinition tech = Simulation.Tech.Techs.GetById(def.RequiredTech);
+        return tech != null ? tech.Age : -1;
+    }
+
     private void RebuildSources()
     {
         m_Sources.Clear();
@@ -297,7 +305,7 @@ public sealed class GameManager : MonoBehaviour
             BuildingDefinition def = b.Definition;
             m_Sources.Add(new ServiceSource(b.Origin, CellUtils.EffectiveSize(def.Size, b.Rotation),
                 def.CoverageRadius, def.PowerSupply, def.Pollution, def.PollutionRadius, def.WaterSupply, def.WaterRadius,
-                def.CivicKind, def.CivicRadius, def.CivicStrength, def.UpkeepPerDay, def.ResearchPerDay));
+                def.CivicKind, def.CivicRadius, def.CivicStrength, def.UpkeepPerDay, def.ResearchPerDay, def.Cost, TechAgeOf(def)));
         }
         Simulation.Sources = m_Sources;
         m_PowerDirty = true;
