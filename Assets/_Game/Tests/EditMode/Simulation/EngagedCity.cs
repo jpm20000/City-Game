@@ -28,6 +28,10 @@ using Object = UnityEngine.Object;
 // one; a rich young city may build on its cash (60 days of the deficit) for a line costing 0.03+; such a
 // line also makes the player save for it (no new blocks, parks or cheaper civic buildings); an outdated
 // building whose zoned cells a newer one covers at least as strongly is demolished.
+// M17f: with disasters on (the constructor's switch) the player answers events (the first choice when it costs at most a
+// quarter of the cash above the cushion (all of it when the last choice costs happiness), else the last), repairs broken plants / towers / pumps when the cash covers
+// it above the cushion, and rebuilds burnt placed buildings on their spot (a newer tier instead when theirs is
+// outdated). Fire cover, health care and spare plants come from its normal civic and utility rules.
 // Building numbers come from the BuildingDatabase asset through SerializedObject, because
 // BuildingDefinition lives in Assembly-CSharp, which test assemblies can't reference.
 internal sealed class EngagedCity
@@ -68,6 +72,17 @@ internal sealed class EngagedCity
     private readonly List<(Building b, Vector2Int origin)> m_Civic = new();   // placed civic buildings (M14d)
     private CityModifiers m_Modifiers;
     private int m_NextOccupant = 1;
+    private readonly Dictionary<int, (Building b, Vector2Int origin)> m_ById = new();   // placed buildings by occupant id (M17f)
+    private readonly List<(Building b, Vector2Int origin)> m_Rebuild = new();           // burnt, to be rebuilt in place
+    public int FiresLit { get; private set; }
+    public int BlocksLost { get; private set; }
+    public int BuildingsLost { get; private set; }
+    public int Outbreaks { get; private set; }
+    public int PlagueDeaths { get; private set; }
+    public int Breakdowns { get; private set; }
+    public int Repairs { get; private set; }
+    public int Rebuilt { get; private set; }
+    public int EventsAnswered { get; private set; }
 
     public GridData Grid { get; }
     public SimulationSystem Sim { get; }
@@ -95,6 +110,7 @@ internal sealed class EngagedCity
         LayOut();
         SaveSystem.ApplySimulation(fresh, Sim);
         AgeEntries.Add((0, startAge, 0));
+        Sim.BuildingsDestroyed += OnBuildingsDestroyed;
     }
 
     public int Count(string id) => m_Placed.TryGetValue(id, out int n) ? n : 0;
@@ -266,6 +282,7 @@ internal sealed class EngagedCity
 
     public void RunDay()
     {
+        if (Sim.Disasters.Enabled) ManageDisasters();
         Research();
         Expand();
         UpgradeJammedRoads();
@@ -274,9 +291,92 @@ internal sealed class EngagedCity
         int age = Sim.Tech.CurrentAge;
         Sim.Tick();
         Day++;
+        if (Sim.Disasters.Enabled) CountDisasters();
         if (Sim.Tech.CurrentAge != age) AgeEntries.Add((Day, Sim.Tech.CurrentAge, Sim.Population.Population));
         if (Sim.Population.Population >= m_Config.SmallTownGracePopulation) MinHappiness = Mathf.Min(MinHappiness, Sim.Population.AverageHappiness);
         MinMoney = Mathf.Min(MinMoney, Sim.Economy.Money);
+    }
+
+    // --- Disasters (M17f) ---
+
+    private void CountDisasters()
+    {
+        DisasterSystem d = Sim.Disasters;
+        FiresLit += d.Fire.Ignitions;
+        BlocksLost += d.Fire.LostBlocks;
+        BuildingsLost += d.Fire.LostBuildings;
+        if (d.Epidemic.Started) Outbreaks++;
+        PlagueDeaths += d.Epidemic.Died;
+        if (d.Breakdowns.Broke) Breakdowns++;
+    }
+
+    // A burnt building leaves the player's lists at once (the sim has dropped its source and released its cells); it is
+    // rebuilt in place by ManageDisasters when it can be.
+    private void OnBuildingsDestroyed(IReadOnlyList<int> occupants)
+    {
+        foreach (int occupant in occupants)
+        {
+            if (!m_ById.TryGetValue(occupant, out var entry)) continue;
+            m_ById.Remove(occupant);
+            Building b = entry.b;
+            m_Sources.RemoveAll(s => s.Origin == entry.origin);
+            m_Civic.RemoveAll(c => c.origin == entry.origin);
+            m_Modifiers.UpkeepPerDay -= b.Upkeep;
+            m_Modifiers.ResearchPerDay -= b.Research;
+            m_Placed[b.Id] = Mathf.Max(0, Count(b.Id) - 1);
+            m_Rebuild.Add(entry);
+        }
+        Sim.Modifiers = m_Modifiers;
+    }
+
+    private void ManageDisasters()
+    {
+        // Events wait for an answer in the real game: the first choice when affordable and cheap, else the last.
+        RandomEventSystem events = Sim.Disasters.Events;
+        EventDefinition pending = events.Pending;
+        if (pending != null)
+        {
+            float spare = Mathf.Max(0f, Sim.Economy.Money - Cushion);
+            // Paying is worth more of the cash when declining costs happiness (belts, bans, smog).
+            bool declineHurts = false;
+            foreach (TechEffect effect in pending.Choices[pending.Choices.Length - 1].Effects ?? new TechEffect[0])
+            {
+                if (effect.Type == TechEffectType.HappinessBonus && effect.Value < 0f) declineHurts = true;
+            }
+            bool first = events.CanChoose(0) && events.PriceOf(0) <= (declineHurts ? 1f : 0.25f) * spare;
+            if (events.Choose(first ? 0 : pending.Choices.Length - 1)) EventsAnswered++;
+        }
+
+        // Repair broken plants, towers and pumps when the cash covers it above the cushion.
+        var broken = new List<BrokenRecord>(Sim.Disasters.Broken);
+        foreach (BrokenRecord record in broken)
+        {
+            var origin = new Vector2Int(record.X, record.Y);
+            float cost = Sim.RepairCost(origin);
+            if (Sim.Economy.Money - cost >= Cushion && Sim.Repair(origin)) Repairs++;
+        }
+
+        // Rebuild burnt buildings on their spot; one a newer tier has replaced is not rebuilt (its slot is free again).
+        for (int i = m_Rebuild.Count - 1; i >= 0; i--)
+        {
+            (Building b, Vector2Int origin) = m_Rebuild[i];
+            if (!CanBuild(b))
+            {
+                (b.Size.x <= 2 && b.Size.y <= 2 ? m_FreeSlots : m_FreeBlocks).Add(origin);
+                m_Rebuild.RemoveAt(i);
+                continue;
+            }
+            if (Sim.Economy.Money - b.Cost < Cushion) continue;
+            PlaceAt(b, origin);
+            m_Rebuild.RemoveAt(i);
+            Rebuilt++;
+        }
+    }
+
+    public string DisastersReport()
+    {
+        return $"disasters: fires lit {FiresLit}, blocks lost {BlocksLost}, buildings lost {BuildingsLost} (rebuilt {Rebuilt}), outbreaks {Outbreaks} (deaths {PlagueDeaths}), " +
+               $"breakdowns {Breakdowns} (repaired {Repairs}), events answered {EventsAnswered}";
     }
 
     // --- Traffic (M16d) ---
@@ -905,7 +1005,10 @@ internal sealed class EngagedCity
 
     private void PlaceAt(Building b, Vector2Int origin)
     {
-        Assert.IsTrue(Grid.Occupy(origin, b.Size, 0, m_NextOccupant++), $"{b.Id} at {origin}");
+        int occupant = m_NextOccupant++;
+        Assert.IsTrue(Grid.Occupy(origin, b.Size, 0, occupant), $"{b.Id} at {origin}");
+        m_ById[occupant] = (b, origin);
+        foreach (Vector2Int cell in Grid.GetFootprint(origin, b.Size, 0)) Sim.Disasters.ClearRubble(cell);
         Sim.Economy.Spend(b.Cost);
         m_Modifiers.UpkeepPerDay += b.Upkeep;
         m_Modifiers.ResearchPerDay += b.Research;
@@ -945,6 +1048,7 @@ internal sealed class EngagedCity
         HappinessBreakdown h = Sim.Population.Happiness;
         sb.Append($"\n  civic: crime {h.Crime:F3} fire {h.Fire:F3} health {h.Health:F3}, retired {Retired}, income {Sim.Economy.IncomePerDay:F0} - expense {Sim.Economy.ExpensePerDay:F0} (upkeep {m_Modifiers.UpkeepPerDay:F0})");
         sb.Append($"\n  traffic: trips {Sim.Traffic.Trips:F0}, worst road {Sim.Traffic.WorstCongestion:F2}, jammed {Sim.Traffic.JammedRoads}, term {h.Traffic:F3}, roads upgraded {RoadsUpgraded}");
+        if (Sim.Disasters.Enabled) sb.Append("\n  ").Append(DisastersReport());
         sb.Append("\n  built: ");
         foreach (var pair in m_Placed) sb.Append($"{pair.Key}×{pair.Value} ");
         sb.Append("\n  ").Append(Diagnostics());

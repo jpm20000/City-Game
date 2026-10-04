@@ -30,7 +30,7 @@ MonoBehaviour:
     Days: 0
     Effects: []
   - Label: 'Wait it out'
-    Description: 'Industrial demand -40% and happiness -3% for 20 days.'
+    Description: 'Industrial demand -40% and happiness -2% for 20 days.'
     Cost: 0
     CostPerResident: 0
     Reward: 0
@@ -42,4 +42,4 @@ MonoBehaviour:
       Value: 0.6
     - Type: 3
       Target: 
-      Value: -0.03
+      Value: -0.02

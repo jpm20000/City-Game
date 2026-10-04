@@ -42,6 +42,30 @@ public sealed class AgeBalanceTests
         Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
     }
 
+    // M17f: the same targets with disasters on (fires, plague, breakdowns and events from fixed seeds), the engaged
+    // player rebuilding, repairing and answering events. The off runs above stay the regression baseline.
+    [TestCase(1ul, false)]
+    [TestCase(2ul, false)]
+    [TestCase(3ul, false)]
+    [TestCase(1ul, true)]
+    [TestCase(2ul, true)]
+    [TestCase(3ul, true)]
+    public void FromMedieval_WithDisasters_EachAgeTakes45To90Days_AndReachesModern(ulong seed, bool useBudget)
+    {
+        var city = new EngagedCity(m_Config, 0, 64, true, seed) { UseBudget = useBudget };
+        for (int day = 0; day < 300 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
+        TestContext.WriteLine(city.Report());
+
+        Assert.AreEqual(3, city.Sim.Tech.CurrentAge, "reaches the Modern age within 300 days");
+        for (int i = 1; i < city.AgeEntries.Count; i++)
+        {
+            int span = city.AgeEntries[i].day - city.AgeEntries[i - 1].day;
+            Assert.That(span, Is.InRange(45, 90), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
+        }
+        Assert.GreaterOrEqual(city.MinHappiness, 0.55f);
+        Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
+    }
+
     // A city started in any later age keeps growing and stays solvent.
     [TestCase(1, false)]
     [TestCase(2, false)]

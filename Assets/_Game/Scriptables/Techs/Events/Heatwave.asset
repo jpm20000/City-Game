@@ -30,7 +30,7 @@ MonoBehaviour:
     Days: 0
     Effects: []
   - Label: 'Ride it out'
-    Description: 'Sickness +50% and happiness -3% for 15 days.'
+    Description: 'Sickness +50% and happiness -2% for 15 days.'
     Cost: 0
     CostPerResident: 0
     Reward: 0
@@ -42,4 +42,4 @@ MonoBehaviour:
       Value: 1.5
     - Type: 3
       Target: 
-      Value: -0.03
+      Value: -0.02

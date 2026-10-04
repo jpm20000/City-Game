@@ -36,7 +36,7 @@ MonoBehaviour:
       Target: Order
       Value: 1.1
   - Label: 'Ban them'
-    Description: 'Happiness -2% for 30 days.'
+    Description: 'Happiness -1% for 30 days.'
     Cost: 0
     CostPerResident: 0
     Reward: 0
@@ -45,4 +45,4 @@ MonoBehaviour:
     Effects:
     - Type: 3
       Target: 
-      Value: -0.02
+      Value: -0.01
