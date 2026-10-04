@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // Plays the game's audio (M18e). All sounds are 2D (the iso camera has no meaningful listener position), with
-// four channels whose volumes come from SoundSettings:
+// four channels whose volumes come from GameSettings:
 //  - sound effects: AudioController.Play(id, worldPos) from anywhere (a no-op without a controller, so EditMode
 //    tests and the sim harness stay silent); a pool of voices, +-6% pitch, a 60 ms gap per effect, panned by the
 //    position on screen and quieter when zoomed out;
@@ -188,7 +188,7 @@ public sealed class AudioController : MonoBehaviour
         if (m_LastPlayed.TryGetValue(id, out float last) && now - last < gap) return;
         m_LastPlayed[id] = now;
 
-        float volume = entry.Volume * SoundSettings.Effective(SoundChannel.Sfx);
+        float volume = entry.Volume * GameSettings.Effective(SoundChannel.Sfx);
         float pan = 0f;
         if (worldPosition.HasValue)
         {
@@ -253,7 +253,7 @@ public sealed class AudioController : MonoBehaviour
         m_Night.Target = night * 0.8f;
         m_Fire.Target = Mathf.Clamp01(burning / 6f) * 0.8f;
 
-        float ambience = SoundSettings.Effective(SoundChannel.Ambience);
+        float ambience = GameSettings.Effective(SoundChannel.Ambience);
         m_Base.Tick(dt, ambience, k_AmbienceFade);
         m_City.Tick(dt, ambience, k_AmbienceFade);
         m_Industry.Tick(dt, ambience, k_AmbienceFade);
@@ -301,7 +301,7 @@ public sealed class AudioController : MonoBehaviour
         int age = CurrentAge();
         AudioCatalog.MusicSet set = m_Catalog.GetMusic(age);
         bool has = set != null && set.Tracks != null && set.Tracks.Length > 0;
-        float volume = SoundSettings.Effective(SoundChannel.Music);
+        float volume = GameSettings.Effective(SoundChannel.Music);
 
         if (m_MusicAge != age)
         {

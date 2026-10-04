@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum GameFlowState { Playing, Paused, MainMenu }
 
@@ -19,7 +20,7 @@ public sealed class GameFlow : MonoBehaviour
     // Top-level canvas children that stay visible (and usable) over the main menu.
     private static readonly HashSet<string> s_KeepVisible = new()
     {
-        "PauseMenu", "SaveBrowser", "ConfirmDialog", "MainMenu", "NewCityDialog", "Notifications", "EventPopup",
+        "PauseMenu", "SaveBrowser", "ConfirmDialog", "MainMenu", "SettingsPanel", "NewCityDialog", "Notifications", "EventPopup",
     };
 
     public static GameFlow Instance { get; private set; }
@@ -32,6 +33,7 @@ public sealed class GameFlow : MonoBehaviour
     private IsoCameraController m_Camera;
     private PauseMenu m_Pause;
     private MainMenu m_MainMenu;
+    private SettingsPanel m_Settings;
     private SaveBrowser m_Browser;
     private ConfirmDialog m_Confirm;
 
@@ -58,6 +60,7 @@ public sealed class GameFlow : MonoBehaviour
     public ConfirmDialog Confirm => m_Confirm;
     public PauseMenu Pause => m_Pause;
     public MainMenu Main => m_MainMenu;
+    public SettingsPanel Settings => m_Settings;
     public GameMenu Menu => m_Menu;
     public bool InMainMenu => m_InMainMenu;
 
@@ -66,6 +69,13 @@ public sealed class GameFlow : MonoBehaviour
     {
         if (Instance != null && Instance.State == GameFlowState.Paused) return Instance.m_ResumeSpeed;
         return clock.Speed;
+    }
+
+    // Run by a script or a test rig: the benchmark and the smoke test must not have the player's display settings applied.
+    private static bool IsAutomation()
+    {
+        string[] args = Environment.GetCommandLineArgs();
+        return Array.IndexOf(args, "-perfBenchmark") >= 0 || Array.IndexOf(args, "-smokeTest") >= 0;
     }
 
     // The game starts straight in the city, without the main menu: command-line players (-skipMenu, the benchmark and the
@@ -111,6 +121,7 @@ public sealed class GameFlow : MonoBehaviour
         m_Confirm = new ConfirmDialog(canvas, this);
         m_Browser = new SaveBrowser(canvas, this);
         m_Pause = new PauseMenu(canvas, this);
+        m_Settings = new SettingsPanel(canvas, this);
         m_MainMenu = new MainMenu(canvas, this);
 
         if (m_Menu != null)
@@ -120,6 +131,14 @@ public sealed class GameFlow : MonoBehaviour
         }
         GameEvents.CityLoaded += OnCityLoaded;
         Application.wantsToQuit += OnWantsToQuit;
+
+        AddSettingsButton();
+        if (!IsAutomation())
+        {
+            GameSettings.ApplyDisplay();
+        }
+        UiScaling.Apply();
+        GameEvents.DateChanged += OnDateChanged;
 
         if (ShouldSkipMenu()) return;
         BeginMainMenu();
@@ -135,10 +154,12 @@ public sealed class GameFlow : MonoBehaviour
             m_Menu.SaveRequested -= SaveFromHud;
         }
         GameEvents.CityLoaded -= OnCityLoaded;
+        GameEvents.DateChanged -= OnDateChanged;
         Application.wantsToQuit -= OnWantsToQuit;
         EscapeRouter.Unregister(m_Confirm);
         EscapeRouter.Unregister(m_Browser);
         EscapeRouter.Unregister(m_Pause);
+        EscapeRouter.Unregister(m_Settings);
         if (m_Input != null) m_Input.Blocked = false;
         if (m_InMainMenu) ShowHud();
     }
@@ -147,6 +168,48 @@ public sealed class GameFlow : MonoBehaviour
     {
         if (m_Input == null || !m_Input.CancelPressed) return;
         if (!EscapeRouter.Dispatch() && !m_InMainMenu) OpenPauseMenu();
+    }
+
+    // The HUD's Settings button: a copy of its Save button, last in the group.
+    private void AddSettingsButton()
+    {
+        if (m_Menu == null) return;
+        Button save = null;
+        foreach (Button b in m_Menu.GetComponentsInChildren<Button>(true))
+        {
+            if (b.name == "SaveButton") save = b;
+        }
+        if (save == null) return;
+
+        Button settings = Instantiate(save, save.transform.parent);
+        settings.name = "SettingsButton";
+        settings.onClick.RemoveAllListeners();
+        UiKit.SetLabel(settings, "Settings");
+        settings.interactable = true;
+        settings.onClick.AddListener(() => m_Settings.Open());
+    }
+
+    // --- Autosave ---
+
+    private int m_LastMonth = -1;
+    private int m_MonthsSinceAutosave;
+
+    // Every N game months (Settings > Gameplay) the city is written to the next autosave slot, when it changed.
+    private void OnDateChanged(int day, int month, int year)
+    {
+        if (m_InMainMenu || m_Save.ShowcaseActive || m_LastMonth < 0)
+        {
+            m_LastMonth = month;
+            return;
+        }
+        if (month == m_LastMonth) return;
+        m_LastMonth = month;
+
+        int every = GameSettings.AutosaveMonths;
+        if (every <= 0) return;
+        if (++m_MonthsSinceAutosave < every) return;
+        m_MonthsSinceAutosave = 0;
+        if (m_Save.Dirty) m_Save.Autosave();
     }
 
     // --- Windows ---
@@ -197,6 +260,8 @@ public sealed class GameFlow : MonoBehaviour
     private void OnCityLoaded()
     {
         if (m_LoadingShowcase) return;
+        m_MonthsSinceAutosave = 0;
+        m_LastMonth = m_Game.Clock.Month;
         if (m_Windows.Count > 0) CloseAllWindows();
         if (m_InMainMenu) LeaveMainMenu();
     }

@@ -9,7 +9,6 @@ using UnityEngine.Tilemaps;
 // "Lock to day" (a player setting in PlayerPrefs) turns the cycle off. Created at runtime by GameManager.
 public sealed class DayNightCycle : MonoBehaviour
 {
-    private const string k_LockPref = "CityGame.Visual.LockDay";
 
     // Phase 0 = dawn; the cycle is shifted so day 1 of a month starts in the morning, and `k_DayBias`
     // gives the day more of the cycle than the night (full daylight from sun height 0 up).
@@ -31,7 +30,6 @@ public sealed class DayNightCycle : MonoBehaviour
     private float m_AppliedNight = -1f, m_AppliedPhase = -1f, m_AppliedGlow = -1f;
     private Color m_AppliedTint = Color.magenta;
     private float? m_DebugPhase;
-    private static int s_Lock = -1;
 
     public float Night => m_Night;
     public float Phase { get; private set; }
@@ -39,19 +37,8 @@ public sealed class DayNightCycle : MonoBehaviour
     // Player setting: true keeps the city in daylight.
     public static bool LockToDay
     {
-        get
-        {
-            if (s_Lock < 0)
-            {
-                try { s_Lock = PlayerPrefs.GetInt(k_LockPref, 0) != 0 ? 1 : 0; } catch (Exception) { s_Lock = 0; }
-            }
-            return s_Lock == 1;
-        }
-        set
-        {
-            s_Lock = value ? 1 : 0;
-            try { PlayerPrefs.SetInt(k_LockPref, s_Lock); } catch (Exception) { }
-        }
+        get => GameSettings.LockToDay;
+        set => GameSettings.LockToDay = value;
     }
 
     // Debug: pin the cycle at a phase (0.25 noon, 0.5 dusk, 0.75 midnight), or null to follow the calendar.

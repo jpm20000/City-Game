@@ -145,4 +145,78 @@ public static class UiKit
         window.Root.SetActive(false);
         return window;
     }
+
+    // A horizontal slider (dark track, blue fill); a click sound when it is let go, so the new level can be judged.
+    public static Slider MakeSlider(Transform parent, float value, float min, float max, UnityEngine.Events.UnityAction<float> onChanged)
+    {
+        GameObject go = DefaultControls.CreateSlider(new DefaultControls.Resources());
+        go.transform.SetParent(parent, false);
+        var element = go.AddComponent<LayoutElement>();
+        element.flexibleWidth = 1f;
+        element.minHeight = 20f;
+        foreach (Image image in go.GetComponentsInChildren<Image>())
+        {
+            image.color = image.name == "Background" ? new Color(0.20f, 0.23f, 0.28f)
+                : image.name == "Fill" ? AccentColor
+                : Color.white;
+        }
+        var slider = go.GetComponent<Slider>();
+        slider.minValue = min;
+        slider.maxValue = max;
+        slider.SetValueWithoutNotify(value);
+        slider.onValueChanged.AddListener(onChanged);
+        var trigger = go.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+        var up = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerUp };
+        up.callback.AddListener(_ => AudioController.Play(SfxId.Click));
+        trigger.triggers.Add(up);
+        return slider;
+    }
+
+    // An on / off switch drawn as a button: "label: on" (blue) or "label: off". Refresh repaints it from get().
+    public sealed class SwitchButton
+    {
+        public Button Button;
+        private System.Func<bool> m_Get;
+
+        public void Refresh()
+        {
+            bool on = m_Get();
+            Button.GetComponent<Image>().color = on ? AccentColor : ButtonColor;
+            SetLabel(Button, on ? "On" : "Off");
+        }
+
+        public static SwitchButton Create(Transform parent, System.Func<bool> get, System.Action<bool> set)
+        {
+            var sw = new SwitchButton { m_Get = get };
+            sw.Button = MakeButton(parent, "Off", () =>
+            {
+                set(!get());
+                sw.Refresh();
+                AudioController.Play(SfxId.Click);
+            }, 120f);
+            sw.Refresh();
+            return sw;
+        }
+    }
+
+    // A value picker: "<  value  >". text() gives the shown value, move(+1 / -1) steps it (the caller wraps or clamps).
+    public sealed class Stepper
+    {
+        public TMP_Text Value;
+        private System.Func<string> m_Text;
+
+        public void Refresh() => Value.text = m_Text();
+
+        public static Stepper Create(Transform parent, System.Func<string> text, System.Action<int> move)
+        {
+            var stepper = new Stepper { m_Text = text };
+            MakeButton(parent, "<", () => { move(-1); stepper.Refresh(); AudioController.Play(SfxId.Click); }, 34f);
+            stepper.Value = Text(parent, "", 15, Color.white);
+            stepper.Value.alignment = TextAlignmentOptions.Center;
+            stepper.Value.GetComponent<LayoutElement>().minWidth = 190f;
+            MakeButton(parent, ">", () => { move(1); stepper.Refresh(); AudioController.Play(SfxId.Click); }, 34f);
+            stepper.Refresh();
+            return stepper;
+        }
+    }
 }

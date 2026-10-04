@@ -567,6 +567,21 @@ public sealed class PlacementController : MonoBehaviour
 
         int occupantId = m_GridData.GetOccupant(cell);
         if (!m_Buildings.TryGetValue(occupantId, out BuildingInstance instance)) return;
+        if (GameSettings.ConfirmDemolish && GameFlow.Instance != null)
+        {
+            int occupant = occupantId;
+            GameFlow.Instance.Confirm.Ask($"Demolish {instance.Definition.DisplayName}?", "It is removed with no refund.",
+                new ConfirmDialog.Choice("Demolish", () => RemoveBuilding(occupant), primary: true),
+                new ConfirmDialog.Choice("Cancel", null));
+            return;
+        }
+
+        RemoveBuilding(occupantId);
+    }
+
+    private void RemoveBuilding(int occupantId)
+    {
+        if (!m_Buildings.TryGetValue(occupantId, out BuildingInstance instance)) return;
 
         m_Buildings.Remove(occupantId);
         m_GameManager.UnregisterBuilding(instance);

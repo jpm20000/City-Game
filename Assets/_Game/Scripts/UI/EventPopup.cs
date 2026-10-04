@@ -24,6 +24,7 @@ public sealed class EventPopup : MonoBehaviour
     private readonly List<Button> m_Buttons = new();
     private string m_ShownId = "";
     private GameSpeed m_PreviousSpeed = GameSpeed.x1;
+    private bool m_Paused;       // this popup has stopped the clock (the Settings switch can leave it running)
 
     public bool IsOpen => m_Root != null && m_Root.activeSelf;
 
@@ -116,7 +117,11 @@ public sealed class EventPopup : MonoBehaviour
 
         if (!IsOpen || m_ShownId != pending.Id) Show(pending);
         // Keys 1-4 can unpause; the event waits until it is answered.
-        m_Game.Clock.SetSpeed(GameSpeed.Paused);
+        if (GameSettings.PauseOnEvents)
+        {
+            m_Paused = true;
+            m_Game.Clock.SetSpeed(GameSpeed.Paused);
+        }
     }
 
     private void Show(EventDefinition definition)
@@ -147,7 +152,7 @@ public sealed class EventPopup : MonoBehaviour
             Button button = MakeChoice(choice, population, () => Choose(index));
             m_Buttons.Add(button);
         }
-        m_Footer.text = $"Time is paused until you choose. Unanswered for {m_Game.Balance.EventAutoDays} days it takes the last option.";
+        m_Footer.text = (GameSettings.PauseOnEvents ? "Time is paused until you choose. " : "Time keeps running. ") + $"Unanswered for {m_Game.Balance.EventAutoDays} days it takes the last option.";
         m_Root.SetActive(true);
         RefreshAffordability();
     }
@@ -163,7 +168,8 @@ public sealed class EventPopup : MonoBehaviour
     {
         m_Root.SetActive(false);
         m_ShownId = "";
-        if (restoreSpeed && m_Game.Clock.Speed == GameSpeed.Paused) m_Game.Clock.SetSpeed(m_PreviousSpeed);
+        if (restoreSpeed && m_Paused && m_Game.Clock.Speed == GameSpeed.Paused) m_Game.Clock.SetSpeed(m_PreviousSpeed);
+        m_Paused = false;
     }
 
     private void RefreshAffordability()

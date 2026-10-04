@@ -30,3 +30,6 @@ description: Verify City Game changes in Play mode through the Unity MCP bridge 
 
 ## The main menu (M19c)
 Play mode now starts on the title screen: the HUD is hidden, input is blocked and the showcase city is loaded. Before a check that drives the game, either call `GameFlow.Instance.StartPlaying()` (leaves the title, keeps the loaded city; a RunCommand that calls `SaveGameController.NewCity(...)` afterwards is the usual next step: `NewCity` also leaves the title), or turn on *CityBuilder > Skip Main Menu In Play Mode* (EditorPrefs `CityGame.SkipMenu`; switch it back off afterwards so the player's own Play sessions show the title). Set `SaveSlots.Root` after startup, and call `GameFlow.Instance.Main.Show()` if the check reads the title's Continue button (it lists the save folder when shown).
+
+## Settings (M19d)
+Player settings live in `PlayerPrefs` through `GameSettings` and survive Play sessions in the Editor: a check that changes any of them (volumes, UI scale, Always day, autosave, confirm demolish...) ends with `GameSettings.ResetAudio() / ResetInterface() / ResetGameplay() / ResetDisplay()` and `UiScaling.Apply()`. Display changes are not applied by the Editor (`Screen.SetResolution` is ignored in Play mode).

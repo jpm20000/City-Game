@@ -74,10 +74,6 @@ public sealed class PauseMenu
         if (save.Save()) Show();
     }
 
-    // Until the Settings screen (19d) the settings are the Sound panel in the HUD slot.
-    private void SettingsClicked()
-    {
-        Hide();
-        if (SoundPanel.Instance != null) SoundPanel.Instance.OpenPanel();
-    }
+    // The Settings window opens over the pause menu; Esc closes it first.
+    private void SettingsClicked() => m_Flow.Settings.Open();
 }

@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 // The title screen (M19c): a panel on the left of the screen, the showcase city running behind it. Continue loads the
 // newest save; New city, Load and Quit work as in the pause menu. It is not a counted window: GameFlow's MainMenu state
-// is what blocks input and hides the HUD. Settings (19d) and Tutorial (19f) join later.
+// is what blocks input and hides the HUD. The Tutorial (19f) joins later.
 public sealed class MainMenu
 {
     private readonly UiKit.Window m_Window;
@@ -34,6 +34,7 @@ public sealed class MainMenu
         m_Newest.alignment = TextAlignmentOptions.Center;
         if (flow.Menu != null) AddButton("New city", () => flow.Menu.RequestNew());
         AddButton("Load…", () => flow.Browser.Open(SaveBrowser.Mode.Load));
+        AddButton("Settings", () => flow.Settings.Open());
         AddButton("Quit", () => flow.Quit());
 
         TMP_Text version = UiKit.Text(m_Window.Root.transform, "v" + Application.version, 14, new Color(1f, 1f, 1f, 0.55f));

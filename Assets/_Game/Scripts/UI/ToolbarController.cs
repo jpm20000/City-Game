@@ -431,15 +431,34 @@ public sealed class ToolbarController : MonoBehaviour
         if (button != null) button.SetActive(active);
     }
 
+    private float m_TooltipDue = -1f;     // unscaled time at which the pending tooltip shows (-1 = none)
+
+    // The tooltip shows after the Settings tooltip delay (0 = at once).
     private void ShowTooltip(ToolButton button)
     {
         if (m_TooltipRoot == null || string.IsNullOrEmpty(button.Tooltip)) return;
         m_TooltipText.text = button.Tooltip;
-        m_TooltipRoot.SetActive(true);
+        float delay = GameSettings.TooltipDelay;
+        if (delay <= 0f)
+        {
+            m_TooltipRoot.SetActive(true);
+            m_TooltipDue = -1f;
+            return;
+        }
+        m_TooltipRoot.SetActive(false);
+        m_TooltipDue = Time.unscaledTime + delay;
     }
 
     private void HideTooltip(ToolButton button)
     {
+        m_TooltipDue = -1f;
         if (m_TooltipRoot != null) m_TooltipRoot.SetActive(false);
+    }
+
+    private void Update()
+    {
+        if (m_TooltipDue < 0f || Time.unscaledTime < m_TooltipDue) return;
+        m_TooltipDue = -1f;
+        if (m_TooltipRoot != null) m_TooltipRoot.SetActive(true);
     }
 }

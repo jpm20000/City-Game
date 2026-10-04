@@ -112,6 +112,8 @@ public sealed class NewCityDialog : MonoBehaviour
         // Start from the current map's size when it's one of the options.
         int current = m_GameManager != null ? m_GameManager.MapSize.x : 0;
         Select(System.Array.IndexOf(m_Sizes, current) >= 0 ? current : m_DefaultSize);
+        m_Disasters = GameSettings.DisastersByDefault;
+        if (m_DisastersToggle != null) m_DisastersToggle.isOn = m_Disasters;
         TechSystem tech = m_GameManager != null && m_GameManager.Simulation != null ? m_GameManager.Simulation.Tech : null;
         if (tech != null) SelectAge(tech.CurrentAge);
         m_Panel.SetActive(true);

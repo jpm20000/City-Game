@@ -146,8 +146,9 @@ public sealed class IsoCameraController : MonoBehaviour
 
     private void ApplyPan()
     {
+        if (m_InputReader.Blocked) return;
         Vector2 inputPan = m_InputReader.Pan;
-        Vector2 edgeDirection = m_EnableEdgePan ? GetEdgePanDirection() : Vector2.zero;
+        Vector2 edgeDirection = m_EnableEdgePan || GameSettings.EdgeScroll ? GetEdgePanDirection() : Vector2.zero;
         Vector2 totalInput = inputPan + edgeDirection;
 
         if (totalInput.sqrMagnitude < 0.0001f) return;
@@ -165,7 +166,7 @@ public sealed class IsoCameraController : MonoBehaviour
         if (forwardXZ.sqrMagnitude > 0.0001f) forwardXZ.Normalize();
 
         Vector3 move = rightXZ * clampedInput.x + forwardXZ * clampedInput.y;
-        float speed = m_PanSpeed * (m_Camera.orthographicSize / 10f) * Time.unscaledDeltaTime;
+        float speed = m_PanSpeed * GameSettings.PanSpeed * (m_Camera.orthographicSize / 10f) * Time.unscaledDeltaTime;
         transform.position += move * speed;
     }
 
