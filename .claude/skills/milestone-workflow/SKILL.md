@@ -5,7 +5,7 @@ description: Plan and implement a City Game roadmap milestone or milestone step 
 
 # Milestone workflow (City Game)
 
-Where things live: standing rules → `AGENTS.md` (**Roadmap M11–M19**); plans, outlines and where each later milestone plugs in → `Docs/GamePlan.md` §12 (M11 and M12 are the worked examples); how each system is built and tuned → `Docs/GamePlan.md` §13 *Systems reference*. `AGENTS.md` stays short: conventions and standing rules only.
+Where things live: standing rules → `AGENTS.md` (**Roadmap M11–M19**); plans, outlines and where each later milestone plugs in → `Docs/GamePlan.md` §12 (M15 is the live example; finished M10–M14 plans, with M11 / M12 / M14 as worked examples, are in `Docs/archive/Milestones-M10-M14.md`); how each system is built and tuned → `Docs/GamePlan.md` §13 *Systems reference*. `AGENTS.md` stays short: conventions and standing rules only.
 
 ## Starting a milestone (no plan yet)
 1. Expand its §12 outline into a §11-style plan in `Docs/GamePlan.md`: goal, done-when, design decisions (defaults the user can change), architecture (pure sim vs runtime tables), lettered steps that each fit a session and leave the game playable, content tables, risks / open questions.
