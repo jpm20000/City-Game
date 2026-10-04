@@ -21,7 +21,7 @@ description: Tune City Game's simulation balance — BalanceConfig values, age/t
 - Print reports with `TestContext.WriteLine` and read them from `ITestResultAdaptor.Output` (see `unity-test-loop`).
 
 ## Targets (GamePlan §12) and tests
-- About 45–90 in-game days per age with engaged play; no age where the city stalls; never in debt; happiness ≥ 0.55. M11g result from Medieval: 86 / 62 / 63 days, Modern on day 211; M13b: 86 / 62 / 69, Modern on day 217.
+- About 45–90 in-game days per age with engaged play; no age where the city stalls; never in debt; happiness ≥ 0.55. M11g result from Medieval: 86 / 62 / 63 days, Modern on day 211; M13b: 86 / 62 / 69, Modern on day 217; M14d: 84 / 61 / 73, Modern on day 218.
 - `AgeBalanceTests` assert these with `CreateInstance` defaults (`FromMedieval_EachAgeTakes45To90Days_AndReachesModern`, `LaterStart_KeepsGrowing(1..3)`, the Industrial baseline). Update their numbers and comments deliberately when a plan changes balance, and record the new numbers in `AGENTS.md` and GamePlan §7/§12.
 
 ## Debugging a stalled harness
@@ -33,4 +33,6 @@ Look at the diagnostics line first: demand per zone, housing/jobs, cells per lev
 - A run's `Diagnostics()` line lists the `GrowthBlocker` per zone and level; a new blocker that dominates it (e.g. `LowLandValue:10`) shows what the rule costs.
 - Current M12 numbers: seeded 24² city, day 60, 10% taxes, with plant: 212 pop, 0.62 happiness (0.70 with the two parks); 20% C/I taxes without parks stalls at ~22 pop. Industrial start (real content): 220 pop / 0.660. From Medieval: 86 / 62 / 63 days per age (M13b: 86 / 62 / 69).
 - **Harness players must save for blocking utilities** (M13b): an `EngagedCity` that keeps buying parks and roads while a plant or tower is what's blocking growth never affords it — the Industrial age took 100+ days until the player stopped other spending while power or water supply was below demand. When a new must-build arrives, check the probe timeline for a city hovering just below a purchase threshold.
+- **Current M14d numbers:** seeded 24² city (no civic buildings) happiness 0.589 / 0.556 / 0.504 at day 60 / 90 / 120; Industrial start (real content) 220 pop / 0.631; later starts at day 120: Renaissance / Industrial / Modern 447 / 557 / 630 pop, happiness 0.71 / 0.72 / 0.83.
+- **Cash vs. daily deficit (M14d):** a later-age start begins rich but loses money each day until it grows, so "the surplus must carry the upkeep" refuses expensive services until the cash is gone. Let the player build on cash when it covers ~60 days of the deficit the building leaves, but only for a need that costs real happiness (≥ 0.03); without that floor the Modern start bought a Hospital early and went into debt. Trace why each purchase was skipped (cash, upkeep, no spot) with a throwaway `Debug` string in the harness before changing prices.
 
