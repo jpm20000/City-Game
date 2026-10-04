@@ -36,6 +36,9 @@ public sealed class SettingsPanel
         for (int i = 0; i < TabNames.Length; i++)
         {
             var tab = (Tab)i;
+#if UNITY_WEBGL
+            if (tab == Tab.Display) continue;   // the browser owns the window
+#endif
             Button button = UiKit.MakeButton(tabs, TabNames[i], () => SelectTab(tab), 0f);
             button.GetComponent<LayoutElement>().flexibleWidth = 1f;
             m_TabButtons.Add(button);

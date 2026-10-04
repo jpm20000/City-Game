@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Collections;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Networking;
 
 // Named saves, quicksave / autosave and New City (M19a; single slot before). Rebuilds the scene from a SaveData: clear
 // placed buildings -> restore grid -> re-place buildings -> restore sim -> calendar. The files live in SaveSlots.Root
@@ -245,6 +247,11 @@ public sealed class SaveGameController : MonoBehaviour
     {
         if (!IsReady()) return false;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // StreamingAssets is a URL here: fetch it, then apply it if the player is still on the title.
+        StartCoroutine(LoadShowcaseWeb());
+        return true;
+#else
         string path = Path.Combine(Application.streamingAssetsPath, k_ShowcaseFileName);
         if (!SaveSystem.TryRead(path, out SaveData data, out string error, m_GameManager.Ages, m_GameManager.Techs))
         {
@@ -252,12 +259,39 @@ public sealed class SaveGameController : MonoBehaviour
             return false;
         }
 
+        ApplyShowcase(data);
+        return true;
+#endif
+    }
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+    private IEnumerator LoadShowcaseWeb()
+    {
+        using UnityWebRequest request = UnityWebRequest.Get(Application.streamingAssetsPath + "/" + k_ShowcaseFileName);
+        yield return request.SendWebRequest();
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogWarning($"SaveGameController: no showcase city ({request.error}).", this);
+            yield break;
+        }
+        if (GameFlow.Instance == null || !GameFlow.Instance.InMainMenu) yield break;   // the player already started a city
+        if (!SaveSystem.TryFromJson(request.downloadHandler.text, out SaveData data, out string error, m_GameManager.Ages, m_GameManager.Techs))
+        {
+            Debug.LogWarning($"SaveGameController: no showcase city ({error}).", this);
+            yield break;
+        }
+        ApplyShowcase(data);
+        m_GameManager.Clock.SetSpeed(GameSpeed.x1);
+    }
+#endif
+
+    private void ApplyShowcase(SaveData data)
+    {
         ShowcaseActive = false;
         int skipped = Apply(data);
         if (skipped > 0) Debug.LogWarning($"SaveGameController: the showcase city could not restore {skipped} building(s); regenerate it.", this);
         CurrentName = "";
         ShowcaseActive = true;
-        return true;
     }
 
     // --- New city ---

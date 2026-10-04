@@ -37,7 +37,9 @@ public sealed class MainMenu
         AddButton("Tutorial", () => flow.StartTutorial());
         AddButton("Load…", () => flow.Browser.Open(SaveBrowser.Mode.Load));
         AddButton("Settings", () => flow.Settings.Open());
-        AddButton("Quit", () => flow.Quit());
+#if !UNITY_WEBGL
+        AddButton("Quit", () => flow.Quit());   // a browser tab cannot quit
+#endif
 
         TMP_Text version = UiKit.Text(m_Window.Root.transform, "v" + Application.version, 14, new Color(1f, 1f, 1f, 0.55f));
         var versionRect = (RectTransform)version.transform;
