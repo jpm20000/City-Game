@@ -49,7 +49,35 @@ public sealed class ContentTests
         CollectionAssert.AreEqual(new[] { WaterRule.Coverage, WaterRule.Coverage, WaterRule.Piped, WaterRule.Piped },
             new[] { m_Ages[0].Water, m_Ages[1].Water, m_Ages[2].Water, m_Ages[3].Water }, "wells, then piped water (M13)");
         Assert.AreEqual(AgeRules.Legacy.Water, m_Ages[m_Ages.Legacy].Rules.Water, "Industrial = the age-less rules");
-        Assert.AreEqual(36, m_Techs.Techs.Count);   // + Aqueducts, Waterworks (M13); Town Watch, Herbalism, Universities, Antibiotics (M14)
+        Assert.AreEqual(37, m_Techs.Techs.Count);   // + Aqueducts, Waterworks (M13); Town Watch, Herbalism, Universities, Antibiotics (M14); Macadam (M16)
+    }
+
+    // M16: the five road tiers exist, each tier's tech is in the tree, and an Industrial start keeps today's road.
+    [Test]
+    public void RoadTiers_Content()
+    {
+        Assert.AreEqual(5, m_Techs.RoadTiers.Count);
+        for (int i = 0; i < 5; i++) Assert.AreEqual(i + 1, m_Techs.RoadTiers[i].Tier);
+        Assert.IsNull(m_Techs.RoadTiers[0].RequiredTech, "dirt needs no tech");
+        Assert.AreEqual("architecture", m_Techs.RoadTiers[1].RequiredTech.Id);
+        Assert.AreEqual("macadam", m_Techs.RoadTiers[2].RequiredTech.Id);
+        Assert.AreEqual("electric_trams", m_Techs.RoadTiers[3].RequiredTech.Id);
+        Assert.AreEqual("automobiles", m_Techs.RoadTiers[4].RequiredTech.Id);
+        Assert.IsFalse(m_Techs.RoadTiers[4].Frontage);
+
+        var paved = m_Techs.RoadTiers[2];
+        Assert.AreEqual(m_Config.RoadCost, paved.Cost, "Paved mirrors the legacy road");
+        Assert.AreEqual(m_Config.RoadUpkeepPerDay, paved.UpkeepPerDay);
+        Assert.AreEqual(m_Config.RoadCapacity, paved.Capacity);
+        Assert.AreEqual(m_Config.RoadTravelCost, paved.TravelCost);
+
+        Assert.Contains(m_Techs.GetById("macadam"), m_Ages[m_Ages.Legacy].StartingTechs);
+        var tech = new TechSystem(m_Ages, m_Techs, m_Config);
+        tech.StartNew(m_Ages.Legacy);
+        var tiers = new RoadTiers(m_Config, m_Techs, t => tech.IsResearched(t));
+        Assert.AreEqual(RoadTiers.Paved, tiers.BestStreetTier);
+        tech.StartNew(0);
+        Assert.AreEqual(RoadTiers.Dirt, new RoadTiers(m_Config, m_Techs, t => tech.IsResearched(t)).BestStreetTier);
     }
 
     // Starting in any age, something can be researched right away.

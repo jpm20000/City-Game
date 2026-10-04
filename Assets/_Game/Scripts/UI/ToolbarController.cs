@@ -66,9 +66,11 @@ public sealed class ToolbarController : MonoBehaviour
     {
         if (m_Placement == null || m_GameManager == null) return;
 
-        int roadCost = m_GameManager.Balance.RoadCost;
+        RoadTiers roadTiers = m_GameManager.Simulation.RoadTiers;
+        byte roadTier = roadTiers.BestStreetTier;
+        int roadCost = roadTiers.Cost(roadTier);
         Bind(m_RoadButton, "Road", $"${roadCost}", Color.clear,
-            $"Road  [B]\nLay road from the map edge. ${roadCost} each, $1/day upkeep.",
+            $"Road  [B]\nLay road from the map edge. ${roadCost} each, ${roadTiers.UpkeepPerDay(roadTier):0.##}/day upkeep.",
             () => Toggle(PlacementController.Mode.Road, m_Placement.SelectRoad));
         int pipeCost = m_GameManager.Balance.PipeCost;
         Bind(m_PipeButton, "Pipes", $"${pipeCost}", Color.clear,
@@ -341,7 +343,7 @@ public sealed class ToolbarController : MonoBehaviour
 
     private void RefreshAffordable(float money)
     {
-        if (m_RoadButton != null) m_RoadButton.SetAffordable(money >= m_GameManager.Balance.RoadCost);
+        if (m_RoadButton != null) m_RoadButton.SetAffordable(money >= m_GameManager.Simulation.RoadTiers.Cost(m_GameManager.Simulation.RoadTiers.BestStreetTier));
         if (m_PipeButton != null) m_PipeButton.SetAffordable(money >= m_GameManager.Balance.PipeCost);
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {

@@ -11,6 +11,7 @@ public enum TechEffectType
     LandValueBonus,         // + Value land value on every cell (M12)
     CivicNeedMultiplier,    // Target = Order / Fire / Health: crime / fire risk / sickness x Value (M15)
     LoanInterestMultiplier, // loan interest x Value (M15)
+    TrafficMultiplier,      // commute trips x Value (M16)
 }
 
 // One effect of a researched tech. Folded into TechModifiers.

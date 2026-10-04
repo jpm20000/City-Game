@@ -8,7 +8,7 @@ public sealed class GridData
     public int Height { get; private set; }
 
     private ZoneType[] m_Zones;
-    private bool[] m_Roads;
+    private byte[] m_RoadTiers;     // 0 = no road, 1..MaxRoadTier = the street tier (M16)
     private int[] m_Occupancy;
     private byte[] m_BuildingLevel;
     private byte[] m_BuiltAge;      // age index a grown cell was (re)built in (M11)
@@ -41,7 +41,7 @@ public sealed class GridData
         Width = width;
         Height = height;
         m_Zones = new ZoneType[width * height];
-        m_Roads = new bool[width * height];
+        m_RoadTiers = new byte[width * height];
         m_Occupancy = new int[width * height];
         m_BuildingLevel = new byte[width * height];
         m_BuiltAge = new byte[width * height];
@@ -67,19 +67,42 @@ public sealed class GridData
         OnCellChanged?.Invoke(cell);
     }
 
+    public const int MaxRoadTier = 5;
+
+    // The tier SetRoad(cell, true) lays: 3 = Paved, today's road (M16).
+    public byte DefaultRoadTier { get; set; } = 3;
+
     public bool IsRoad(Vector2Int cell)
     {
-        return m_Roads[Index(cell)];
+        return m_RoadTiers[Index(cell)] != 0;
     }
 
-    // A road laid over a pipe replaces it (the road carries the water).
+    // 0 = no road, else the road's tier 1..MaxRoadTier.
+    public byte GetRoadTier(Vector2Int cell)
+    {
+        return m_RoadTiers[Index(cell)];
+    }
+
+    // Tier 0 removes the road; a tier > 0 lays or changes it (a road laid over a pipe replaces it: the
+    // road carries the water). Raises OnCellChanged on any change.
+    public void SetRoadTier(Vector2Int cell, byte tier)
+    {
+        if (tier > MaxRoadTier) tier = MaxRoadTier;
+        int i = Index(cell);
+        if (m_RoadTiers[i] == tier) return;
+        m_RoadTiers[i] = tier;
+        if (tier > 0) m_Pipes[i] = false;
+        OnCellChanged?.Invoke(cell);
+    }
+
+    // Lays DefaultRoadTier (an existing road keeps its tier) or removes the road.
     public void SetRoad(Vector2Int cell, bool isRoad)
     {
-        int i = Index(cell);
-        if (m_Roads[i] == isRoad) return;
-        m_Roads[i] = isRoad;
-        if (isRoad) m_Pipes[i] = false;
-        OnCellChanged?.Invoke(cell);
+        if (isRoad)
+        {
+            if (!IsRoad(cell)) SetRoadTier(cell, DefaultRoadTier);
+        }
+        else SetRoadTier(cell, 0);
     }
 
     public bool IsPipe(Vector2Int cell)
@@ -91,7 +114,7 @@ public sealed class GridData
     public void SetPipe(Vector2Int cell, bool isPipe)
     {
         int i = Index(cell);
-        if (isPipe && m_Roads[i]) return;
+        if (isPipe && m_RoadTiers[i] != 0) return;
         if (m_Pipes[i] == isPipe) return;
         m_Pipes[i] = isPipe;
         OnCellChanged?.Invoke(cell);
@@ -158,11 +181,22 @@ public sealed class GridData
     public int CountRoads()
     {
         int count = 0;
-        for (int i = 0; i < m_Roads.Length; i++)
+        for (int i = 0; i < m_RoadTiers.Length; i++)
         {
-            if (m_Roads[i]) count++;
+            if (m_RoadTiers[i] != 0) count++;
         }
         return count;
+    }
+
+    // Fills counts[tier] with the number of roads of each tier (index 0 stays 0).
+    public void CountRoadsByTier(int[] counts)
+    {
+        Array.Clear(counts, 0, counts.Length);
+        for (int i = 0; i < m_RoadTiers.Length; i++)
+        {
+            int tier = m_RoadTiers[i];
+            if (tier != 0 && tier < counts.Length) counts[tier]++;
+        }
     }
 
     public bool IsOccupied(Vector2Int cell)
@@ -226,9 +260,7 @@ public sealed class GridData
 
     public byte[] ExportRoads()
     {
-        byte[] data = new byte[m_Roads.Length];
-        for (int i = 0; i < data.Length; i++) data[i] = m_Roads[i] ? (byte)1 : (byte)0;
-        return data;
+        return (byte[])m_RoadTiers.Clone();
     }
 
     public byte[] ExportLevels()
@@ -272,16 +304,17 @@ public sealed class GridData
         for (int i = 0; i < count; i++)
         {
             ZoneType zone = (ZoneType)zones[i];
-            bool road = roads[i] != 0;
+            byte roadTier = (byte)Mathf.Min(roads[i], (byte)MaxRoadTier);
+            bool road = roadTier != 0;
             byte level = (byte)Mathf.Min(levels[i], (byte)3);
             byte builtAge = level > 0 && builtAges != null ? builtAges[i] : (byte)0;
             bool kept = level > 0 && historic != null && historic[i] != 0;
             bool pipe = !road && pipes != null && pipes[i] != 0;
-            if (m_Zones[i] == zone && m_Roads[i] == road && m_BuildingLevel[i] == level && m_Occupancy[i] == 0
+            if (m_Zones[i] == zone && m_RoadTiers[i] == roadTier && m_BuildingLevel[i] == level && m_Occupancy[i] == 0
                 && m_BuiltAge[i] == builtAge && m_Historic[i] == kept && m_Pipes[i] == pipe) continue;
 
             m_Zones[i] = zone;
-            m_Roads[i] = road;
+            m_RoadTiers[i] = roadTier;
             m_BuildingLevel[i] = level;
             m_BuiltAge[i] = builtAge;
             m_Historic[i] = kept;

@@ -10,16 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4a81a50374d8fd1488dba7cf9e9b874e, type: 3}
-  m_Name: ElectricTrams
+  m_Name: Macadam
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
-  m_Id: electric_trams
-  m_DisplayName: Electric Trams
-  m_Description: 'Cheap rides along the main streets. Commute trips -10%. Unlocks the Avenue. Enables the Workmen''s Fares ordinance.'
+  m_Id: macadam
+  m_DisplayName: Macadam
+  m_Description: 'Crushed-stone roads that carry carts in all weathers. Unlocks the Paved Road.'
   m_Age: 2
-  m_Cost: 400
+  m_Cost: 150
   m_Prerequisites: 
-  - {fileID: 11400000, guid: 921727713547586792a514b9a4066d18, type: 2}
-  m_Effects:
-  - Type: 9
-    Target: 
-    Value: 0.9
+  - {fileID: 11400000, guid: 322a317549355e45b609314acd2e2676, type: 2}
+  m_Effects: []

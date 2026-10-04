@@ -290,7 +290,9 @@ public sealed class SelectionPanel : MonoBehaviour
     private void DescribeRoad(Vector2Int cell)
     {
         bool connected = m_GameManager.Roads.IsConnectedToEntry(cell);
-        m_Title.text = "Road";
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        byte tier = m_GameManager.Grid.GetRoadTier(cell);
+        m_Title.text = tiers.DisplayName(tier);
         Line(connected
             ? "Connected to the map edge."
             : "<color=#F2665A>Not connected to the map edge</color> — nothing along it can grow.");
@@ -299,7 +301,7 @@ public sealed class SelectionPanel : MonoBehaviour
         {
             Line("<color=#59A6F2>Carries water</color> from a tower.");
         }
-        Line($"Upkeep  ${m_GameManager.Balance.RoadUpkeepPerDay:N0} / day");
+        Line($"Upkeep  ${tiers.UpkeepPerDay(tier):0.##} / day");
         m_Action = Action.Demolish;
     }
 

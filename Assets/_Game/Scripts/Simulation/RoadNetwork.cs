@@ -9,12 +9,16 @@ public sealed class RoadNetwork
     private int m_Height;
     private bool[] m_ConnectedToEntry;
     private bool m_Dirty = true;
+    private Func<byte, bool> m_Frontage;
 
-    public RoadNetwork(GridData grid)
+    // frontage(tier) = whether land beside a road of that tier gets road access (M16: highways don't);
+    // null = every road gives access. Connectivity (the map-edge entry) counts every tier.
+    public RoadNetwork(GridData grid, Func<byte, bool> frontage = null)
     {
         if (grid == null) throw new ArgumentNullException(nameof(grid));
 
         m_Grid = grid;
+        m_Frontage = frontage;
         Allocate();
         grid.OnCellChanged += _ => m_Dirty = true;
         grid.OnResized += Allocate;
@@ -39,12 +43,20 @@ public sealed class RoadNetwork
             Vector2Int neighbor = cell + offset;
             if (m_Grid.InBounds(neighbor)
                 && m_Grid.IsRoad(neighbor)
-                && m_ConnectedToEntry[Index(neighbor)])
+                && m_ConnectedToEntry[Index(neighbor)]
+                && (m_Frontage == null || m_Frontage(m_Grid.GetRoadTier(neighbor))))
             {
                 return true;
             }
         }
         return false;
+    }
+
+    // Set by SimulationSystem once the tier table exists.
+    public void SetFrontage(Func<byte, bool> frontage)
+    {
+        m_Frontage = frontage;
+        m_Dirty = true;
     }
 
     public bool IsConnectedToEntry(Vector2Int roadCell)

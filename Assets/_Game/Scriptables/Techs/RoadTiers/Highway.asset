@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c2d9e4f1a5b4c6d8e0f1a2b3c4d5e6f, type: 3}
+  m_Name: Highway
+  m_EditorClassIdentifier: CityBuilder.Simulation::RoadTierDefinition
+  m_Tier: 5
+  m_Id: highway
+  m_DisplayName: 'Highway'
+  m_RequiredTech: {fileID: 11400000, guid: d7adb7fa767a51d48437b1292562b9dd, type: 2}
+  m_Cost: 400
+  m_UpkeepPerDay: 6.0
+  m_Capacity: 1200
+  m_TravelCost: 1
+  m_Frontage: 0
+  m_ObsoleteBy: 0

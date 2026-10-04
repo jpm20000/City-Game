@@ -10,10 +10,14 @@ public sealed class TechDatabase : ScriptableObject
     [Tooltip("(M15) City-wide policies unlocked by techs.")]
     [SerializeField] private List<OrdinanceDefinition> m_Ordinances = new();
 
+    [Tooltip("(M16) The five road tiers, each unlocked by a tech. Both databases or neither, like ordinances.")]
+    [SerializeField] private List<RoadTierDefinition> m_RoadTiers = new();
+
     private Dictionary<string, TechDefinition> m_ById;
 
     public IReadOnlyList<TechDefinition> Techs => m_Techs;
     public IReadOnlyList<OrdinanceDefinition> Ordinances => m_Ordinances;
+    public IReadOnlyList<RoadTierDefinition> RoadTiers => m_RoadTiers;
 
     public OrdinanceDefinition GetOrdinanceById(string id)
     {
@@ -153,6 +157,24 @@ public sealed class TechDatabase : ScriptableObject
             if (ordinance.CostPerDay < 0f || ordinance.CostPerResident < 0f) errors.Add($"Ordinance '{ordinance.Id}' has a negative cost.");
         }
 
+        var tierNumbers = new HashSet<int>();
+        for (int i = 0; i < m_RoadTiers.Count; i++)
+        {
+            RoadTierDefinition tier = m_RoadTiers[i];
+            if (tier == null)
+            {
+                errors.Add($"Road tier #{i} is missing.");
+                continue;
+            }
+            if (tier.Tier < 1 || tier.Tier > GridData.MaxRoadTier) errors.Add($"Road tier '{tier.Id}' has tier {tier.Tier}, outside 1..{GridData.MaxRoadTier}.");
+            else if (!tierNumbers.Add(tier.Tier)) errors.Add($"Duplicate road tier {tier.Tier}.");
+            if (tier.RequiredTech != null && !known.Contains(tier.RequiredTech))
+                errors.Add($"Road tier '{tier.Id}' needs a tech that is in the TechDatabase.");
+            if (tier.Cost < 0 || tier.UpkeepPerDay < 0f) errors.Add($"Road tier '{tier.Id}' has a negative cost.");
+            if (tier.Capacity <= 0f) errors.Add($"Road tier '{tier.Id}' needs a capacity above 0.");
+            if (tier.TravelCost < 1) errors.Add($"Road tier '{tier.Id}' needs a travel cost of at least 1.");
+        }
+
         return errors.Count == before;
     }
 
@@ -183,6 +205,11 @@ public sealed class TechDatabase : ScriptableObject
     {
         m_Techs = new List<TechDefinition>(techs);
         m_ById = null;
+    }
+
+    internal void InitRoadTiers(params RoadTierDefinition[] tiers)
+    {
+        m_RoadTiers = new List<RoadTierDefinition>(tiers);
     }
 
     internal void InitOrdinances(params OrdinanceDefinition[] ordinances)

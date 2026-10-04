@@ -32,6 +32,11 @@ public static class SaveMigrations
             V3ToV4(data);
             data.Version = 4;
         }
+        if (data.Version == 4)
+        {
+            V4ToV5(data, techs);
+            data.Version = 5;
+        }
 
         data.Buildings ??= new();
         data.Loans ??= new();
@@ -90,6 +95,23 @@ public static class SaveMigrations
         for (int i = 0; i < data.Funding.Length; i++) data.Funding[i] = 1f;
         data.Loans = new List<LoanRecord>();
         data.Ordinances = new List<string>();
+    }
+
+    // v5 stores road tiers in the Roads bytes (M16). Older roads become the best street tier the save has
+    // researched; Paved for a city saved without ages (it is adopted as Industrial, which has Macadam).
+    private static void V4ToV5(SaveData data, TechDatabase techs)
+    {
+        if (data.Roads == null) return;
+        byte tier = RoadTiers.Paved;
+        if (techs != null && data.Age != SaveData.NoAge)
+        {
+            var researched = new HashSet<string>(data.Researched ?? new List<string>());
+            tier = RoadTiers.BestStreet(techs, tech => researched.Contains(tech.Id));
+        }
+        for (int i = 0; i < data.Roads.Length; i++)
+        {
+            if (data.Roads[i] != 0) data.Roads[i] = tier;
+        }
     }
 
     // A city saved without ages played by today's rules: it becomes an Industrial city with every

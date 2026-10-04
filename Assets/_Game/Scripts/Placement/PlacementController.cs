@@ -148,7 +148,7 @@ public sealed class PlacementController : MonoBehaviour
 
     private void SeedRoad(Vector2Int cell)
     {
-        if (m_GridData.CanPlace(cell, Vector2Int.one, 0)) PlaceRoad(cell);
+        if (m_GridData.CanPlace(cell, Vector2Int.one, 0)) PlaceRoad(cell, m_GameManager.Simulation.RoadTiers.BestStreetTier);
     }
 
     private void SeedZone(Vector2Int cell, ZoneType zone)
@@ -293,16 +293,19 @@ public sealed class PlacementController : MonoBehaviour
     private void TryPlaceRoad(Vector2Int cell)
     {
         if (!m_GridData.CanPlace(cell, Vector2Int.one, 0)) return;
-        if (!TrySpend(m_GameManager.Balance.RoadCost)) return;
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        byte tier = tiers.BestStreetTier;
+        int cost = tiers.Cost(tier);
+        if (!TrySpend(cost)) return;
 
-        PlaceRoad(cell);
-        GameEvents.RaiseMoneySpent(m_GameManager.Balance.RoadCost, m_GridSystem.CellToWorld(cell));
+        PlaceRoad(cell, tier);
+        GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
     }
 
-    private void PlaceRoad(Vector2Int cell)
+    private void PlaceRoad(Vector2Int cell, byte tier)
     {
         m_GridData.SetZone(cell, ZoneType.None);
-        m_GridData.SetRoad(cell, true);
+        m_GridData.SetRoadTier(cell, tier);
     }
 
     private void TryPlaceBuilding(Vector2Int cell)
@@ -550,7 +553,8 @@ public sealed class PlacementController : MonoBehaviour
         {
             case Mode.Road:
             {
-                int cost = m_GameManager.Balance.RoadCost;
+                RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+                int cost = tiers.Cost(tiers.BestStreetTier);
                 string problem = m_GridData.IsRoad(cell) ? "Already a road" : FootprintProblem(cell, Vector2Int.one, 0);
                 if (problem != null) SetHint(problem, false);
                 else if (!economy.CanAfford(cost)) SetHint($"Need ${cost:N0}", false);

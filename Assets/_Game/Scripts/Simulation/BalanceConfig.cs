@@ -19,6 +19,10 @@ public sealed class BalanceConfig : ScriptableObject
     [Header("Roads")]
     [SerializeField] private int m_RoadCost = 50;
     [SerializeField] private float m_RoadUpkeepPerDay = 1f;
+    [Tooltip("(M16) Trips per day a Paved road carries before it jams (every road in the age-less sim).")]
+    [SerializeField] private float m_RoadCapacity = 160f;
+    [Tooltip("(M16) Commute-flow cost of entering a Paved road cell.")]
+    [SerializeField] private int m_RoadTravelCost = 4;
 
     [Header("Growth")]
     [SerializeField] private int m_MaxGrowthPerDay = 3;
@@ -174,6 +178,8 @@ public sealed class BalanceConfig : ScriptableObject
 
     public int RoadCost => m_RoadCost;
     public float RoadUpkeepPerDay => m_RoadUpkeepPerDay;
+    public float RoadCapacity => m_RoadCapacity;
+    public int RoadTravelCost => m_RoadTravelCost;
 
     public int MaxGrowthPerDay => m_MaxGrowthPerDay;
     public float GrowthDemandThreshold => m_GrowthDemandThreshold;

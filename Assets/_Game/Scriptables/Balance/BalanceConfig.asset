@@ -22,6 +22,8 @@ MonoBehaviour:
   m_TaxIndustrial: 0.1
   m_RoadCost: 50
   m_RoadUpkeepPerDay: 1
+  m_RoadCapacity: 160
+  m_RoadTravelCost: 4
   m_MaxGrowthPerDay: 3
   m_GrowthDemandThreshold: 0.15
   m_LevelCapacity: 040000000800000010000000i

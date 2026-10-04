@@ -7,7 +7,7 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
     public const int NoAge = -1;
 
     public int Version = CurrentVersion;
@@ -30,7 +30,7 @@ public sealed class SaveData
     public int Width;
     public int Height;
     public byte[] Zones;
-    public byte[] Roads;
+    public byte[] Roads;     // v5 (M16): 0 = none, 1..5 = the road's tier (v1-v4: 1 = a road)
     public byte[] Levels;
 
     // v2 (M11): ages and research. Age = AgeDatabase index, NoAge for a city saved without ages

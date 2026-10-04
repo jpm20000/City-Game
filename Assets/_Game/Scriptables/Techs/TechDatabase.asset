@@ -40,6 +40,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 17f34d001b11584cb0291b966ebbabc5, type: 2}
   - {fileID: 11400000, guid: 0118c077324a535790f8a8c3a76e792c, type: 2}
   - {fileID: 11400000, guid: 0b387d68a32252b4a9155c48ef889918, type: 2}
+  - {fileID: 11400000, guid: 6d5020f44f12567faf209abbeee38df0, type: 2}
   - {fileID: 11400000, guid: d7adb7fa767a51d48437b1292562b9dd, type: 2}
   - {fileID: 11400000, guid: df3c2f24168c528cbe13d52873f4a745, type: 2}
   - {fileID: 11400000, guid: 648be96aecf4568a9d621e6391c5f667, type: 2}
@@ -62,3 +63,9 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9a928d3c967459f69c33c2e283ef7d3d, type: 2}
   - {fileID: 11400000, guid: 3722e21edfb85d76bebc43064f4462aa, type: 2}
   - {fileID: 11400000, guid: a24469893d7d5ba1a2ada42b99a220db, type: 2}
+  m_RoadTiers:
+  - {fileID: 11400000, guid: 9b5b030d4b6755d49769df41b4bfab2f, type: 2}
+  - {fileID: 11400000, guid: 2100dcb542205b2e81e146451ca982bf, type: 2}
+  - {fileID: 11400000, guid: abc0f73e0a3a5ecb8ce19e58f966b3f7, type: 2}
+  - {fileID: 11400000, guid: f1c3dc94b6fe554786cffba8ed3aa2f0, type: 2}
+  - {fileID: 11400000, guid: 7cca958efd9e5514b4d02a66bda08576, type: 2}

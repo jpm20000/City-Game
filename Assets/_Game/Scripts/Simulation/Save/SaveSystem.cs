@@ -183,6 +183,16 @@ public static class SaveSystem
             return false;
         }
 
+        foreach (byte road in data.Roads)
+        {
+            if (road > GridData.MaxRoadTier)
+            {
+                error = "Save file has an invalid road tier.";
+                data = null;
+                return false;
+            }
+        }
+
         error = null;
         return true;
     }

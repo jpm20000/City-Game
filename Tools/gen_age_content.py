@@ -9,6 +9,7 @@ GUID_AGE_DB = "241edd6ee45d45b4fa2b67e623070894"
 GUID_TECH_DEF = "4a81a50374d8fd1488dba7cf9e9b874e"
 GUID_TECH_DB = "a6bee4b53f8793c4b9cc00b60f5ad9a0"
 GUID_ORDINANCE_DEF = "0b5f2a6c1d3e4f7a8b9c0d1e2f3a4b5c"   # Scripts/Simulation/Ages/OrdinanceDefinition.cs (M15)
+GUID_ROAD_TIER_DEF = "7c2d9e4f1a5b4c6d8e0f1a2b3c4d5e6f"   # Scripts/Simulation/Ages/RoadTierDefinition.cs (M16)
 GUID_VISUAL_SET = "e8eec815828e415cad1c610865718a24"   # Scripts/Buildings/AgeVisualSet.cs (Assembly-CSharp)
 NS = uuid.UUID("6f1c0e52-8d0a-4c3a-9a51-3c1d2b7e9f10")
 
@@ -39,7 +40,8 @@ def array(lines, indent="  "):
     return "[]" if not lines else "\n" + "\n".join(indent + "- " + l for l in lines)
 
 # Effect types: 0 UnlockBuilding, 1 ResearchMultiplier, 2 DemandMultiplier, 3 HappinessBonus, 4 UpkeepMultiplier,
-# 5 PollutionMultiplier, 6 LandValueBonus (M12), 7 CivicNeedMultiplier (M15), 8 LoanInterestMultiplier (M15)
+# 5 PollutionMultiplier, 6 LandValueBonus (M12), 7 CivicNeedMultiplier (M15), 8 LoanInterestMultiplier (M15),
+# 9 TrafficMultiplier (M16)
 R, C, I = "Residential", "Commercial", "Industrial"
 def demand(zone, v): return (2, zone, v)
 def research(v): return (1, "", v)
@@ -49,6 +51,7 @@ def pollution(v): return (5, "", v)
 def land_value(v): return (6, "", v)
 def civic_need(kind, v): return (7, kind, v)
 def loan_interest(v): return (8, "", v)
+def traffic(v): return (9, "", v)
 
 # (asset name, id, display, age, cost, prerequisites, effects, description)
 TECHS = [
@@ -68,7 +71,7 @@ TECHS = [
     ("Academies", "academies", "Academies", 1, 250, ["printing_press"], [], "Halls of scholarship. Unlocks the Academy, which produces research and educates the homes around it."),
     ("Banking", "banking", "Banking", 1, 220, ["guilds"], [demand(C, 1.15), loan_interest(0.5)], "Credit and bills of exchange. Commercial demand +15%. Loans cost half the interest."),
     ("Aqueducts", "aqueducts", "Aqueducts", 1, 160, ["masonry"], [], "Channels carry spring water into town. Unlocks the Fountain, which waters and cheers the blocks around it."),
-    ("Architecture", "architecture", "Architecture", 1, 200, ["masonry"], [land_value(0.05)], "Proportion, domes and planned facades. Land value +5% everywhere."),
+    ("Architecture", "architecture", "Architecture", 1, 200, ["masonry"], [land_value(0.05)], "Proportion, domes and planned facades. Land value +5% everywhere. Unlocks the Cobbled Street."),
     ("CivicPlanning", "civic_planning", "Civic Planning", 1, 260, ["architecture"], [happy(0.03)], "Squares, straight streets and order. Happiness +3%. Unlocks the Constabulary."),
     ("Watermills", "watermills", "Watermills", 1, 180, ["smithing"], [upkeep(0.9)], "Water does the heavy work. Upkeep -10%. Unlocks the Fire Engine House (hand pumps)."),
     # Industrial
@@ -76,14 +79,15 @@ TECHS = [
     ("Waterworks", "waterworks", "Waterworks", 2, 100, [], [], "Unlocks the Water Tower. From this age on, water is piped along the roads and buildings need it to grow past level 1."),
     ("SteamPower", "steam_power", "Steam Power", 2, 400, ["watermills"], [demand(I, 1.2)], "Engines that never tire. Industrial demand +20%. Unlocks the Fire Station (steam fire engines)."),
     ("Factories", "factories", "Factories", 2, 500, ["steam_power"], [], "Mass production under one roof."),
-    ("Railways", "railways", "Railways", 2, 500, ["steam_power"], [], "Iron roads connect the city to the world."),
+    ("Railways", "railways", "Railways", 2, 500, ["steam_power"], [traffic(0.85)], "Iron roads connect the city to the world. Goods and commuters go by rail: commute trips -15%."),
     ("PublicSanitation", "public_sanitation", "Public Sanitation", 2, 450, ["civic_planning"], [happy(0.03)], "Sewers and clean water. Happiness +3%. Unlocks the Pumping Station and the Hospital."),
     ("Telegraph", "telegraph", "Telegraph", 2, 450, ["electricity", "printing_press"], [research(1.2)], "News at the speed of light. Research +20%. Unlocks the Police Station (call boxes)."),
     ("Universities", "universities", "Universities", 2, 500, ["telegraph", "academies"], [], "Research universities. Unlocks the University, which produces research and educates the homes around it."),
     ("SteelFrames", "steel_frames", "Steel Frames", 2, 550, ["factories"], [], "Skeletons of steel let buildings climb."),
-    ("ElectricTrams", "electric_trams", "Electric Trams", 2, 400, ["electricity"], [], "Cheap rides along the main streets."),
+    ("ElectricTrams", "electric_trams", "Electric Trams", 2, 400, ["electricity"], [traffic(0.9)], "Cheap rides along the main streets. Commute trips -10%. Unlocks the Avenue."),
+    ("Macadam", "macadam", "Macadam", 2, 150, ["architecture"], [], "Crushed-stone roads that carry carts in all weathers. Unlocks the Paved Road."),
     # Modern
-    ("Automobiles", "automobiles", "Automobiles", 3, 900, ["railways"], [], "A car in every garage."),
+    ("Automobiles", "automobiles", "Automobiles", 3, 900, ["railways"], [demand(C, 1.1), traffic(1.2)], "A car in every garage. Commercial demand +10%, but commute trips +20%. Unlocks the Highway."),
     ("Computing", "computing", "Computing", 3, 1000, ["telegraph"], [research(1.3)], "Machines that calculate. Research +30%. Unlocks the Research Lab."),
     ("Suburbs", "suburbs", "Suburbs", 3, 900, ["automobiles"], [demand(R, 1.15)], "Homes with gardens at the edge of town. Residential demand +15%."),
     ("MassMedia", "mass_media", "Mass Media", 3, 800, ["telegraph"], [], "Radio and television in every home."),
@@ -102,7 +106,7 @@ TECHS = [
 AGES = [
     ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"], 0.3, 1, 1, 0.6, 10000),
     ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"], 0.5, 2, 1, 0.45, 15000),
-    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity", "waterworks"], 50000, ["", "", ""], 1.0, 3, 2, 0.35, 25000),
+    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity", "waterworks", "macadam"], 50000, ["", "", ""], 1.0, 3, 2, 0.35, 25000),
     ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""], 0.6, 3, 2, 0.2, 40000),
 ]
 
@@ -131,8 +135,16 @@ ORDINANCES = [
      "A doctor in every district. Sickness -20%."),
     ("NeighbourhoodWatch", "neighbourhood_watch", "Neighbourhood Watch", "mass_media", 2, 0, [civic_need("Order", 0.8), happy(0.01)],
      "Residents report what they see. Crime -20%, happiness +1%."),
-    ("CarFreeSundays", "car_free_sundays", "Car-free Sundays", "automobiles", 0, 0.02, [pollution(0.9), happy(0.02), demand(C, 0.95)],
-     "One quiet day a week. Pollution -10%, happiness +2%, commercial demand -5%."),
+    ("CarFreeSundays", "car_free_sundays", "Car-free Sundays", "automobiles", 0, 0.02, [pollution(0.9), happy(0.02), demand(C, 0.95), traffic(0.9)],
+     "One quiet day a week. Pollution -10%, happiness +2%, commute trips -10%, commercial demand -5%."),
+]
+# Road tiers (M16): (asset, tier, id, display, tech id or None, cost, upkeep/day, capacity, travel cost, frontage, obsolete by)
+ROAD_TIERS = [
+    ("DirtTrack", 1, "dirt", "Dirt Track", None, 20, 0.4, 60, 6, True, 2),
+    ("CobbledStreet", 2, "cobble", "Cobbled Street", "architecture", 35, 0.7, 100, 5, True, 3),
+    ("PavedRoad", 3, "paved", "Paved Road", "macadam", 50, 1.0, 160, 4, True, 0),
+    ("Avenue", 4, "avenue", "Avenue", "electric_trams", 150, 3.0, 400, 3, True, 0),
+    ("Highway", 5, "highway", "Highway", "automobiles", 400, 6.0, 1200, 1, False, 0),
 ]
 ORDINANCE_OF_TECH = {o[3]: o[2] for o in ORDINANCES}
 
@@ -174,6 +186,7 @@ write(os.path.join(ROOT, "Ages", "AgeDatabase.asset"), text, guid("age_database"
 text = header(GUID_TECH_DB, "TechDatabase", "TechDatabase")
 text += "  m_Techs:%s\n" % array([ref(tech_guid[t[1]]) for t in TECHS])
 text += "  m_Ordinances:%s\n" % array([ref(guid("ordinance_" + o[1])) for o in ORDINANCES])
+text += "  m_RoadTiers:%s\n" % array([ref(guid("road_tier_" + r[2])) for r in ROAD_TIERS])
 write(os.path.join(ROOT, "Techs", "TechDatabase.asset"), text, guid("tech_database"))
 
 for asset, oid, display, tech, per_day, per_resident, effects, desc in ORDINANCES:
@@ -182,6 +195,14 @@ for asset, oid, display, tech, per_day, per_resident, effects, desc in ORDINANCE
     text += "  m_CostPerDay: %s\n  m_CostPerResident: %s\n" % (per_day, per_resident)
     text += "  m_Effects:\n" + "".join("  - Type: %d\n    Target: %s\n    Value: %s\n" % (t, target, v) for t, target, v in effects)
     write(os.path.join(ROOT, "Techs", "Ordinances", asset + ".asset"), text, guid("ordinance_" + oid))
+
+for asset, tier, rid, display, tech, cost, upkeep, capacity, travel, frontage, obsolete in ROAD_TIERS:
+    text = header(GUID_ROAD_TIER_DEF, asset, "RoadTierDefinition")
+    text += "  m_Tier: %d\n  m_Id: %s\n  m_DisplayName: %s\n  m_RequiredTech: %s\n" % (
+        tier, rid, q(display), ref(tech_guid[tech]) if tech else "{fileID: 0}")
+    text += "  m_Cost: %d\n  m_UpkeepPerDay: %s\n  m_Capacity: %s\n  m_TravelCost: %d\n  m_Frontage: %d\n  m_ObsoleteBy: %d\n" % (
+        cost, upkeep, capacity, travel, 1 if frontage else 0, obsolete)
+    write(os.path.join(ROOT, "Techs", "RoadTiers", asset + ".asset"), text, guid("road_tier_" + rid))
 
 # --- Age visual sets (M11e): fallback styles for the placeholder blocks, per zone and level 1..3. ---
 # (tint rgba: body = zone colour blended toward rgb by a; roof: 0 Default, 1 Pitched, 2 None;
@@ -228,5 +249,5 @@ for asset, age_id, residential, commercial, industrial in VISUALS:
     text += styles("m_Residential", residential) + styles("m_Commercial", commercial) + styles("m_Industrial", industrial)
     write(os.path.join(ROOT, "Ages", "Visuals", asset + ".asset"), text, guid("visuals_" + age_id))
 
-print("ages", len(AGES), "techs", len(TECHS), "ordinances", len(ORDINANCES), "visual sets", len(VISUALS))
+print("ages", len(AGES), "techs", len(TECHS), "ordinances", len(ORDINANCES), "road tiers", len(ROAD_TIERS), "visual sets", len(VISUALS))
 print("AgeDatabase guid", guid("age_database"), "TechDatabase guid", guid("tech_database"))

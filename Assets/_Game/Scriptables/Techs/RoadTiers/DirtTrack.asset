@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c2d9e4f1a5b4c6d8e0f1a2b3c4d5e6f, type: 3}
+  m_Name: DirtTrack
+  m_EditorClassIdentifier: CityBuilder.Simulation::RoadTierDefinition
+  m_Tier: 1
+  m_Id: dirt
+  m_DisplayName: 'Dirt Track'
+  m_RequiredTech: {fileID: 0}
+  m_Cost: 20
+  m_UpkeepPerDay: 0.4
+  m_Capacity: 60
+  m_TravelCost: 6
+  m_Frontage: 1
+  m_ObsoleteBy: 2

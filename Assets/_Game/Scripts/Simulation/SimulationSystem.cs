@@ -13,6 +13,8 @@ public sealed class SimulationSystem
     private ServiceStats m_LastServices;    // measured in the last Tick / Restore (education share for research)
 
     public EconomySystem Economy { get; }
+    // The road tiers' costs, capacities and unlocks (M16); every tier is today's Paved road without ages.
+    public RoadTiers RoadTiers { get; }
     // Funding per budget line (M15); a change re-feeds the funded sources to the spatial systems.
     public BudgetSystem Budget { get; }
     public PopulationSystem Population { get; }
@@ -76,6 +78,8 @@ public sealed class SimulationSystem
 
         if (ages != null) Tech = new TechSystem(ages, techs, config);
         Capacity = new CapacityModel(config, ages);
+        RoadTiers = new RoadTiers(config, techs, tech => Tech != null && Tech.IsResearched(tech));
+        roads.SetFrontage(RoadTiers.HasContent ? tier => RoadTiers.Frontage(tier) : null);
         Economy = new EconomySystem(config);
         Budget = new BudgetSystem(config, () => TechModifiers.LoanInterestMultiplier);
         Population = new PopulationSystem(config, Capacity);
@@ -145,7 +149,7 @@ public sealed class SimulationSystem
 
         var byLine = new float[BudgetSystem.Lines];
         float sourceUpkeep = Budget.Accumulate(m_Sources, byLine, out float fundingDelta);
-        float roads = m_Grid.CountRoads() * m_Config.RoadUpkeepPerDay;
+        float roads = RoadTiers.UpkeepPerDay(m_Grid);
         float pipes = m_Grid.CountPipes() * m_Config.PipeUpkeepPerDay;
         float multiplier = TechModifiers.UpkeepMultiplier;
         float loans = Budget.DailyLoanPayments;

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::OrdinanceDefinition
   m_Id: car_free_sundays
   m_DisplayName: 'Car-free Sundays'
-  m_Description: 'One quiet day a week. Pollution -10%, happiness +2%, commercial demand -5%.'
+  m_Description: 'One quiet day a week. Pollution -10%, happiness +2%, commute trips -10%, commercial demand -5%.'
   m_RequiredTech: {fileID: 11400000, guid: d7adb7fa767a51d48437b1292562b9dd, type: 2}
   m_CostPerDay: 0
   m_CostPerResident: 0.02
@@ -28,3 +28,6 @@ MonoBehaviour:
   - Type: 2
     Target: Commercial
     Value: 0.95
+  - Type: 9
+    Target: 
+    Value: 0.9

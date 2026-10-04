@@ -355,7 +355,7 @@ public sealed class SaveMigrationTests
 
         SaveData data = Read(SaveSystem.ToJson(saved), withAges: false);
 
-        Assert.AreEqual(4, data.Version);
+        Assert.AreEqual(SaveData.CurrentVersion, data.Version);
         Assert.AreEqual(BudgetSystem.Lines, data.Funding.Length);
         Assert.IsTrue(System.Array.TrueForAll(data.Funding, f => f == 1f));
         Assert.AreEqual(0, data.Loans.Count);
