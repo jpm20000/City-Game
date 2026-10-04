@@ -15,6 +15,7 @@ public sealed class TechModifiers
 
     public float ResearchMultiplier { get; private set; } = 1f;
     public float HappinessBonus { get; private set; }
+    public float EventHappiness { get; private set; }         // running random events' happiness (M17)
     public float OrdinanceHappiness { get; private set; }     // enacted ordinances' happiness (M15), apart from the techs'
     public float UpkeepMultiplier { get; private set; } = 1f;
     public float PollutionMultiplier { get; private set; } = 1f;
@@ -47,7 +48,8 @@ public sealed class TechModifiers
 
     public bool IsUnlocked(string buildingId) => !string.IsNullOrEmpty(buildingId) && m_Unlocked.Contains(buildingId);
 
-    public static TechModifiers Fold(IEnumerable<TechDefinition> researched, IEnumerable<OrdinanceDefinition> enacted = null)
+    public static TechModifiers Fold(IEnumerable<TechDefinition> researched, IEnumerable<OrdinanceDefinition> enacted = null,
+        IEnumerable<TechEffect> events = null)
     {
         var result = new TechModifiers();
 
@@ -67,10 +69,14 @@ public sealed class TechModifiers
                 foreach (TechEffect effect in ordinance.Effects) result.Apply(effect, true);
             }
         }
+        if (events != null)
+        {
+            foreach (TechEffect effect in events) result.Apply(effect, false, true);
+        }
         return result;
     }
 
-    private void Apply(TechEffect effect, bool ordinance)
+    private void Apply(TechEffect effect, bool ordinance, bool @event = false)
     {
         switch (effect.Type)
         {
@@ -81,7 +87,8 @@ public sealed class TechModifiers
                 ResearchMultiplier *= effect.Value;
                 break;
             case TechEffectType.HappinessBonus:
-                if (ordinance) OrdinanceHappiness += effect.Value;
+                if (@event) EventHappiness += effect.Value;
+                else if (ordinance) OrdinanceHappiness += effect.Value;
                 else HappinessBonus += effect.Value;
                 break;
             case TechEffectType.UpkeepMultiplier:

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: monasticism
   m_DisplayName: Monasticism
-  m_Description: 'Communities of learning. Unlocks the Monastery, which produces research and schools the homes around it.'
+  m_Description: 'Communities of learning. Unlocks the Monastery, which produces research and schools the homes around it. Enables the Quarantine ordinance.'
   m_Age: 0
   m_Cost: 50
   m_Prerequisites: 

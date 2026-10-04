@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e9a3c7d1b2f4a6c8d0e1f2a3b4c5d6e, type: 3}
+  m_Name: WanderingScholars
+  m_EditorClassIdentifier: CityBuilder.Simulation::EventDefinition
+  m_Id: wandering_scholars
+  m_Title: 'Wandering Scholars'
+  m_Text: 'A band of scholars arrives, looking for a patron.'
+  m_MinAge: 0
+  m_MaxAge: 1
+  m_MinPopulation: 80
+  m_RequiredTech: {fileID: 0}
+  m_Weight: 1
+  m_Choices:
+  - Label: 'Lodge them'
+    Description: '+80 research points.'
+    Cost: 300
+    CostPerResident: 0
+    Reward: 0
+    ResearchPoints: 80
+    Days: 0
+    Effects: []
+  - Label: 'Send them on'
+    Description: 'Nothing happens.'
+    Cost: 0
+    CostPerResident: 0
+    Reward: 0
+    ResearchPoints: 0
+    Days: 0
+    Effects: []

@@ -14,9 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: steel_frames
   m_DisplayName: Steel Frames
-  m_Description: 'Skeletons of steel let buildings climb. Enables the Building Code ordinance.'
+  m_Description: 'Skeletons of steel let buildings climb. Fires spread half as fast. Enables the Building Code ordinance.'
   m_Age: 2
   m_Cost: 550
   m_Prerequisites: 
   - {fileID: 11400000, guid: 14dc4dae3643582993595aa38fcbd235, type: 2}
-  m_Effects: []
+  m_Effects:
+  - Type: 10
+    Target: FireSpread
+    Value: 0.5

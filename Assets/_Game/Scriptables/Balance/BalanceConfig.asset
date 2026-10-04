@@ -53,6 +53,10 @@ MonoBehaviour:
   m_BreakdownPerAgeBehind: 0.5
   m_BreakdownDays: 10
   m_RepairCostFraction: 0.2
+  m_EventIntervalMin: 45
+  m_EventIntervalMax: 90
+  m_EventRepeatDays: 360
+  m_EventAutoDays: 10
   m_MaxGrowthPerDay: 3
   m_GrowthDemandThreshold: 0.15
   m_LevelCapacity: 040000000800000010000000i

@@ -271,4 +271,50 @@ public sealed class ContentTests
         }
         for (int age = 0; age < perAge.Length; age++) Assert.That(perAge[age], Is.InRange(2, 5), $"ordinances in {m_Ages[age].Id}");
     }
+
+    [Test]
+    public void Events_AreValid_AndEveryAgeHasAtLeastThreeToDraw()
+    {
+        Assert.AreEqual(13, m_Techs.Events.Count);
+        var perAge = new int[m_Ages.Count];
+        foreach (EventDefinition definition in m_Techs.Events)
+        {
+            Assert.That(definition.Choices.Length, Is.InRange(2, 3), definition.Id);
+            Assert.IsTrue(definition.Choices[definition.Choices.Length - 1].IsFree, $"{definition.Id}: the last choice is free");
+            Assert.IsNotEmpty(definition.Text, definition.Id);
+            for (int age = definition.MinAge; age <= definition.MaxAge; age++) perAge[age]++;
+            foreach (EventChoice choice in definition.Choices)
+            {
+                Assert.IsNotEmpty(choice.Description, $"{definition.Id}: {choice.Label}");
+                if (choice.Effects != null && choice.Effects.Length > 0) Assert.AreNotEqual(0, choice.Days, $"{definition.Id}: {choice.Label} needs a duration");
+            }
+        }
+        for (int age = 0; age < perAge.Length; age++) Assert.GreaterOrEqual(perAge[age], 3, $"events in {m_Ages[age].Id}");
+    }
+
+    [Test]
+    public void Hazards_PlagueRiskFollowsTheAges_AndTheHazardEffectsAreWired()
+    {
+        Assert.AreEqual(1f, m_Ages[0].PlagueRisk);
+        Assert.AreEqual(0.6f, m_Ages[1].PlagueRisk);
+        Assert.AreEqual(0f, m_Ages[2].PlagueRisk);
+        Assert.AreEqual(0f, m_Ages[3].PlagueRisk);
+
+        Assert.AreEqual(0.5f, HazardOf(m_Techs.GetById("steel_frames").Effects, HazardKind.FireSpread));
+        Assert.AreEqual(0.25f, HazardOf(m_Techs.GetById("smart_grid").Effects, HazardKind.Breakdown));
+        Assert.AreEqual(0.8f, HazardOf(m_Techs.GetOrdinanceById("building_code").Effects, HazardKind.FireSpread));
+        OrdinanceDefinition quarantine = m_Techs.GetOrdinanceById("quarantine");
+        Assert.AreEqual("monasticism", quarantine.RequiredTech.Id);
+        Assert.AreEqual(0.5f, HazardOf(quarantine.Effects, HazardKind.PlagueSpread));
+    }
+
+    private static float HazardOf(TechEffect[] effects, HazardKind kind)
+    {
+        float value = 1f;
+        foreach (TechEffect effect in effects)
+        {
+            if (effect.Type == TechEffectType.HazardMultiplier && effect.Target == kind.ToString()) value *= effect.Value;
+        }
+        return value;
+    }
 }

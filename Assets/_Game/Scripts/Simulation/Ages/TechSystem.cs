@@ -14,6 +14,7 @@ public sealed class TechSystem
     private readonly HashSet<TechDefinition> m_Researched = new();
     private readonly List<ResearchProject> m_Queue = new();
     private readonly HashSet<OrdinanceDefinition> m_Enacted = new();
+    private readonly List<TechEffect> m_EventEffects = new();     // running random events' effects (M17)
 
     public AgeDatabase Ages => m_Ages;
     public TechDatabase Techs => m_Techs;
@@ -43,7 +44,15 @@ public sealed class TechSystem
 
     public bool IsResearched(TechDefinition tech) => tech != null && m_Researched.Contains(tech);
 
-    private void Refold() => Modifiers = TechModifiers.Fold(Researched, EnactedOrdinances);
+    private void Refold() => Modifiers = TechModifiers.Fold(Researched, EnactedOrdinances, m_EventEffects);
+
+    // The effects of the random events running now (M17); replaces the previous list.
+    public void SetEventEffects(IEnumerable<TechEffect> effects)
+    {
+        m_EventEffects.Clear();
+        if (effects != null) m_EventEffects.AddRange(effects);
+        Refold();
+    }
 
     // --- Ordinances (M15) ---
 

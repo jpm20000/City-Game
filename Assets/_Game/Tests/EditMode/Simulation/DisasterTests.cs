@@ -245,6 +245,10 @@ public sealed class DisasterTests
     [Test]
     public void SaveLoad_KeepsEveryHazardField()
     {
+        // The pending and running events must exist in the game's databases to survive a load.
+        EventDefinition fair = TwoChoiceEvent("fair");
+        EventDefinition harvest = TwoChoiceEvent("harvest");
+        Techs.InitEvents(fair, harvest);
         var grid = new GridData(6, 6);
         SimulationSystem sim = NewSim(grid);
         DisasterSystem d = sim.Disasters;
@@ -368,6 +372,23 @@ public sealed class DisasterTests
         Assert.AreEqual(sim.Economy.Money, sim2.Economy.Money, 1e-2f);
         CollectionAssert.AreEqual(grid.ExportLevels(), grid2.ExportLevels());
         Assert.AreEqual(sim.Disasters.Random.StateString, sim2.Disasters.Random.StateString);
+    }
+
+    private EventDefinition TwoChoiceEvent(string id)
+    {
+        EventDefinition definition = ScriptableObject.CreateInstance<EventDefinition>();
+        var choice = new EventChoice { Label = "x", Description = "x", Effects = new TechEffect[0] };
+        definition.Init(id, 0, 3, 0, null, 1f, choice, choice);
+        m_Events.Add(definition);
+        return definition;
+    }
+
+    private readonly List<Object> m_Events = new();
+
+    [OneTimeTearDown]
+    public void DestroyEvents()
+    {
+        foreach (Object o in m_Events) Object.DestroyImmediate(o);
     }
 
     // --- What later steps read ---

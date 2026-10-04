@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e9a3c7d1b2f4a6c8d0e1f2a3b4c5d6e, type: 3}
+  m_Name: SmogWeek
+  m_EditorClassIdentifier: CityBuilder.Simulation::EventDefinition
+  m_Id: smog_week
+  m_Title: 'Smog Week'
+  m_Text: 'A pall of smoke hangs over the city.'
+  m_MinAge: 2
+  m_MaxAge: 3
+  m_MinPopulation: 400
+  m_RequiredTech: {fileID: 11400000, guid: 14dc4dae3643582993595aa38fcbd235, type: 2}
+  m_Weight: 1
+  m_Choices:
+  - Label: 'Slow the mills'
+    Description: 'Industrial demand -20% and pollution -40% for 15 days.'
+    Cost: 0
+    CostPerResident: 0
+    Reward: 0
+    ResearchPoints: 0
+    Days: 15
+    Effects:
+    - Type: 2
+      Target: Industrial
+      Value: 0.8
+    - Type: 5
+      Target: 
+      Value: 0.6
+  - Label: 'Keep working'
+    Description: 'Happiness -4% for 15 days.'
+    Cost: 0
+    CostPerResident: 0
+    Reward: 0
+    ResearchPoints: 0
+    Days: 15
+    Effects:
+    - Type: 3
+      Target: 
+      Value: -0.04

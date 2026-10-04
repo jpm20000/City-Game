@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e9a3c7d1b2f4a6c8d0e1f2a3b4c5d6e, type: 3}
+  m_Name: PoorHarvest
+  m_EditorClassIdentifier: CityBuilder.Simulation::EventDefinition
+  m_Id: poor_harvest
+  m_Title: 'Poor Harvest'
+  m_Text: 'Blight in the fields: bread will be short this season.'
+  m_MinAge: 0
+  m_MaxAge: 1
+  m_MinPopulation: 60
+  m_RequiredTech: {fileID: 0}
+  m_Weight: 1
+  m_Choices:
+  - Label: 'Buy grain'
+    Description: 'Costs money, no other effect.'
+    Cost: 0
+    CostPerResident: 1.0
+    Reward: 0
+    ResearchPoints: 0
+    Days: 0
+    Effects: []
+  - Label: 'Tighten belts'
+    Description: 'Residential demand -30% and happiness -3% for 30 days.'
+    Cost: 0
+    CostPerResident: 0
+    Reward: 0
+    ResearchPoints: 0
+    Days: 30
+    Effects:
+    - Type: 2
+      Target: Residential
+      Value: 0.7
+    - Type: 3
+      Target: 
+      Value: -0.03

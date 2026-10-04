@@ -10,6 +10,7 @@ GUID_TECH_DEF = "4a81a50374d8fd1488dba7cf9e9b874e"
 GUID_TECH_DB = "a6bee4b53f8793c4b9cc00b60f5ad9a0"
 GUID_ORDINANCE_DEF = "0b5f2a6c1d3e4f7a8b9c0d1e2f3a4b5c"   # Scripts/Simulation/Ages/OrdinanceDefinition.cs (M15)
 GUID_ROAD_TIER_DEF = "7c2d9e4f1a5b4c6d8e0f1a2b3c4d5e6f"   # Scripts/Simulation/Ages/RoadTierDefinition.cs (M16)
+GUID_EVENT_DEF = "5e9a3c7d1b2f4a6c8d0e1f2a3b4c5d6e"       # Scripts/Simulation/Ages/EventDefinition.cs (M17)
 GUID_VISUAL_SET = "e8eec815828e415cad1c610865718a24"   # Scripts/Buildings/AgeVisualSet.cs (Assembly-CSharp)
 NS = uuid.UUID("6f1c0e52-8d0a-4c3a-9a51-3c1d2b7e9f10")
 
@@ -84,7 +85,7 @@ TECHS = [
     ("PublicSanitation", "public_sanitation", "Public Sanitation", 2, 450, ["civic_planning"], [happy(0.03)], "Sewers and clean water. Happiness +3%. Unlocks the Pumping Station and the Hospital."),
     ("Telegraph", "telegraph", "Telegraph", 2, 450, ["electricity", "printing_press"], [research(1.2)], "News at the speed of light. Research +20%. Unlocks the Police Station (call boxes)."),
     ("Universities", "universities", "Universities", 2, 500, ["telegraph", "academies"], [], "Research universities. Unlocks the University, which produces research and educates the homes around it."),
-    ("SteelFrames", "steel_frames", "Steel Frames", 2, 550, ["factories"], [], "Skeletons of steel let buildings climb."),
+    ("SteelFrames", "steel_frames", "Steel Frames", 2, 550, ["factories"], [hazard("FireSpread", 0.5)], "Skeletons of steel let buildings climb. Fires spread half as fast."),
     ("ElectricTrams", "electric_trams", "Electric Trams", 2, 400, ["electricity"], [traffic(0.9)], "Cheap rides along the main streets. Commute trips -10%. Unlocks the Avenue."),
     ("Macadam", "macadam", "Macadam", 2, 150, ["architecture"], [], "Crushed-stone roads that carry carts in all weathers. Unlocks the Paved Road."),
     # Modern
@@ -95,7 +96,7 @@ TECHS = [
     ("Internet", "internet", "Internet", 3, 1400, ["computing"], [research(1.3)], "Everything connected. Research +30%."),
     ("Renewables", "renewables", "Renewables", 3, 1000, ["electricity"], [pollution(0.75)], "Power from wind and sun. Pollution -25%."),
     ("GreenBuilding", "green_building", "Green Building", 3, 1100, ["steel_frames"], [upkeep(0.9)], "Efficient buildings cost less to run. Upkeep -10%."),
-    ("SmartGrid", "smart_grid", "Smart Grid", 3, 1300, ["computing", "renewables"], [], "A grid that balances itself."),
+    ("SmartGrid", "smart_grid", "Smart Grid", 3, 1300, ["computing", "renewables"], [hazard("Breakdown", 0.25)], "A grid that balances itself. Plants and pumps break down a quarter as often."),
     ("Antibiotics", "antibiotics", "Antibiotics", 3, 900, ["public_sanitation"], [], "Infections cured in days. Unlocks the Medical Centre."),
 ]
 
@@ -119,6 +120,8 @@ ORDINANCES = [
      "Holidays cheer the town and the market. Happiness +3%, commercial demand +5%."),
     ("Curfew", "curfew", "Curfew", "town_watch", 3, 0, [civic_need("Order", 0.7), happy(-0.01), demand(C, 0.9)],
      "Bells ring the town indoors at dusk. Crime -30%, happiness -1%, commercial demand -10%."),
+    ("Quarantine", "quarantine", "Quarantine", "monasticism", 0, 0.02, [hazard("PlagueSpread", 0.5), demand(C, 0.9)],
+     "Monks keep the sick apart. Plague spreads half as fast, commercial demand -10%."),
     ("HerbGardens", "herb_gardens", "Herb Gardens", "herbalism", 0, 0.02, [civic_need("Health", 0.85)],
      "Every household tends healing herbs. Sickness -15%."),
     ("FireCode", "fire_code", "Fire Code", "architecture", 0, 0.02, [civic_need("Fire", 0.7), demand(I, 0.95)],
@@ -129,8 +132,8 @@ ORDINANCES = [
      "Open lectures spread learning. Research +10%."),
     ("SmokeAbatement", "smoke_abatement", "Smoke Abatement", "factories", 0, 0.03, [pollution(0.8), demand(I, 0.9)],
      "Tall chimneys and smoke inspectors. Pollution -20%, industrial demand -10%."),
-    ("BuildingCode", "building_code", "Building Code", "steel_frames", 0, 0.02, [civic_need("Fire", 0.75), land_value(0.02)],
-     "Inspected frames and fire doors. Fire risk -25%, land value +2%."),
+    ("BuildingCode", "building_code", "Building Code", "steel_frames", 0, 0.02, [civic_need("Fire", 0.75), hazard("FireSpread", 0.8), land_value(0.02)],
+     "Inspected frames and fire doors. Fire risk -25%, fires spread 20% slower, land value +2%."),
     ("WorkmensFares", "workmens_fares", "Workmen's Fares", "electric_trams", 0, 0.03, [demand(R, 1.1)],
      "Cheap tram fares for commuters. Residential demand +10%."),
     ("FreeClinics", "free_clinics", "Free Clinics", "public_sanitation", 0, 0.04, [civic_need("Health", 0.8)],
@@ -149,6 +152,50 @@ ROAD_TIERS = [
     ("Highway", 5, "highway", "Highway", "automobiles", 400, 6.0, 1200, 1, False, 0),
 ]
 ORDINANCE_OF_TECH = {o[3]: o[2] for o in ORDINANCES}
+
+# Random events (M17): (asset, id, title, text, min age, max age, min population, tech id or None, weight, choices).
+# A choice is (label, description, cost, cost per resident, reward, research points, days, effects); the last one is free.
+EVENTS = [
+    ("TravellingFair", "travelling_fair", "Travelling Fair", "A fair of tumblers, traders and singers asks to set up on the green.", 0, 1, 40, None, 1,
+     [("Host the fair", "Happiness +4% and commercial demand +20% for 20 days.", 200, 0.5, 0, 0, 20, [happy(0.04), demand(C, 1.2)]),
+      ("Turn them away", "Nothing happens.", 0, 0, 0, 0, 0, [])]),
+    ("PoorHarvest", "poor_harvest", "Poor Harvest", "Blight in the fields: bread will be short this season.", 0, 1, 60, None, 1,
+     [("Buy grain", "Costs money, no other effect.", 0, 1.0, 0, 0, 0, []),
+      ("Tighten belts", "Residential demand -30% and happiness -3% for 30 days.", 0, 0, 0, 0, 30, [demand(R, 0.7), happy(-0.03)])]),
+    ("WanderingScholars", "wandering_scholars", "Wandering Scholars", "A band of scholars arrives, looking for a patron.", 0, 1, 80, None, 1,
+     [("Lodge them", "+80 research points.", 300, 0, 0, 80, 0, []),
+      ("Send them on", "Nothing happens.", 0, 0, 0, 0, 0, [])]),
+    ("Bandits", "bandits", "Bandits on the Road", "Armed bands prey on carts outside the walls.", 0, 0, 100, None, 1,
+     [("Hire sellswords", "Crime -30% for 30 days.", 400, 0, 0, 0, 30, [civic_need("Order", 0.7)]),
+      ("Bar the gates", "Commercial demand -15% and crime +20% for 30 days.", 0, 0, 0, 0, 30, [demand(C, 0.85), civic_need("Order", 1.2)])]),
+    ("WealthyPatron", "patron", "A Wealthy Patron", "A rich merchant offers to beautify the town, for a fee.", 1, 1, 200, None, 1,
+     [("Commission a fresco", "Land value +3% and happiness +2% for 90 days.", 1500, 0, 0, 0, 90, [land_value(0.03), happy(0.02)]),
+      ("Decline", "Nothing happens.", 0, 0, 0, 0, 0, [])]),
+    ("MerchantFleet", "merchant_fleet", "Merchant Fleet", "A fleet of merchants seeks a trading partner.", 1, 2, 250, "banking", 1,
+     [("Invest in the voyage", "Commercial demand +25% for 45 days.", 2000, 0, 0, 0, 45, [demand(C, 1.25)]),
+      ("Pass", "Nothing happens.", 0, 0, 0, 0, 0, [])]),
+    ("Pamphleteers", "pamphleteers", "Pamphleteers", "Printers hawk pamphlets on every corner.", 1, 2, 200, "printing_press", 1,
+     [("Let them print", "Research +15% and crime +10% for 30 days.", 0, 0, 0, 0, 30, [research(1.15), civic_need("Order", 1.1)]),
+      ("Ban them", "Happiness -2% for 30 days.", 0, 0, 0, 0, 30, [happy(-0.02)])]),
+    ("Strike", "strike", "Workers Strike", "The mills are silent: workers demand better pay.", 2, 3, 400, None, 1,
+     [("Raise wages", "Costs money, no other effect.", 0, 2.0, 0, 0, 0, []),
+      ("Wait it out", "Industrial demand -40% and happiness -3% for 20 days.", 0, 0, 0, 0, 20, [demand(I, 0.6), happy(-0.03)])]),
+    ("WorldsFair", "worlds_fair", "Worlds Fair", "A great exhibition could put the city on the map.", 2, 2, 500, "telegraph", 1,
+     [("Host the fair", "Happiness +5%, commercial demand +20% for 30 days and +200 research points.", 8000, 0, 0, 200, 30, [happy(0.05), demand(C, 1.2)]),
+      ("Decline", "Nothing happens.", 0, 0, 0, 0, 0, [])]),
+    ("SmogWeek", "smog_week", "Smog Week", "A pall of smoke hangs over the city.", 2, 3, 400, "factories", 1,
+     [("Slow the mills", "Industrial demand -20% and pollution -40% for 15 days.", 0, 0, 0, 0, 15, [demand(I, 0.8), pollution(0.6)]),
+      ("Keep working", "Happiness -4% for 15 days.", 0, 0, 0, 0, 15, [happy(-0.04)])]),
+    ("StartupBoom", "startup_boom", "Startup Boom", "A wave of young companies wants a home here.", 3, 3, 700, "computing", 1,
+     [("Offer tax breaks", "Commercial demand +30% and research +20% for 60 days.", 5000, 0, 0, 0, 60, [demand(C, 1.3), research(1.2)]),
+      ("Let it be", "Nothing happens.", 0, 0, 0, 0, 0, [])]),
+    ("Heatwave", "heatwave", "Heatwave", "Days of killing heat: the sick and the old suffer.", 2, 3, 600, None, 1,
+     [("Open cooling centres", "Costs money, no other effect.", 0, 2.0, 0, 0, 0, []),
+      ("Ride it out", "Sickness +50% and happiness -3% for 15 days.", 0, 0, 0, 0, 15, [civic_need("Health", 1.5), happy(-0.03)])]),
+    ("FilmShoot", "film_shoot", "Film Shoot", "A studio wants to close your streets for a week.", 3, 3, 600, "mass_media", 1,
+     [("Close the streets", "Earn $4,000; commute trips +30% for 7 days.", 0, 0, 4000, 0, 7, [traffic(1.3)]),
+      ("Refuse", "Nothing happens.", 0, 0, 0, 0, 0, [])]),
+]
 
 # Each unlocking tech says so in its description.
 TECHS = [(a, b, c, d, e, f, g, desc + (" Enables the %s ordinance." % ORDINANCE_OF_TECH[b] if b in ORDINANCE_OF_TECH else ""))
@@ -189,6 +236,7 @@ text = header(GUID_TECH_DB, "TechDatabase", "TechDatabase")
 text += "  m_Techs:%s\n" % array([ref(tech_guid[t[1]]) for t in TECHS])
 text += "  m_Ordinances:%s\n" % array([ref(guid("ordinance_" + o[1])) for o in ORDINANCES])
 text += "  m_RoadTiers:%s\n" % array([ref(guid("road_tier_" + r[2])) for r in ROAD_TIERS])
+text += "  m_Events:%s\n" % array([ref(guid("event_" + e[1])) for e in EVENTS])
 write(os.path.join(ROOT, "Techs", "TechDatabase.asset"), text, guid("tech_database"))
 
 for asset, oid, display, tech, per_day, per_resident, effects, desc in ORDINANCES:
@@ -197,6 +245,19 @@ for asset, oid, display, tech, per_day, per_resident, effects, desc in ORDINANCE
     text += "  m_CostPerDay: %s\n  m_CostPerResident: %s\n" % (per_day, per_resident)
     text += "  m_Effects:\n" + "".join("  - Type: %d\n    Target: %s\n    Value: %s\n" % (t, target, v) for t, target, v in effects)
     write(os.path.join(ROOT, "Techs", "Ordinances", asset + ".asset"), text, guid("ordinance_" + oid))
+
+for asset, eid, title, etext, min_age, max_age, min_pop, tech, weight, choices in EVENTS:
+    text = header(GUID_EVENT_DEF, asset, "EventDefinition")
+    text += "  m_Id: %s\n  m_Title: %s\n  m_Text: %s\n  m_MinAge: %d\n  m_MaxAge: %d\n  m_MinPopulation: %d\n" % (eid, q(title), q(etext), min_age, max_age, min_pop)
+    text += "  m_RequiredTech: %s\n  m_Weight: %s\n  m_Choices:\n" % (ref(tech_guid[tech]) if tech else "{fileID: 0}", weight)
+    for label, cdesc, cost, per_res, reward, rp, days, effects in choices:
+        text += "  - Label: %s\n    Description: %s\n    Cost: %s\n    CostPerResident: %s\n    Reward: %s\n    ResearchPoints: %s\n    Days: %d\n" % (
+            q(label), q(cdesc), cost, per_res, reward, rp, days)
+        if effects:
+            text += "    Effects:\n" + "".join("    - Type: %d\n      Target: %s\n      Value: %s\n" % (t, target, v) for t, target, v in effects)
+        else:
+            text += "    Effects: []\n"
+    write(os.path.join(ROOT, "Techs", "Events", asset + ".asset"), text, guid("event_" + eid))
 
 for asset, tier, rid, display, tech, cost, upkeep, capacity, travel, frontage, obsolete in ROAD_TIERS:
     text = header(GUID_ROAD_TIER_DEF, asset, "RoadTierDefinition")
@@ -251,5 +312,5 @@ for asset, age_id, residential, commercial, industrial in VISUALS:
     text += styles("m_Residential", residential) + styles("m_Commercial", commercial) + styles("m_Industrial", industrial)
     write(os.path.join(ROOT, "Ages", "Visuals", asset + ".asset"), text, guid("visuals_" + age_id))
 
-print("ages", len(AGES), "techs", len(TECHS), "ordinances", len(ORDINANCES), "road tiers", len(ROAD_TIERS), "visual sets", len(VISUALS))
+print("ages", len(AGES), "techs", len(TECHS), "ordinances", len(ORDINANCES), "events", len(EVENTS), "road tiers", len(ROAD_TIERS), "visual sets", len(VISUALS))
 print("AgeDatabase guid", guid("age_database"), "TechDatabase guid", guid("tech_database"))

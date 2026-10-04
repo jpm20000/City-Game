@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e9a3c7d1b2f4a6c8d0e1f2a3b4c5d6e, type: 3}
+  m_Name: StartupBoom
+  m_EditorClassIdentifier: CityBuilder.Simulation::EventDefinition
+  m_Id: startup_boom
+  m_Title: 'Startup Boom'
+  m_Text: 'A wave of young companies wants a home here.'
+  m_MinAge: 3
+  m_MaxAge: 3
+  m_MinPopulation: 700
+  m_RequiredTech: {fileID: 11400000, guid: df3c2f24168c528cbe13d52873f4a745, type: 2}
+  m_Weight: 1
+  m_Choices:
+  - Label: 'Offer tax breaks'
+    Description: 'Commercial demand +30% and research +20% for 60 days.'
+    Cost: 5000
+    CostPerResident: 0
+    Reward: 0
+    ResearchPoints: 0
+    Days: 60
+    Effects:
+    - Type: 2
+      Target: Commercial
+      Value: 1.3
+    - Type: 1
+      Target: 
+      Value: 1.2
+  - Label: 'Let it be'
+    Description: 'Nothing happens.'
+    Cost: 0
+    CostPerResident: 0
+    Reward: 0
+    ResearchPoints: 0
+    Days: 0
+    Effects: []

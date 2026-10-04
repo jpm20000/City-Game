@@ -15,6 +15,7 @@ public sealed class DisasterSystem
     public FireSystem Fire { get; }
     public PlagueSystem Epidemic { get; }
     public BreakdownSystem Breakdowns { get; }
+    public RandomEventSystem Events { get; }
 
     // Fire days of each burning cell (0 = not burning), rubble days left, and plague (0 = healthy,
     // 1..PlagueDays = days infected, PlagueRecovered = immune until the outbreak ends).
@@ -43,7 +44,8 @@ public sealed class DisasterSystem
     // sources as the sim keeps them (what can break down).
     public DisasterSystem(GridData grid, BalanceConfig config, bool hasAges, CivicSystem civic, WaterSystem water,
         Func<TechModifiers> tech, Func<int> age, PopulationSystem population, CapacityModel capacity, BudgetSystem budget,
-        Func<IReadOnlyList<ServiceSource>> sources, Func<float> plagueRisk)
+        Func<IReadOnlyList<ServiceSource>> sources, Func<float> plagueRisk, TechDatabase techs = null, TechSystem techSystem = null,
+        EconomySystem economy = null)
     {
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_HasAges = hasAges;
@@ -51,6 +53,7 @@ public sealed class DisasterSystem
         Fire = new FireSystem(this, grid, config, civic, water, tech, age, Random);
         Epidemic = new PlagueSystem(this, grid, config, civic, capacity, population, tech, plagueRisk, Random);
         Breakdowns = new BreakdownSystem(this, config, sources, budget, tech, age, Random);
+        Events = new RandomEventSystem(this, config, techs, techSystem, economy, population, Random);
         grid.OnResized += () =>
         {
             Allocate();
@@ -95,6 +98,7 @@ public sealed class DisasterSystem
         ActiveEvents.Clear();
         RecentEvents.Clear();
         Epidemic?.Recount();
+        Events?.RefreshEffects();
     }
 
     // The daily step, called by SimulationSystem.Tick after research and before the traffic flow. The hazards
@@ -106,6 +110,7 @@ public sealed class DisasterSystem
             Fire.ResetResults();
             return;
         }
+        Events.Step();
         Fire.Step();
         Epidemic.Step();
         Breakdowns.Step();
@@ -158,6 +163,8 @@ public sealed class DisasterSystem
         if (data.ActiveEvents != null) ActiveEvents.AddRange(data.ActiveEvents);
         if (data.RecentEvents != null) RecentEvents.AddRange(data.RecentEvents);
         Epidemic.Recount();
+        Events.Prune();
+        Events.RefreshEffects();
     }
 
     private static void CopyLayer(byte[] source, byte[] target)

@@ -99,7 +99,7 @@ public sealed class SimulationSystem
         LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic,
             () => Budget.EffectFactor(BudgetLine.Parks), Traffic);
         Disasters = new DisasterSystem(grid, config, ages != null, Civic, Water, () => TechModifiers, () => Tech != null ? Tech.CurrentAge : 0,
-            Population, Capacity, Budget, () => m_Sources, () => Tech != null ? Tech.CurrentAgeDefinition.PlagueRisk : 0f);
+            Population, Capacity, Budget, () => m_Sources, () => Tech != null ? Tech.CurrentAgeDefinition.PlagueRisk : 0f, techs, Tech, Economy);
         Disasters.Breakdowns.Changed += ApplySources;
         Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water, Disasters.IsRubble);
         grid.OnResized += () =>
@@ -199,7 +199,7 @@ public sealed class SimulationSystem
         UpdateTraffic();
         m_LastServices = MeasureServices();
         Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, m_LastServices,
-            TechModifiers.HappinessBonus, TechModifiers.OrdinanceHappiness, PlagueTerm(), 0f);
+            TechModifiers.HappinessBonus, TechModifiers.OrdinanceHappiness, PlagueTerm(), TechModifiers.EventHappiness);
         Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial, TechModifiers);
     }
 
@@ -263,7 +263,7 @@ public sealed class SimulationSystem
         Population.RecountCapacity(m_Grid, modifiers);
         m_LastServices = MeasureServices();
         Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, m_LastServices,
-            tech.HappinessBonus, tech.OrdinanceHappiness, PlagueTerm(), 0f);
+            tech.HappinessBonus, tech.OrdinanceHappiness, PlagueTerm(), tech.EventHappiness);
 
         BudgetBreakdown ledger = Ledger();
         Economy.ApplyDay(ledger.Income, ledger.Expense);

@@ -80,6 +80,13 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private int m_BreakdownDays = 10;
     [Tooltip("(M17) Repairing a broken source costs this share of its build cost.")]
     [SerializeField] private float m_RepairCostFraction = 0.2f;
+    [Tooltip("(M17) Days between random events: counted from the day the last one was answered.")]
+    [SerializeField] private int m_EventIntervalMin = 45;
+    [SerializeField] private int m_EventIntervalMax = 90;
+    [Tooltip("(M17) Days before the same event can be offered again.")]
+    [SerializeField] private int m_EventRepeatDays = 360;
+    [Tooltip("(M17) Days an unanswered event waits before it takes its last (free) choice.")]
+    [SerializeField] private int m_EventAutoDays = 10;
 
     [Header("Growth")]
     [SerializeField] private int m_MaxGrowthPerDay = 3;
@@ -266,6 +273,10 @@ public sealed class BalanceConfig : ScriptableObject
     public float BreakdownPerAgeBehind => m_BreakdownPerAgeBehind;
     public int BreakdownDays => m_BreakdownDays;
     public float RepairCostFraction => m_RepairCostFraction;
+    public int EventIntervalMin => m_EventIntervalMin;
+    public int EventIntervalMax => m_EventIntervalMax;
+    public int EventRepeatDays => m_EventRepeatDays;
+    public int EventAutoDays => m_EventAutoDays;
 
     public int MaxGrowthPerDay => m_MaxGrowthPerDay;
     public float GrowthDemandThreshold => m_GrowthDemandThreshold;

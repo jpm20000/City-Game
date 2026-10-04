@@ -10,21 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b5f2a6c1d3e4f7a8b9c0d1e2f3a4b5c, type: 3}
-  m_Name: BuildingCode
+  m_Name: Quarantine
   m_EditorClassIdentifier: CityBuilder.Simulation::OrdinanceDefinition
-  m_Id: building_code
-  m_DisplayName: 'Building Code'
-  m_Description: 'Inspected frames and fire doors. Fire risk -25%, fires spread 20% slower, land value +2%.'
-  m_RequiredTech: {fileID: 11400000, guid: 0118c077324a535790f8a8c3a76e792c, type: 2}
+  m_Id: quarantine
+  m_DisplayName: 'Quarantine'
+  m_Description: 'Monks keep the sick apart. Plague spreads half as fast, commercial demand -10%.'
+  m_RequiredTech: {fileID: 11400000, guid: b24517f5e5265555a16be5bf57175248, type: 2}
   m_CostPerDay: 0
   m_CostPerResident: 0.02
   m_Effects:
-  - Type: 7
-    Target: Fire
-    Value: 0.75
   - Type: 10
-    Target: FireSpread
-    Value: 0.8
-  - Type: 6
-    Target: 
-    Value: 0.02
+    Target: PlagueSpread
+    Value: 0.5
+  - Type: 2
+    Target: Commercial
+    Value: 0.9

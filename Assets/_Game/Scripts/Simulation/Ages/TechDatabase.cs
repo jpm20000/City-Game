@@ -13,11 +13,25 @@ public sealed class TechDatabase : ScriptableObject
     [Tooltip("(M16) The five road tiers, each unlocked by a tech. Both databases or neither, like ordinances.")]
     [SerializeField] private List<RoadTierDefinition> m_RoadTiers = new();
 
+    [Tooltip("(M17) Random events with choices. Both databases or neither, like ordinances.")]
+    [SerializeField] private List<EventDefinition> m_Events = new();
+
     private Dictionary<string, TechDefinition> m_ById;
 
     public IReadOnlyList<TechDefinition> Techs => m_Techs;
     public IReadOnlyList<OrdinanceDefinition> Ordinances => m_Ordinances;
     public IReadOnlyList<RoadTierDefinition> RoadTiers => m_RoadTiers;
+    public IReadOnlyList<EventDefinition> Events => m_Events;
+
+    public EventDefinition GetEventById(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        foreach (EventDefinition definition in m_Events)
+        {
+            if (definition != null && definition.Id == id) return definition;
+        }
+        return null;
+    }
 
     public OrdinanceDefinition GetOrdinanceById(string id)
     {
@@ -175,6 +189,35 @@ public sealed class TechDatabase : ScriptableObject
             if (tier.TravelCost < 1) errors.Add($"Road tier '{tier.Id}' needs a travel cost of at least 1.");
         }
 
+        var eventIds = new HashSet<string>();
+        for (int i = 0; i < m_Events.Count; i++)
+        {
+            EventDefinition definition = m_Events[i];
+            if (definition == null)
+            {
+                errors.Add($"Event #{i} is missing.");
+                continue;
+            }
+            if (string.IsNullOrEmpty(definition.Id)) errors.Add($"Event #{i} has no Id.");
+            else if (!eventIds.Add(definition.Id)) errors.Add($"Duplicate event Id '{definition.Id}'.");
+            if (definition.MinAge > definition.MaxAge || !ages.IsValidIndex(definition.MinAge) || !ages.IsValidIndex(definition.MaxAge))
+                errors.Add($"Event '{definition.Id}' has a bad age range {definition.MinAge}..{definition.MaxAge}.");
+            if (definition.RequiredTech != null && !known.Contains(definition.RequiredTech))
+                errors.Add($"Event '{definition.Id}' needs a tech that is in the TechDatabase.");
+            if (definition.Weight <= 0f) errors.Add($"Event '{definition.Id}' needs a weight above 0.");
+            EventChoice[] choices = definition.Choices;
+            if (choices.Length < 2 || choices.Length > 3) errors.Add($"Event '{definition.Id}' needs 2 or 3 choices.");
+            else if (!choices[choices.Length - 1].IsFree) errors.Add($"Event '{definition.Id}': the last choice must be free.");
+            foreach (EventChoice choice in choices)
+            {
+                if (string.IsNullOrEmpty(choice.Label)) errors.Add($"Event '{definition.Id}' has a choice without a label.");
+                if (choice.Cost < 0f || choice.CostPerResident < 0f || choice.Reward < 0f || choice.ResearchPoints < 0f)
+                    errors.Add($"Event '{definition.Id}' has a negative price or reward.");
+                if (choice.Effects != null && choice.Effects.Length > 0 && choice.Days <= 0)
+                    errors.Add($"Event '{definition.Id}' has effects with no duration.");
+            }
+        }
+
         return errors.Count == before;
     }
 
@@ -210,6 +253,11 @@ public sealed class TechDatabase : ScriptableObject
     internal void InitRoadTiers(params RoadTierDefinition[] tiers)
     {
         m_RoadTiers = new List<RoadTierDefinition>(tiers);
+    }
+
+    internal void InitEvents(params EventDefinition[] events)
+    {
+        m_Events = new List<EventDefinition>(events);
     }
 
     internal void InitOrdinances(params OrdinanceDefinition[] ordinances)

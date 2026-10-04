@@ -14,10 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: smart_grid
   m_DisplayName: Smart Grid
-  m_Description: 'A grid that balances itself.'
+  m_Description: 'A grid that balances itself. Plants and pumps break down a quarter as often.'
   m_Age: 3
   m_Cost: 1300
   m_Prerequisites: 
   - {fileID: 11400000, guid: df3c2f24168c528cbe13d52873f4a745, type: 2}
   - {fileID: 11400000, guid: 7bf95dd903335c16b3ea104a4451d540, type: 2}
-  m_Effects: []
+  m_Effects:
+  - Type: 10
+    Target: Breakdown
+    Value: 0.25
