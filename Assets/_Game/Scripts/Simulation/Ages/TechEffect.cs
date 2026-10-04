@@ -12,6 +12,7 @@ public enum TechEffectType
     CivicNeedMultiplier,    // Target = Order / Fire / Health: crime / fire risk / sickness x Value (M15)
     LoanInterestMultiplier, // loan interest x Value (M15)
     TrafficMultiplier,      // commute trips x Value (M16)
+    HazardMultiplier,       // Target = FireSpread / PlagueSpread / Breakdown: that hazard's spread or rate x Value (M17)
 }
 
 // One effect of a researched tech. Folded into TechModifiers.

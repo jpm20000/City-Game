@@ -87,11 +87,13 @@ public sealed class SaveGameController : MonoBehaviour
     }
 
     // startAge = age index (ignored without age data); -1 = the Industrial age.
-    public void NewCity(Vector2Int size, int startAge)
+    // disasters = the Disasters & events switch (M17); the RNG starts from the clock.
+    public void NewCity(Vector2Int size, int startAge, bool disasters = true)
     {
         if (!IsReady()) return;
 
-        Apply(SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs, startAge));
+        Apply(SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs, startAge,
+            disasters, (ulong)System.Environment.TickCount));
         string age = m_GameManager.CurrentAgeName;
         GameEvents.RaiseNotification(age != null ? $"New city — {size.x}×{size.y}, {age}" : $"New city — {size.x}×{size.y}");
     }

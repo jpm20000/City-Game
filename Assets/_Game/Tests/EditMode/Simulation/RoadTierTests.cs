@@ -287,7 +287,7 @@ public sealed class RoadTierTests
 
         SaveData medieval = V4Save(TestAges.Medieval, new string[0], 1, 0, 1);
         Assert.IsTrue(SaveMigrations.TryMigrate(medieval, m_TestAges.Ages, Techs, out string error), error);
-        Assert.AreEqual(5, medieval.Version);
+        Assert.AreEqual(SaveData.CurrentVersion, medieval.Version);
         CollectionAssert.AreEqual(new byte[] { 1, 0, 1 }, new[] { medieval.Roads[0], medieval.Roads[1], medieval.Roads[2] }, "dirt");
 
         SaveData renaissance = V4Save(TestAges.Renaissance, new[] { "commons", "masonry", "architecture" }, 1, 1);

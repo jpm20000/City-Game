@@ -7,7 +7,7 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
     public const int NoAge = -1;
 
     public int Version = CurrentVersion;
@@ -51,7 +51,56 @@ public sealed class SaveData
     public List<LoanRecord> Loans = new();
     public List<string> Ordinances = new();
 
+    // v6 (M17): the Disasters & events switch, the RNG state (16 hex digits) and every hazard's state. Fires, Rubble
+    // and Plague are row-major bytes (fire days, rubble days left, plague days or 255 = recovered).
+    public bool Disasters;
+    public string RandomState = "";
+    public byte[] Fires;
+    public byte[] Rubble;
+    public byte[] Plague;
+    public int PlagueCooldown;
+    public float PlagueRemainder;
+    public List<BrokenRecord> Broken = new();
+    public string PendingEvent = "";
+    public int PendingDays;
+    public int DaysToNextEvent;
+    public List<EventRecord> ActiveEvents = new();
+    public List<EventRecord> RecentEvents = new();
+
     public List<BuildingRecord> Buildings = new();
+}
+
+// A power plant, water tower or pumping station that is down (M17), by origin cell.
+[Serializable]
+public struct BrokenRecord
+{
+    public int X;
+    public int Y;
+    public int DaysLeft;
+
+    public BrokenRecord(int x, int y, int daysLeft)
+    {
+        X = x;
+        Y = y;
+        DaysLeft = daysLeft;
+    }
+}
+
+// A random event's id with the choice taken (active effects) and the days left: of its effects, or
+// until it may be offered again (recent list). Choice is -1 in the recent list. (M17)
+[Serializable]
+public struct EventRecord
+{
+    public string Id;
+    public int Choice;
+    public int DaysLeft;
+
+    public EventRecord(string id, int choice, int daysLeft)
+    {
+        Id = id;
+        Choice = choice;
+        DaysLeft = daysLeft;
+    }
 }
 
 // An open loan (M15).

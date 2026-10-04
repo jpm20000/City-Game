@@ -10,6 +10,7 @@ public sealed class TechModifiers
 
     private readonly float[] m_Demand = { 1f, 1f, 1f };   // R, C, I
     private readonly float[] m_CivicNeed = { 1f, 1f, 1f, 1f, 1f };   // by ServiceKind (M15): crime, fire risk, sickness
+    private readonly float[] m_Hazard = { 1f, 1f, 1f };   // by HazardKind (M17)
     private readonly HashSet<string> m_Unlocked = new();
 
     public float ResearchMultiplier { get; private set; } = 1f;
@@ -35,6 +36,13 @@ public sealed class TechModifiers
     {
         int i = (int)kind;
         return i >= 0 && i < m_CivicNeed.Length ? m_CivicNeed[i] : 1f;
+    }
+
+    // Fire spread, plague spread or breakdown rate x this (M17).
+    public float Hazard(HazardKind kind)
+    {
+        int i = (int)kind;
+        return i >= 0 && i < m_Hazard.Length ? m_Hazard[i] : 1f;
     }
 
     public bool IsUnlocked(string buildingId) => !string.IsNullOrEmpty(buildingId) && m_Unlocked.Contains(buildingId);
@@ -90,6 +98,12 @@ public sealed class TechModifiers
                 break;
             case TechEffectType.TrafficMultiplier:
                 TrafficMultiplier *= effect.Value;
+                break;
+            case TechEffectType.HazardMultiplier:
+                if (Enum.TryParse(effect.Target, true, out HazardKind hazard) && (int)hazard < m_Hazard.Length)
+                {
+                    m_Hazard[(int)hazard] *= effect.Value;
+                }
                 break;
             case TechEffectType.CivicNeedMultiplier:
                 if (Enum.TryParse(effect.Target, true, out ServiceKind kind) && kind != ServiceKind.None

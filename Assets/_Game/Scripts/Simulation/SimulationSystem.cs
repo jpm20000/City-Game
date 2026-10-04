@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-// Pure daily tick in the fixed order Demand -> Growth -> Population -> Economy -> Research. Power,
+// Pure daily tick in the fixed order Demand -> Growth -> Population -> Economy -> Research -> Disasters (M17). Power,
 // water, coverage and pollution are derived views (the networks and pollution recompute lazily after any grid
 // change), so they need no tick step. Built without age/tech databases, the sim plays by AgeRules.Legacy and has no research.
 public sealed class SimulationSystem
@@ -17,6 +17,8 @@ public sealed class SimulationSystem
     public RoadTiers RoadTiers { get; }
     // The homes -> jobs commute flow and the congestion it causes (M16); derived, updated at the end of each tick.
     public TrafficSystem Traffic { get; }
+    // Fires, plague, breakdowns and random events (M17); off unless the city asked for them (and has ages).
+    public DisasterSystem Disasters { get; }
     // Funding per budget line (M15); a change re-feeds the funded sources to the spatial systems.
     public BudgetSystem Budget { get; }
     public PopulationSystem Population { get; }
@@ -82,6 +84,7 @@ public sealed class SimulationSystem
         Capacity = new CapacityModel(config, ages);
         RoadTiers = new RoadTiers(config, techs, tech => Tech != null && Tech.IsResearched(tech));
         Traffic = new TrafficSystem(grid, config, Capacity, RoadTiers);
+        Disasters = new DisasterSystem(grid, ages != null);
         roads.SetFrontage(RoadTiers.HasContent ? tier => RoadTiers.Frontage(tier) : null);
         Economy = new EconomySystem(config);
         Budget = new BudgetSystem(config, () => TechModifiers.LoanInterestMultiplier);
@@ -217,6 +220,8 @@ public sealed class SimulationSystem
         Budget.StepLoans();
 
         Tech?.Step(ResearchIncome());
+
+        Disasters.Step();
 
         // After everything that moves population, employment or techs, so a restored city (Restore
         // recomputes it the same way) continues exactly like an uninterrupted one.

@@ -37,10 +37,20 @@ public static class SaveMigrations
             V4ToV5(data, techs);
             data.Version = 5;
         }
+        if (data.Version == 5)
+        {
+            V5ToV6(data);
+            data.Version = 6;
+        }
 
         data.Buildings ??= new();
         data.Loans ??= new();
         data.Ordinances ??= new();
+        data.Broken ??= new();
+        data.ActiveEvents ??= new();
+        data.RecentEvents ??= new();
+        data.RandomState ??= "";
+        data.PendingEvent ??= "";
         data.Researched ??= new();
         data.ResearchQueue ??= new();
         data.ActiveResearch ??= "";
@@ -112,6 +122,26 @@ public static class SaveMigrations
         {
             if (data.Roads[i] != 0) data.Roads[i] = tier;
         }
+    }
+
+    // v6 adds disasters and events (M17). A city saved before them plays as it always has: the switch is off, no
+    // fire, plague, breakdown or event is under way, and the RNG state is empty (DisasterSystem.Restore seeds it).
+    private static void V5ToV6(SaveData data)
+    {
+        int count = Math.Max(0, data.Width * data.Height);
+        data.Disasters = false;
+        data.RandomState = "";
+        data.Fires = new byte[count];
+        data.Rubble = new byte[count];
+        data.Plague = new byte[count];
+        data.PlagueCooldown = 0;
+        data.PlagueRemainder = 0f;
+        data.Broken = new List<BrokenRecord>();
+        data.PendingEvent = "";
+        data.PendingDays = 0;
+        data.DaysToNextEvent = 0;
+        data.ActiveEvents = new List<EventRecord>();
+        data.RecentEvents = new List<EventRecord>();
     }
 
     // A city saved without ages played by today's rules: it becomes an Industrial city with every

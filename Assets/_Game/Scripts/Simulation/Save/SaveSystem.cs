@@ -38,6 +38,7 @@ public static class SaveSystem
             Pipes = grid.ExportPipes(),
             Funding = sim.Budget.ExportFunding(),
         };
+        sim.Disasters.Export(data);
         foreach (Loan loan in sim.Budget.Loans) data.Loans.Add(new LoanRecord(loan.Amount, loan.DailyPayment, loan.DaysLeft));
         TechSystem tech = sim.Tech;
         if (tech != null)
@@ -53,9 +54,10 @@ public static class SaveSystem
     }
 
     // An empty map with the configured starting values. With ages, the city starts in startAge
-    // (-1 = the Industrial age): that age's year, money and starting research.
+    // (-1 = the Industrial age): that age's year, money and starting research. disasters is the New City switch
+    // (M17; ignored without ages) and seed starts the RNG (tests pass a fixed one, the game a clock value).
     public static SaveData CreateNew(int width, int height, BalanceConfig config,
-        AgeDatabase ages = null, TechDatabase techs = null, int startAge = -1)
+        AgeDatabase ages = null, TechDatabase techs = null, int startAge = -1, bool disasters = false, ulong seed = 1)
     {
         if (config == null) throw new ArgumentNullException(nameof(config));
 
@@ -75,9 +77,14 @@ public static class SaveSystem
             BuiltAges = new byte[count],
             Historic = new byte[count],
             Pipes = new byte[count],
+            Fires = new byte[count],
+            Rubble = new byte[count],
+            Plague = new byte[count],
+            RandomState = new SimRandom(seed).StateString,
         };
         if (ages != null && techs != null)
         {
+            data.Disasters = disasters;
             int age = startAge >= 0 ? startAge : Math.Max(0, ages.Legacy);
             if (!ages.IsValidIndex(age)) throw new ArgumentOutOfRangeException(nameof(startAge));
             data.Age = age;
@@ -127,6 +134,7 @@ public static class SaveSystem
             foreach (LoanRecord record in data.Loans) loans.Add(new Loan(record.Amount, record.DailyPayment, record.DaysLeft));
         }
         sim.Budget.Restore(data.Funding, loans);
+        sim.Disasters.Restore(data);
 
         sim.Restore(
             data.Money, data.IncomePerDay, data.ExpensePerDay,
@@ -176,7 +184,8 @@ public static class SaveSystem
 
         int count = data.Width * data.Height;
         if (data.Zones?.Length != count || data.Roads?.Length != count || data.Levels?.Length != count
-            || data.BuiltAges?.Length != count || data.Historic?.Length != count || data.Pipes?.Length != count)
+            || data.BuiltAges?.Length != count || data.Historic?.Length != count || data.Pipes?.Length != count
+            || data.Fires?.Length != count || data.Rubble?.Length != count || data.Plague?.Length != count)
         {
             error = "Save file has missing or mismatched map data.";
             data = null;
