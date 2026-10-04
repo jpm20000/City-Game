@@ -142,8 +142,8 @@ public sealed class SmokeTest : MonoBehaviour
         Check(flow.Tutorial.Active && flow.Tutorial.Index == 3, "the tutorial resumes at objective 4: " + flow.Tutorial.Index);
 
         // Nothing for developers in a release player.
-        GameObject debugPanel = GameObject.Find("DebugPanel");
-        Check(Debug.isDebugBuild || debugPanel == null || !debugPanel.activeInHierarchy, "no debug panel shown in a release player");
+        DebugPanel debugPanel = FindAnyObjectByType<DebugPanel>(FindObjectsInactive.Include);
+        Check(Debug.isDebugBuild || debugPanel == null || !debugPanel.enabled, "the debug panel is switched off in a release player");
 
         SaveSlots.Delete("Smoke test");
         SaveSlots.Delete("Smoke tutorial");

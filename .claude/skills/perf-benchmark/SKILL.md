@@ -13,12 +13,12 @@ Editor frame times mislead: Hierarchy/editor overhead makes GameObject create/de
    ```csharp
    var options = new BuildPlayerOptions {
        scenes = new[] { "Assets/_Game/Scenes/Main.unity" },
-       locationPathName = "<scratchpad>/PerfBuild/CityGame.exe",
+       locationPathName = "<scratchpad>/PerfBuild/Chronopolis.exe",
        target = BuildTarget.StandaloneWindows64,
        options = BuildOptions.Development };
    var report = BuildPipeline.BuildPlayer(options);
    ```
-3. Run from the shell: `CityGame.exe -perfBenchmark -screen-width 1920 -screen-height 1080 -screen-fullscreen 0`, then read `%USERPROFILE%/AppData/LocalLow/DefaultCompany/City Game/perf_benchmark.txt` (+ `perf_benchmark_N.png` screenshots). The benchmark never saves the city.
+3. Run from the shell: `Chronopolis.exe -perfBenchmark -screen-width 1920 -screen-height 1080 -screen-fullscreen 0`, then read `%USERPROFILE%/AppData/LocalLow/J-man Studios/Chronopolis/perf_benchmark.txt` (+ `perf_benchmark_N.png` screenshots). The benchmark never saves the city.
 4. **Clean up:** the build (and Play sessions) rewrite `Assets/Settings/*.asset`, `ProjectSettings/*.asset` (shader prefiltering, serialized defaults, Input System `preloadedAssets`) and sometimes `Main.unity` UI layout. `git checkout -- Assets/Settings ProjectSettings` (and the scene if touched), then reopen the scene with `EditorSceneManager.OpenScene`.
 
 ## What it measures
