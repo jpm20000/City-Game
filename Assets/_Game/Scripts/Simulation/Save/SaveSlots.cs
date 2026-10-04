@@ -18,6 +18,7 @@ public static class SaveSlots
     private const string InfoExt = ".info.json";
     private const string ThumbExt = ".png";
     private const string LegacyMarker = ".legacy_imported";
+    private const string FolderMarker = ".folder_imported";
     private const string QuickSuffix = "_quick";
     private const string AutoPrefix = "autosave_";
 
@@ -284,6 +285,34 @@ public static class SaveSlots
     }
 
     // --- The old single-slot save ---
+
+    // M19g: the game was renamed, which moved the data folder. Copies (never moves) every save file of the old Saves
+    // folder that the new one does not have yet, once (a marker records the attempt). Returns how many saves came over.
+    public static int ImportFolder(string oldFolder)
+    {
+        string marker = Path.Combine(Root, FolderMarker);
+        if (File.Exists(marker) || string.IsNullOrEmpty(oldFolder) || !Directory.Exists(oldFolder)) return 0;
+
+        int copied = 0;
+        try
+        {
+            Directory.CreateDirectory(Root);
+            foreach (string file in Directory.GetFiles(oldFolder))
+            {
+                string extension = Path.GetExtension(file);
+                if (extension != JsonExt && extension != ".png") continue;
+                string target = Path.Combine(Root, Path.GetFileName(file));
+                if (File.Exists(target)) continue;
+                File.Copy(file, target);
+                if (extension == JsonExt && !file.EndsWith(InfoExt, StringComparison.Ordinal)) copied++;
+            }
+            File.WriteAllText(marker, "");
+        }
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+        {
+        }
+        return copied;
+    }
 
     // Copies (never moves) the pre-M19 city.json into the folder as "Imported city", once: a marker file records that
     // it was tried, so deleting the import doesn't bring it back. Returns true when a save was imported.

@@ -17,7 +17,7 @@ public sealed class MainMenu
     public MainMenu(Transform canvas, GameFlow flow)
     {
         m_Flow = flow;
-        m_Window = UiKit.CreateWindow(canvas, "MainMenu", "City Game", 380f);
+        m_Window = UiKit.CreateWindow(canvas, "MainMenu", Application.productName, 380f);
         m_Window.Root.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
 
         var panel = m_Window.Body;

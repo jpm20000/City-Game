@@ -1,0 +1,33 @@
+; Inno Setup script template (M19g). ReleaseBuild fills the {{...}} placeholders and runs ISCC.exe on the result.
+; Uninstalling removes the game's files only: saves and settings live in the user's profile and stay.
+[Setup]
+AppId={{9F3A6C52-7B1E-4C0A-8D63-5C1B2E4F7A10}
+AppName={{PRODUCT}}
+AppVersion={{VERSION}}
+AppPublisher={{COMPANY}}
+DefaultDirName={autopf}\{{PRODUCT}}
+DefaultGroupName={{PRODUCT}}
+DisableProgramGroupPage=yes
+UninstallDisplayIcon={app}\{{EXE}}
+OutputDir={{OUTPUT}}
+OutputBaseFilename={{SETUPNAME}}
+Compression=lzma2
+SolidCompression=yes
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
+WizardStyle=modern
+
+[Tasks]
+Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
+
+[Files]
+Source: "{{SOURCE}}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+[Icons]
+Name: "{group}\{{PRODUCT}}"; Filename: "{app}\{{EXE}}"
+Name: "{autodesktop}\{{PRODUCT}}"; Filename: "{app}\{{EXE}}"; Tasks: desktopicon
+
+[Run]
+Filename: "{app}\{{EXE}}"; Description: "Start {{PRODUCT}}"; Flags: nowait postinstall skipifsilent

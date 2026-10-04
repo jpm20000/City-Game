@@ -317,4 +317,37 @@ public sealed class SaveSlotsTests
         Assert.AreEqual(SaveData.NoTutorial, data.Tutorial);
         Assert.AreEqual(24, data.Width);
     }
+
+    // M19g: the rename moved the data folder; the old Saves come over once, never overwriting and never moving.
+    [Test]
+    public void ImportFolder_CopiesOldSavesOnce_NeverOverwrites()
+    {
+        string old = Path.Combine(Path.GetTempPath(), "CityGameOldSaves_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            Directory.CreateDirectory(old);
+            File.WriteAllText(Path.Combine(old, "Ashford.json"), "old ashford");
+            File.WriteAllText(Path.Combine(old, "Ashford.info.json"), "{}");
+            File.WriteAllText(Path.Combine(old, "Ashford.png"), "png");
+            File.WriteAllText(Path.Combine(old, "Brook.json"), "old brook");
+            File.WriteAllText(Path.Combine(old, "notes.txt"), "ignored");
+            Directory.CreateDirectory(m_Dir);
+            File.WriteAllText(Path.Combine(m_Dir, "Brook.json"), "new brook");
+
+            Assert.AreEqual(1, SaveSlots.ImportFolder(old), "Ashford is new; Brook already exists");
+            Assert.AreEqual("old ashford", File.ReadAllText(Path.Combine(m_Dir, "Ashford.json")));
+            Assert.IsTrue(File.Exists(Path.Combine(m_Dir, "Ashford.png")));
+            Assert.AreEqual("new brook", File.ReadAllText(Path.Combine(m_Dir, "Brook.json")));
+            Assert.IsFalse(File.Exists(Path.Combine(m_Dir, "notes.txt")));
+            Assert.IsTrue(File.Exists(Path.Combine(old, "Ashford.json")), "the old folder is left alone");
+
+            File.Delete(Path.Combine(m_Dir, "Ashford.json"));
+            Assert.AreEqual(0, SaveSlots.ImportFolder(old), "a second try does nothing (marker)");
+            Assert.AreEqual(0, SaveSlots.ImportFolder(Path.Combine(old, "missing")));
+        }
+        finally
+        {
+            if (Directory.Exists(old)) Directory.Delete(old, true);
+        }
+    }
 }

@@ -35,11 +35,27 @@ public sealed class SaveGameController : MonoBehaviour
     private void Awake()
     {
         SaveSlots.Root = ResolveRoot();
+        ImportFromOldIdentity();
         string legacy = Path.Combine(Application.persistentDataPath, k_LegacyFileName);
         if (SaveSlots.ImportLegacy(legacy, m_GameManager != null ? m_GameManager.Ages : null, m_GameManager != null ? m_GameManager.Techs : null))
         {
             Debug.Log($"SaveGameController: imported {legacy} as '{SaveSlots.LegacyImportName}'.", this);
         }
+    }
+
+    // M19g: the game used to be "DefaultCompany / City Game"; its saves (and the pre-M19 city.json) come over once.
+    // Not with a -savesDir override (tests and smoke runs stay away from real folders).
+    private void ImportFromOldIdentity()
+    {
+        if (Application.isEditor || Array.IndexOf(Environment.GetCommandLineArgs(), k_SavesDirArg) >= 0) return;
+        string localLow = Path.GetDirectoryName(Path.GetDirectoryName(Application.persistentDataPath));
+        if (string.IsNullOrEmpty(localLow)) return;
+        string oldData = Path.Combine(localLow, "DefaultCompany", "City Game");
+        if (Path.GetFullPath(oldData) == Path.GetFullPath(Application.persistentDataPath)) return;
+        int count = SaveSlots.ImportFolder(Path.Combine(oldData, k_SavesFolder));
+        if (count > 0) Debug.Log($"SaveGameController: copied {count} save(s) from {oldData}.", this);
+        SaveSlots.ImportLegacy(Path.Combine(oldData, k_LegacyFileName), m_GameManager != null ? m_GameManager.Ages : null,
+            m_GameManager != null ? m_GameManager.Techs : null);
     }
 
     private static string ResolveRoot()
