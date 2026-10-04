@@ -112,7 +112,6 @@ public static class BuildingKitGenerator
         material.SetTexture("_EmissionMap", emission);
         material.SetColor("_EmissionColor", Color.black);       // the day/night cycle (M18d) raises it at night
         material.EnableKeyword("_EMISSION");
-        material.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
         EditorUtility.SetDirty(material);
         return material;
     }

@@ -329,7 +329,7 @@ def styles(field, entries, prefabs=None):
     for n, (tint, roof, roof_color, height) in enumerate(entries):
         block = existing[n] if n < len(existing) else []
         out += "  - Prefabs:%s\n    Tint: %s\n    Roof: %d\n    RoofColor: %s\n    HeightScale: %s\n" % (
-            ("\n" + "\n".join(block)) if block else " []", color(tint), roof, color(roof_color), height)
+            ("\n" + "\n".join(block)) if block else " []", color(tint), roof, color(roof_color), "%g" % height)
     return out
 
 for asset, age_id, residential, commercial, industrial in VISUALS:
