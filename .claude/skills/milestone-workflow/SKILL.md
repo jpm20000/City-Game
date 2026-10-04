@@ -30,6 +30,12 @@ Where things live: standing rules → `AGENTS.md` (**Roadmap M11–M19**); the r
 - Balance targets still met (`AgeBalanceTests`), benchmark re-run if the plan asked for it.
 - Docs: GamePlan §13 (systems as built), §12 (stub + status paragraph naming the next milestone) and the milestone's own `Docs/milestones/Mxx.md` (marked done, step notes) and §8 status; `AGENTS.md` Project bullet ("done / next") and `CLAUDE.md` header line ("M0–M1x are done"); update the plug-in notes for later milestones if this one changed the code they build on.
 
+## Lessons from M15 (carry forward)
+- **A default that is the identity makes a big feature safe.** Funding 100%, no loans and no ordinances left every recorded number untouched (the funded sources are the placed list itself), so the 195 earlier tests were the proof; add the feature as an opt-in in the harness player (`EngagedCity.UseBudget`) and run the balance tests both ways.
+- **Build UI at runtime when the Editor edits would be risky.** `BudgetPanel` is made in code (like 14c's Services button): no `Main.unity` or prefab diff, and the play-through still drives it by name. Look at a screenshot after a frame: destroyed rows still occupy the layout until the end of the frame (deactivate before `Destroy`), and long lists need a scroll area.
+- **A probe table finds free options.** One `[Test, Explicit]` printing every ordinance's cost and effect showed one that was free (Car-free Sundays) and one that is useless at small size (Curfew); also compare a new lever against the thing it substitutes for (overfunding an old tier vs the next tier) and record what you find even if you do not change it.
+- **Tests that load a save must re-place sources and modifiers** (`SaveSystem.ApplySimulation` does not), or the loaded city plays without its plant.
+
 ## Lessons from M14 (carry forward)
 - **Steps done without the Editor owe an Editor pass.** 14b / 14c ran in the sim harness; 14d started by compiling, running the Test Runner and taking the owed screenshots before any new work. List what is owed in the step note so the next session can't miss it.
 - **A must-build the harness player never builds is a balance bug in the harness first.** Trace it day by day (why was each line skipped: cash, upkeep, no spot) before touching prices; the Hospital needed a player rule (build on cash when the deficit is covered) *and* a price cut.

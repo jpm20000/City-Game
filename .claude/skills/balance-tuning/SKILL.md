@@ -24,6 +24,10 @@ description: Tune City Game's simulation balance — BalanceConfig values, age/t
 - About 45–90 in-game days per age with engaged play; no age where the city stalls; never in debt; happiness ≥ 0.55. M11g result from Medieval: 86 / 62 / 63 days, Modern on day 211; M13b: 86 / 62 / 69, Modern on day 217; M14d: 84 / 61 / 73, Modern on day 218.
 - `AgeBalanceTests` assert these with `CreateInstance` defaults (`FromMedieval_EachAgeTakes45To90Days_AndReachesModern`, `LaterStart_KeepsGrowing(1..3)`, the Industrial baseline). Update their numbers and comments deliberately when a plan changes balance, and record the new numbers in `AGENTS.md` and GamePlan §7/§12.
 
+## Budget (M15)
+- `EngagedCity.UseBudget` (default off) adds the budget player: ordinances that answer a happiness loss it has, one loan after 10 days of saving for a must-build, repaid later. `AgeBalanceTests` run both ways; default-mode numbers (84 / 61 / 73 days, 447 / 557 / 630 pop) must not move when you touch the budget. With it on: 84 / 58 / 61 days, Industrial start 584 pop, Modern start happiness 0.91.
+- Population is paced by `MaxGrowthPerDay`, so demand-only ordinances show nothing in a short probe; judge them by happiness and money, not population.
+
 ## Debugging a stalled harness
 Look at the diagnostics line first: demand per zone, housing/jobs, cells per level and the `GrowthBlocker` counts. In M11g every "the game is too slow" turned out to be the harness (whole-map road upkeep, unreachable inner cells counted as free land, new land starving upgrades) until the diagnostics proved otherwise.
 

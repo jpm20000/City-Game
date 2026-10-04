@@ -31,6 +31,12 @@ Every action goes through Input System events, so the EventSystem, `InputReader`
 ## Reporting
 End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; distinguish driver bugs (fix and rerun) from game bugs (fix in the game, add a test where the sim is involved).
 
+## Notes from the M15 play-through (UI-only, Budget panel)
+- **Find runtime-built UI by what it says, not by order.** `FindObjectsByType` order is unspecified, so "the first Enact button" was a different ordinance each run: find the `TMP_Text` with the row's label and take the `Button` in its parent. Buttons made at runtime are named `<label>Button` (`Take loanButton`, `Repay $18,750Button`: match by prefix).
+- **Click a slider track at a fraction of its width** (world corners to screen, inset by the handle half-width): 0 = minimum, 1 = maximum, 0.5 = the middle step. Setup shortcuts are fine when labelled DEBUG: the debug panel's Seed button plus two Skip clicks gave a 220-pop Industrial city.
+- Hover target for the happiness tooltip is the `HappinessTooltip` component's own GameObject; read its text by searching all active `TMP_Text`s for `<b>Happiness</b>`.
+- The scenario saves and loads: back up `city.json` first and copy it back afterwards (the real save was a version-1 file).
+
 ## Notes from the M14 play-through (UI-only, 49 checks, 0 failed)
 - Scenario: Medieval 64² (wells, grow without services, tooltip, research the civic techs by clicking the next researchable step of their prerequisite chain, place from the toolbar, step the Services button) then Industrial 64² (plants and towers on the zoned row beside the road **before anything grows**, Constabulary, research Telegraph, read the outdated panel, Police Station by a held home).
 - **A rule that shares a gate with a stronger one needs the right cell.** Pollution (−0.2) dwarfs crime (−0.05) in land value and keeps growing with industry, so pick the held home after the city settles (5 skips) and only one whose land value *without* the crime line clears the gate.
