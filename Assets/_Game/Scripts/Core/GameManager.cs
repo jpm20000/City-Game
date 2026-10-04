@@ -14,6 +14,8 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField] private GrowthVisuals m_GrowthVisuals;
     [Tooltip("Road and ground art (M18c). Empty = the runtime-drawn roads and the scene's ground tile.")]
     [SerializeField] private TileArtSet m_TileArt;
+    [Tooltip("The shared building-kit material: its window glow follows the day/night cycle (M18d).")]
+    [SerializeField] private Material m_KitMaterial;
 
     private CityModifiers m_Modifiers;
     private readonly List<BuildingInstance> m_SourceBuildings = new();
@@ -29,6 +31,7 @@ public sealed class GameManager : MonoBehaviour
     public TechDatabase Techs => m_AgeDatabase != null && m_TechDatabase != null ? m_TechDatabase : null;
     public TimeManager Clock => m_Time;
     public TileArtSet TileArt => m_TileArt;
+    public DayNightCycle DayNight { get; private set; }
     public SimulationSystem Simulation { get; private set; }
     public EconomySystem Economy => Simulation?.Economy;
     public PopulationSystem Population => Simulation?.Population;
@@ -325,6 +328,14 @@ public sealed class GameManager : MonoBehaviour
         }
         Simulation.Sources = m_Sources;
         m_PowerDirty = true;
+    }
+
+    // Needs the other scene objects (sun, tilemaps, the info overlay), so it starts here rather than in Awake.
+    private void Start()
+    {
+        if (m_Time == null) return;
+        DayNight = gameObject.AddComponent<DayNightCycle>();
+        DayNight.Init(m_Time, FindAnyObjectByType<InfoOverlay>(), m_KitMaterial);
     }
 
     // The ground follows the city's current age (M18c): 4 art variants per age, picked per cell by hash.

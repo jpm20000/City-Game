@@ -21,10 +21,11 @@ public static class CalendarMath
         return (float)Math.Sin(phase * 2.0 * Math.PI);
     }
 
-    // 0 in full daylight, 1 at night, smooth through dawn and dusk (symmetric around them).
-    public static float NightFactor(float phase)
+    // 0 in full daylight, 1 at night, smooth through dawn and dusk (symmetric around them). A positive
+    // bias gives the day more of the cycle (the transition moves to a lower sun).
+    public static float NightFactor(float phase, float bias = 0f)
     {
-        float t = (SunHeight(phase) + 0.25f) / 0.5f;
+        float t = (SunHeight(phase) + bias + 0.25f) / 0.5f;
         t = Math.Min(Math.Max(t, 0f), 1f);
         float day = t * t * (3f - 2f * t);
         return 1f - day;

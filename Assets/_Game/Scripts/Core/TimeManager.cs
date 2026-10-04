@@ -12,6 +12,9 @@ public sealed class TimeManager : MonoBehaviour
     private float m_Accumulator;
 
     public GameSpeed Speed { get; private set; } = GameSpeed.x1;
+    // How far into the current day the accumulator is (0..1); frozen while paused. The day/night cycle reads it.
+    public float DayFraction => m_Config != null && m_Config.SecondsPerDay > 0f ? Mathf.Clamp01(m_Accumulator / m_Config.SecondsPerDay) : 0f;
+    public int DaysPerMonth => m_Config != null ? m_Config.DaysPerMonth : 30;
     public int Day { get; private set; } = 1;
     public int Month { get; private set; } = 1;
     public int Year { get; private set; } = 1;

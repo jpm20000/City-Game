@@ -32,6 +32,22 @@ public sealed class DebugPanel : MonoBehaviour
         AddDebugButton("Start plague", StartPlague);
         AddDebugButton("Break a plant", BreakAPlant);
         AddDebugButton("Offer event", () => { Disasters().Events.OfferNow(); });
+        AddDebugButton("Time of day", CycleTimeOfDay);
+    }
+
+    // M18d: pins the day/night cycle at noon, dusk, midnight, then back to the calendar (for screenshots).
+    private void CycleTimeOfDay()
+    {
+        DayNightCycle cycle = m_GameManager.DayNight;
+        if (cycle == null) return;
+        float? next = cycle.DebugPhase switch
+        {
+            null => 0.25f,
+            0.25f => 0.5f,
+            0.5f => 0.75f,
+            _ => null,
+        };
+        cycle.DebugPhase = next;
     }
 
     private DisasterSystem Disasters()

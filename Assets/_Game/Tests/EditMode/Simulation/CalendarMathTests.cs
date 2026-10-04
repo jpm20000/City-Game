@@ -56,4 +56,19 @@ public sealed class CalendarMathTests
             previous = night;
         }
     }
+
+    [Test]
+    public void DayBias_GivesTheDayMoreOfTheCycle_WithoutChangingNoonOrMidnight()
+    {
+        Assert.AreEqual(0f, CalendarMath.NightFactor(0.25f, 0.25f), 1e-6f);
+        Assert.AreEqual(1f, CalendarMath.NightFactor(0.75f, 0.25f), 1e-6f);
+        int plain = 0, biased = 0;
+        for (int i = 0; i < 1000; i++)
+        {
+            float phase = i / 1000f;
+            if (CalendarMath.NightFactor(phase) > 0.5f) plain++;
+            if (CalendarMath.NightFactor(phase, 0.25f) > 0.5f) biased++;
+        }
+        Assert.Less(biased, plain - 50, "a biased cycle spends clearly less of it in the dark");
+    }
 }
