@@ -27,12 +27,19 @@ public sealed class PlacementController : MonoBehaviour
     private ZoneType m_ZoneBrush;
     private Vector2Int? m_SelectedCell;
     private bool m_PipeErasing;     // this drag removes pipes (it started on one)
-    private bool m_PipeFundsWarned; // one "not enough money" per drag
+    private bool m_PipeFundsWarned; // one "not enough money" per drag (pipes and roads)
+    private byte m_RoadTier;        // the Road tool's tier: 0 = the best unlocked street tier (M16)
     private readonly Dictionary<int, BuildingInstance> m_Buildings = new();
 
     public Mode CurrentMode => m_Mode;
     public ZoneType ZoneBrush => m_ZoneBrush;
     public BuildingDefinition SelectedBuilding => m_Selected;
+
+    // The Road tool's tier choice: 0 = the street tool (best unlocked street tier), else a tier (Avenue, Highway).
+    public byte RoadToolTier => m_RoadTier;
+
+    // The tier the Road tool lays or upgrades to right now.
+    public byte ActiveRoadTier => m_RoadTier != 0 ? m_RoadTier : m_GameManager.Simulation.RoadTiers.BestStreetTier;
 
     // Short text for the cursor while a tool is active: the cost, or why the action can't happen.
     // Empty when there's nothing to say. Valid tells the hint how to colour it.
@@ -87,8 +94,11 @@ public sealed class PlacementController : MonoBehaviour
         SetMode(Mode.Building);
     }
 
-    public void SelectRoad()
+    // tier 0 = the street tool; Avenue / Highway need their tech (M16).
+    public void SelectRoad(byte tier = 0)
     {
+        if (tier != 0 && !m_GameManager.Simulation.RoadTiers.IsUnlocked(tier)) return;
+        m_RoadTier = tier;
         SetMode(Mode.Road);
     }
 
@@ -162,7 +172,9 @@ public sealed class PlacementController : MonoBehaviour
     {
         if (m_InputReader.RoadToolPressed)
         {
-            SetMode(m_Mode == Mode.Road ? Mode.None : Mode.Road);
+            bool streetToolActive = m_Mode == Mode.Road && m_RoadTier == 0;
+            m_RoadTier = 0;
+            SetMode(streetToolActive ? Mode.None : Mode.Road);
         }
         else if (m_InputReader.PipeToolPressed && m_GameManager.PipesUnlocked)
         {
@@ -203,15 +215,15 @@ public sealed class PlacementController : MonoBehaviour
     {
         if (IsPointerOverUI()) return;
 
-        // Zoning and pipes paint while the button is held; other tools act once per click.
-        bool painting = m_Mode == Mode.Zone || m_Mode == Mode.Pipe;
+        // Zoning, pipes and roads paint while the button is held (a road drag lays and upgrades); other tools act once per click.
+        bool painting = m_Mode == Mode.Zone || m_Mode == Mode.Pipe || m_Mode == Mode.Road;
         bool active = painting ? m_InputReader.ConfirmHeld : m_InputReader.ConfirmPressed;
         if (!active) return;
 
         Vector2Int cell = GetMouseCell();
-        if (m_Mode == Mode.Pipe && m_InputReader.ConfirmPressed)
+        if ((m_Mode == Mode.Pipe || m_Mode == Mode.Road) && m_InputReader.ConfirmPressed)
         {
-            m_PipeErasing = m_GridData.InBounds(cell) && m_GridData.IsPipe(cell);
+            m_PipeErasing = m_Mode == Mode.Pipe && m_GridData.InBounds(cell) && m_GridData.IsPipe(cell);
             m_PipeFundsWarned = false;
         }
 
@@ -292,11 +304,27 @@ public sealed class PlacementController : MonoBehaviour
 
     private void TryPlaceRoad(Vector2Int cell)
     {
-        if (!m_GridData.CanPlace(cell, Vector2Int.one, 0)) return;
         RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
-        byte tier = tiers.BestStreetTier;
-        int cost = tiers.Cost(tier);
-        if (!TrySpend(cost)) return;
+        byte tier = ActiveRoadTier;
+        byte existing = m_GridData.GetRoadTier(cell);
+        int cost;
+        if (existing != 0)
+        {
+            // Dragging a better tier over a road upgrades it for the price difference; the same or a better tier is skipped.
+            if (existing >= tier) return;
+            cost = tiers.UpgradeCost(existing, tier);
+        }
+        else
+        {
+            if (!m_GridData.CanPlace(cell, Vector2Int.one, 0)) return;
+            cost = tiers.Cost(tier);
+        }
+        if (!m_GameManager.Economy.Spend(cost))
+        {
+            if (!m_PipeFundsWarned) GameEvents.RaiseInsufficientFunds(cost);   // one warning per drag
+            m_PipeFundsWarned = true;
+            return;
+        }
 
         PlaceRoad(cell, tier);
         GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
@@ -304,7 +332,7 @@ public sealed class PlacementController : MonoBehaviour
 
     private void PlaceRoad(Vector2Int cell, byte tier)
     {
-        m_GridData.SetZone(cell, ZoneType.None);
+        if (m_GridData.GetZone(cell) != ZoneType.None) m_GridData.SetZone(cell, ZoneType.None);
         m_GridData.SetRoadTier(cell, tier);
     }
 
@@ -554,11 +582,23 @@ public sealed class PlacementController : MonoBehaviour
             case Mode.Road:
             {
                 RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
-                int cost = tiers.Cost(tiers.BestStreetTier);
-                string problem = m_GridData.IsRoad(cell) ? "Already a road" : FootprintProblem(cell, Vector2Int.one, 0);
+                byte tier = ActiveRoadTier;
+                byte existing = m_GridData.GetRoadTier(cell);
+                string name = tiers.DisplayName(tier);
+                string note = tiers.Frontage(tier) ? string.Empty : " — no access for blocks beside it";
+                if (existing != 0)
+                {
+                    if (existing >= tier) { SetHint($"Already {tiers.DisplayName(existing)}", false); break; }
+                    int upgrade = tiers.UpgradeCost(existing, tier);
+                    if (!economy.CanAfford(upgrade)) SetHint($"Need ${upgrade:N0}", false);
+                    else SetHint($"Upgrade to {name} ${upgrade:N0}", true);
+                    break;
+                }
+                int cost = tiers.Cost(tier);
+                string problem = FootprintProblem(cell, Vector2Int.one, 0);
                 if (problem != null) SetHint(problem, false);
                 else if (!economy.CanAfford(cost)) SetHint($"Need ${cost:N0}", false);
-                else SetHint($"${cost:N0}", true);
+                else SetHint($"{name} ${cost:N0}{note}", true);
                 break;
             }
 

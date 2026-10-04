@@ -236,10 +236,10 @@ public sealed class TrafficSystem
                 m_Order[m_OrderCount++] = c;
                 int cx = c % m_Width;
                 int cy = c / m_Width;
-                for (int k = 0; k < 4; k++)
+                for (int dir = 0; dir < 4; dir++)
                 {
-                    int nx = cx + DX[k];
-                    int ny = cy + DY[k];
+                    int nx = cx + DX[dir];
+                    int ny = cy + DY[dir];
                     if (nx < 0 || ny < 0 || nx >= m_Width || ny >= m_Height) continue;
                     int nb = ny * m_Width + nx;
                     byte tier = m_Tier[nb];

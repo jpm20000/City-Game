@@ -302,6 +302,13 @@ public sealed class SelectionPanel : MonoBehaviour
             Line("<color=#59A6F2>Carries water</color> from a tower.");
         }
         Line($"Upkeep  ${tiers.UpkeepPerDay(tier):0.##} / day");
+        TrafficSystem traffic = m_GameManager.Simulation.Traffic;
+        float load = traffic.Load(cell);
+        float ratio = traffic.Congestion(cell);
+        string trafficColor = ratio > 1f ? "#F2665A" : ratio > m_GameManager.Balance.CongestionFree ? "#F2C14E" : "#73D973";
+        Line($"Traffic  <color={trafficColor}>{load:0} / {tiers.Capacity(tier):0} trips a day</color>  ({ratio:P0})");
+        if (ratio > 1f) Line("<color=#F2665A>Jammed</color> — upgrade it (drag a better road tier over it) or add a parallel street.");
+        if (!tiers.Frontage(tier)) Line("<color=#9AA3B2>No frontage: land beside a highway gets no road access.</color>");
         m_Action = Action.Demolish;
     }
 
@@ -341,6 +348,7 @@ public sealed class SelectionPanel : MonoBehaviour
         }
         DescribeEnvironment(cell, zone);
         DescribeCivic(cell, zone);
+        DescribeCommute(cell, zone);
         DescribePipe(cell);
         DescribeAge(cell, builtAge);
         if (level < maxLevel)
@@ -413,7 +421,21 @@ public sealed class SelectionPanel : MonoBehaviour
         if (value.Technology > 0f) parts.Append($", tech +{value.Technology:P0}");
         if (value.Pollution < 0f) parts.Append($", pollution −{-value.Pollution:P0}");
         if (value.Crime < 0f) parts.Append($", crime −{-value.Crime:P0}");
+        if (value.Traffic < 0f) parts.Append($", traffic −{-value.Traffic:P0}");
         return parts.ToString();
+    }
+
+    // A home's commute: the worst road on its way to work and what that costs in happiness (M16).
+    private void DescribeCommute(Vector2Int cell, ZoneType zone)
+    {
+        if (zone != ZoneType.Residential) return;
+        TrafficSystem traffic = m_GameManager.Simulation.Traffic;
+        BalanceConfig balance = m_GameManager.Balance;
+        float commute = traffic.CommuteCongestion(cell);
+        float penalty = TrafficSystem.TrafficPenaltyAt(balance, commute);
+        string color = penalty > 0.0005f ? "#F2665A" : commute > balance.CongestionFree ? "#F2C14E" : "#73D973";
+        string cost = penalty > 0.0005f ? $"  (−{penalty:P0} happiness)" : string.Empty;
+        Line($"Commute  <color={color}>{commute:P0}</color> of the busiest road on its way to work{cost}");
     }
 
     // Crime, fire risk, sickness and schooling at a grown cell, with what each costs a home (M14).
@@ -529,6 +551,7 @@ public sealed class SelectionPanel : MonoBehaviour
         string fixes = "add parks";
         if (value.Crime < -0.005f) fixes += ", keep order (a watch house or police nearby)";
         if (value.Pollution < -0.005f) fixes += " or move industry away";
+        if (value.Traffic < -0.005f) fixes += ", upgrade the jammed road beside it";
         return fixes;
     }
 
@@ -540,7 +563,9 @@ public sealed class SelectionPanel : MonoBehaviour
             case GrowthBlocker.None:
                 return $"<color=#73D973>{verb} ready</color> — happens when today's growth budget reaches it.";
             case GrowthBlocker.NoRoadAccess:
-                return $"<color=#F2665A>{verb} blocked:</color> needs an adjacent road connected to the map edge.";
+                return BesideHighway(cell)
+                    ? $"<color=#F2665A>{verb} blocked:</color> highways give no access — lay a street beside it."
+                    : $"<color=#F2665A>{verb} blocked:</color> needs an adjacent road connected to the map edge.";
             case GrowthBlocker.LowDemand:
                 return $"<color=#F2C14E>{verb} waiting:</color> {ZoneName(zone).ToLowerInvariant()} demand is {demand.Get(zone):P0} " +
                        $"(needs over {m_GameManager.Balance.GrowthDemandThreshold:P0}).";
@@ -568,6 +593,19 @@ public sealed class SelectionPanel : MonoBehaviour
             default:
                 return string.Empty;
         }
+    }
+
+    // Whether a road without frontage (a highway) touches the cell.
+    private bool BesideHighway(Vector2Int cell)
+    {
+        GridData grid = m_GameManager.Grid;
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        foreach (Vector2Int offset in CellUtils.Neighbors4)
+        {
+            Vector2Int neighbor = cell + offset;
+            if (grid.InBounds(neighbor) && grid.IsRoad(neighbor) && !tiers.Frontage(grid.GetRoadTier(neighbor))) return true;
+        }
+        return false;
     }
 
     private void Line(string text)

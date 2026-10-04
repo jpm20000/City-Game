@@ -21,11 +21,11 @@ using UnityEngine.Tilemaps;
 // previews the building under the cursor: what would be powered / covered / watered if it were placed there.
 public sealed class InfoOverlay : GridTilemapView
 {
-    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water, Order, Fire, Health, Education }
+    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water, Order, Fire, Health, Education, Traffic }
 
     private static readonly View[] s_CycleOrder =
     {
-        View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Age,
+        View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Traffic, View.Age,
         View.Order, View.Fire, View.Health, View.Education,
     };
 
@@ -103,6 +103,13 @@ public sealed class InfoOverlay : GridTilemapView
     [Tooltip("Industry in the land value view (it doesn't need land value).")]
     [SerializeField] private Color m_NotGated = new Color(0.34f, 0.35f, 0.39f, 1f);
 
+    [Header("Traffic (M16)")]
+    [SerializeField] private Color m_TrafficFree = new Color(0.30f, 0.80f, 0.40f, 0.80f);
+    [SerializeField] private Color m_TrafficBusy = new Color(0.95f, 0.80f, 0.30f, 0.80f);
+    [SerializeField] private Color m_TrafficJammed = new Color(0.92f, 0.22f, 0.18f, 0.85f);
+    [Tooltip("Load / capacity drawn at full red (homes pay the full penalty from about 1.6).")]
+    [SerializeField] private float m_TrafficFull = 1.5f;
+
     [Header("Age")]
     [SerializeField] private Color m_OldestAge = new Color(0.90f, 0.52f, 0.22f, 0.65f);
     [SerializeField] private Color m_NewestAge = new Color(0.32f, 0.60f, 0.96f, 0.65f);
@@ -155,6 +162,7 @@ public sealed class InfoOverlay : GridTilemapView
     private Tile[] m_LandValueTiles;  // [bucket]
     private Tile[] m_HeldTiles;       // [bucket], striped: held at level 2 by land value
     private Tile[][] m_CivicTiles;    // [ServiceKind][bucket], 0 = none
+    private Tile[] m_TrafficTiles;    // [bucket] of load / capacity
     private Tile m_CivicUncoveredTile;  // striped
     private Sprite m_StripeSprite;
 
@@ -209,6 +217,7 @@ public sealed class InfoOverlay : GridTilemapView
     private void OnEnable()
     {
         GameEvents.CityLoaded += Refresh;
+        GameEvents.DateChanged += OnDateChanged;
         GameEvents.TechCompleted += OnTechCompleted;
         GameEvents.AgeChanged += OnAgeChanged;
         if (m_Placement == null) return;
@@ -219,6 +228,7 @@ public sealed class InfoOverlay : GridTilemapView
     private void OnDisable()
     {
         GameEvents.CityLoaded -= Refresh;
+        GameEvents.DateChanged -= OnDateChanged;
         GameEvents.TechCompleted -= OnTechCompleted;
         GameEvents.AgeChanged -= OnAgeChanged;
         if (m_Placement == null) return;
@@ -227,6 +237,12 @@ public sealed class InfoOverlay : GridTilemapView
     }
 
     private void OnTechCompleted(string techId) => Refresh();
+
+    // The traffic flow changes every day without the grid changing.
+    private void OnDateChanged(int day, int month, int year)
+    {
+        if (m_Shown == View.Traffic) MarkDirty();
+    }
 
     // Outdated cells depend on the current age.
     private void OnAgeChanged(int age) => Refresh();
@@ -247,7 +263,10 @@ public sealed class InfoOverlay : GridTilemapView
             : null;
         bool pipeTool = m_Placement != null && m_Placement.CurrentMode == PlacementController.Mode.Pipe;
         bool wellAge = Simulation != null && Simulation.Water.Mode == WaterRule.Coverage;
-        View toolView = pipeTool ? View.Water
+        // The Avenue and Highway tools show where the traffic is (the street tool doesn't).
+        bool roadTool = m_Placement != null && m_Placement.CurrentMode == PlacementController.Mode.Road && m_Placement.RoadToolTier != 0;
+        View toolView = roadTool ? View.Traffic
+            : pipeTool ? View.Water
             : tool == null ? View.Off
             : tool.PowerSupply > 0 ? View.Power
             : tool.WaterSupply > 0 || (tool.WaterRadius > 0 && wellAge) ? View.Water
@@ -256,7 +275,7 @@ public sealed class InfoOverlay : GridTilemapView
             : View.Off;
         View shown = toolView != View.Off ? toolView : m_Chosen;
 
-        m_Previewing = toolView != View.Off && !pipeTool && m_Placement.HasBuildingPreview;
+        m_Previewing = toolView != View.Off && !pipeTool && !roadTool && m_Placement.HasBuildingPreview;
         if (m_Previewing)
         {
             m_PreviewSources.Clear();
@@ -334,6 +353,9 @@ public sealed class InfoOverlay : GridTilemapView
             m_HeldTiles[i] = CreateTile(m_StripeSprite, WithAlpha(color, 0.9f));
         }
 
+        m_TrafficTiles = new Tile[Buckets + 1];
+        for (int i = 0; i <= Buckets; i++) m_TrafficTiles[i] = CreateTile(m_Sprite, TrafficColor(m_TrafficFull * i / Buckets));
+
         m_CivicTiles = new Tile[CivicViews.Length + 1][];
         foreach (View view in CivicViews)
         {
@@ -371,7 +393,7 @@ public sealed class InfoOverlay : GridTilemapView
         if (m_AgeTiles != null) foreach (Tile tile in m_AgeTiles) if (tile != null) Destroy(tile);
         if (m_OutdatedTiles != null) foreach (Tile tile in m_OutdatedTiles) if (tile != null) Destroy(tile);
         if (m_HistoricTile != null) Destroy(m_HistoricTile);
-        foreach (Tile[] tiles in new[] { m_PollutionTiles, m_LandValueTiles, m_HeldTiles })
+        foreach (Tile[] tiles in new[] { m_PollutionTiles, m_LandValueTiles, m_HeldTiles, m_TrafficTiles })
         {
             if (tiles != null) foreach (Tile tile in tiles) if (tile != null) Destroy(tile);
         }
@@ -396,6 +418,7 @@ public sealed class InfoOverlay : GridTilemapView
             case View.Age: return AgeTile(cell);
             case View.Pollution: return PollutionTile(cell);
             case View.LandValue: return LandValueTile(cell);
+            case View.Traffic: return TrafficTile(cell);
             case View.Order:
             case View.Fire:
             case View.Health:
@@ -420,6 +443,23 @@ public sealed class InfoOverlay : GridTilemapView
         return value < gate
             ? Color.Lerp(m_LandValueLow, m_LandValueMid, Mathf.InverseLerp(gate - 0.3f, gate, value))
             : Color.Lerp(m_LandValueMid, m_LandValueHigh, Mathf.InverseLerp(gate, gate + 0.35f, value));
+    }
+
+    // Free-flowing green up to where the penalty starts (CongestionFree), then yellow -> red.
+    private Color TrafficColor(float ratio)
+    {
+        float free = GameManager.Balance.CongestionFree;
+        return ratio < free
+            ? Color.Lerp(m_TrafficFree, m_TrafficBusy, Mathf.InverseLerp(0f, free, ratio))
+            : Color.Lerp(m_TrafficBusy, m_TrafficJammed, Mathf.InverseLerp(free, Mathf.Max(m_TrafficFull, free + 0.01f), ratio));
+    }
+
+    // Roads by load / capacity; homes are recoloured through the building colour (their commute).
+    private Tile TrafficTile(Vector2Int cell)
+    {
+        if (!Grid.IsRoad(cell)) return null;
+        float ratio = Simulation.Traffic.Congestion(cell);
+        return m_TrafficTiles[Mathf.Clamp(Mathf.RoundToInt(ratio / m_TrafficFull * Buckets), 0, Buckets)];
     }
 
     private Tile PollutionTile(Vector2Int cell)
@@ -612,6 +652,11 @@ public sealed class InfoOverlay : GridTilemapView
             if (zone != ZoneType.Residential && zone != ZoneType.Commercial) return m_NotGated;
             Color color = WithAlpha(LandValueColor(Simulation.LandValue.GetLandValue(cell)), 1f);
             return Simulation.Growth.IsHeldByLandValue(cell) ? WithAlpha(color * m_OutdatedShade, 1f) : color;
+        }
+        if (m_Shown == View.Traffic)
+        {
+            if (Grid.GetZone(cell) != ZoneType.Residential) return m_NotAHome;   // only commutes are shown
+            return WithAlpha(TrafficColor(Simulation.Traffic.CommuteCongestion(cell)), 1f);
         }
         if (IsCivic(m_Shown))
         {

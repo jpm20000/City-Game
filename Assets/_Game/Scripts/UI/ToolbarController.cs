@@ -45,6 +45,9 @@ public sealed class ToolbarController : MonoBehaviour
 
     private readonly Dictionary<BuildingDefinition, ToolButton> m_BuildingButtons = new();
     private ToolButton m_ServicesViewButton;   // M14: made at runtime from the Age view button
+    private ToolButton m_AvenueButton;         // M16: made at runtime from the Road button
+    private ToolButton m_HighwayButton;
+    private ToolButton m_TrafficViewButton;    // M16: made at runtime from the Value view button
     private float m_FittedWidth = -1f;
 
     // M13: the toolbar keeps gaining buttons; when it is wider than the screen (minus a margin) it
@@ -66,12 +69,11 @@ public sealed class ToolbarController : MonoBehaviour
     {
         if (m_Placement == null || m_GameManager == null) return;
 
-        RoadTiers roadTiers = m_GameManager.Simulation.RoadTiers;
-        byte roadTier = roadTiers.BestStreetTier;
-        int roadCost = roadTiers.Cost(roadTier);
-        Bind(m_RoadButton, "Road", $"${roadCost}", Color.clear,
-            $"Road  [B]\nLay road from the map edge. ${roadCost} each, ${roadTiers.UpkeepPerDay(roadTier):0.##}/day upkeep.",
-            () => Toggle(PlacementController.Mode.Road, m_Placement.SelectRoad));
+        CreateRoadButtons();
+        Bind(m_RoadButton, string.Empty, string.Empty, Color.clear, string.Empty, () => ToggleRoad(0));
+        Bind(m_AvenueButton, string.Empty, string.Empty, Color.clear, string.Empty, () => ToggleRoad(RoadTiers.Avenue));
+        Bind(m_HighwayButton, string.Empty, string.Empty, Color.clear, string.Empty, () => ToggleRoad(RoadTiers.Highway));
+        RefreshRoadButtons();
         int pipeCost = m_GameManager.Balance.PipeCost;
         Bind(m_PipeButton, "Pipes", $"${pipeCost}", Color.clear,
             $"Water pipes  [P]\nDrag to lay pipes under any land but roads (${pipeCost} each). Roads carry water already; pipes reach a tower off the road network, join two road networks or feed the building above them. Drag from a pipe to remove pipes.",
@@ -94,6 +96,7 @@ public sealed class ToolbarController : MonoBehaviour
             "Pollution view  [V]\n<color=#B07AA8>Purple</color> haze = pollution from industry and power plants; dark buildings are the polluters. Polluted homes are unhappier and lower land value.");
         BindView(m_LandValueViewButton, "Value", InfoOverlay.View.LandValue,
             "Land value view  [V]\n<color=#F2554A>Red</color> = low, <color=#59D966>green</color> = high. Parks and kept historic blocks raise it, pollution lowers it. Homes and shops need enough of it for level 3; darker, striped = held at level 2 by it.");
+        CreateTrafficViewButton();
         CreateServicesViewButton();
         BindView(m_AgeViewButton, "Ages", InfoOverlay.View.Age,
             "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
@@ -130,6 +133,9 @@ public sealed class ToolbarController : MonoBehaviour
     // available yet (Power before Electricity, Age without age data) are hidden the same way.
     private void RefreshUnlocked()
     {
+        RefreshRoadButtons();
+        RefreshActive();
+        RefreshAffordable(m_GameManager.Economy.Money);
         if (m_InfoOverlay != null)
         {
             if (m_PowerViewButton != null) m_PowerViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Power));
@@ -289,6 +295,68 @@ public sealed class ToolbarController : MonoBehaviour
         }
     }
 
+    // M16: the Avenue and Highway buttons are copies of the Road button, hidden until their tech is
+    // researched; the Road button itself follows the best unlocked street tier.
+    private void CreateRoadButtons()
+    {
+        if (m_RoadButton == null) return;
+        Transform parent = m_RoadButton.transform.parent;
+        int index = m_RoadButton.transform.GetSiblingIndex();
+        m_AvenueButton = Instantiate(m_RoadButton, parent);
+        m_AvenueButton.name = "Road_avenue";
+        m_AvenueButton.transform.SetSiblingIndex(index + 1);
+        m_HighwayButton = Instantiate(m_RoadButton, parent);
+        m_HighwayButton.name = "Road_highway";
+        m_HighwayButton.transform.SetSiblingIndex(index + 2);
+        foreach (ToolButton button in new[] { m_RoadButton, m_AvenueButton, m_HighwayButton })
+        {
+            if (button.Label == null) continue;
+            button.Label.enableAutoSizing = true;
+            button.Label.fontSizeMax = button.Label.fontSize;
+            button.Label.fontSizeMin = 11f;
+        }
+    }
+
+    private void RefreshRoadButtons()
+    {
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        SetupRoadButton(m_RoadButton, tiers.BestStreetTier, "  [B]", "Lay it from the map edge. Drag a better tier over a road to upgrade it for the price difference.");
+        SetupRoadButton(m_AvenueButton, RoadTiers.Avenue, string.Empty, "Wide, fast and busy-street proof. Drag over a jammed road to upgrade it; the Traffic view shows where it helps.");
+        SetupRoadButton(m_HighwayButton, RoadTiers.Highway, string.Empty, "The biggest capacity, but no frontage: land beside a highway gets no road access, so connect it with streets.");
+        if (m_AvenueButton != null) m_AvenueButton.gameObject.SetActive(tiers.IsUnlocked(RoadTiers.Avenue) && tiers.HasContent);
+        if (m_HighwayButton != null) m_HighwayButton.gameObject.SetActive(tiers.IsUnlocked(RoadTiers.Highway) && tiers.HasContent);
+    }
+
+    private void SetupRoadButton(ToolButton button, byte tier, string key, string blurb)
+    {
+        if (button == null) return;
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        string name = tiers.DisplayName(tier);
+        int cost = tiers.Cost(tier);
+        string tooltip = $"{name}{key}\n{blurb}\n${cost:N0} each, ${tiers.UpkeepPerDay(tier):0.##}/day upkeep, " +
+            $"carries {tiers.Capacity(tier):N0} trips a day.";
+        button.Setup(name, $"${cost}", Color.clear, tooltip);
+    }
+
+    // Clicking the active road tool again turns it off; tier 0 is the street tool.
+    private void ToggleRoad(byte tier)
+    {
+        if (m_Placement.CurrentMode == PlacementController.Mode.Road && m_Placement.RoadToolTier == tier) m_Placement.ClearMode();
+        else m_Placement.SelectRoad(tier);
+    }
+
+    // M16: the Traffic VIEW button is a copy of the Value view button, right after it.
+    private void CreateTrafficViewButton()
+    {
+        if (m_LandValueViewButton == null || m_InfoOverlay == null) return;
+        m_TrafficViewButton = Instantiate(m_LandValueViewButton, m_LandValueViewButton.transform.parent);
+        m_TrafficViewButton.name = "TrafficView";
+        m_TrafficViewButton.transform.SetSiblingIndex(m_LandValueViewButton.transform.GetSiblingIndex() + 1);
+        BindView(m_TrafficViewButton, "Traffic", InfoOverlay.View.Traffic,
+            "Traffic view  [V]\nRoads go from <color=#59D966>green</color> (free-flowing) to <color=#F2554A>red</color> (carrying more trips than they hold). " +
+            "Homes show how jammed their commute is. Upgrade the red roads: drag an Avenue over them.");
+    }
+
     // Clicking the active tool again turns it off.
     private void Toggle(PlacementController.Mode mode, System.Action select)
     {
@@ -314,7 +382,10 @@ public sealed class ToolbarController : MonoBehaviour
         bool zoning = mode == PlacementController.Mode.Zone;
         ZoneType brush = m_Placement.ZoneBrush;
 
-        SetActive(m_RoadButton, mode == PlacementController.Mode.Road);
+        bool roading = mode == PlacementController.Mode.Road;
+        SetActive(m_RoadButton, roading && m_Placement.RoadToolTier == 0);
+        SetActive(m_AvenueButton, roading && m_Placement.RoadToolTier == RoadTiers.Avenue);
+        SetActive(m_HighwayButton, roading && m_Placement.RoadToolTier == RoadTiers.Highway);
         SetActive(m_PipeButton, mode == PlacementController.Mode.Pipe);
         SetActive(m_ResidentialButton, zoning && brush == ZoneType.Residential);
         SetActive(m_CommercialButton, zoning && brush == ZoneType.Commercial);
@@ -328,6 +399,7 @@ public sealed class ToolbarController : MonoBehaviour
         SetActive(m_AgeViewButton, view == InfoOverlay.View.Age);
         SetActive(m_PollutionViewButton, view == InfoOverlay.View.Pollution);
         SetActive(m_LandValueViewButton, view == InfoOverlay.View.LandValue);
+        SetActive(m_TrafficViewButton, view == InfoOverlay.View.Traffic);
         if (m_ServicesViewButton != null)
         {
             bool civic = InfoOverlay.IsCivic(view);
@@ -343,7 +415,10 @@ public sealed class ToolbarController : MonoBehaviour
 
     private void RefreshAffordable(float money)
     {
-        if (m_RoadButton != null) m_RoadButton.SetAffordable(money >= m_GameManager.Simulation.RoadTiers.Cost(m_GameManager.Simulation.RoadTiers.BestStreetTier));
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        if (m_RoadButton != null) m_RoadButton.SetAffordable(money >= tiers.Cost(tiers.BestStreetTier));
+        if (m_AvenueButton != null) m_AvenueButton.SetAffordable(money >= tiers.Cost(RoadTiers.Avenue));
+        if (m_HighwayButton != null) m_HighwayButton.SetAffordable(money >= tiers.Cost(RoadTiers.Highway));
         if (m_PipeButton != null) m_PipeButton.SetAffordable(money >= m_GameManager.Balance.PipeCost);
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {

@@ -67,6 +67,7 @@ public sealed class HappinessTooltip : MonoBehaviour, IPointerEnterHandler, IPoi
         Line("Power outages", h.Power, good, bad);
         Line("No water", h.Water, good, bad);
         Line("Crime", h.Crime, good, bad);
+        Line("Traffic (commutes)", h.Traffic, good, bad);
         Line("Fire risk", h.Fire, good, bad);
         Line("Sickness (no health care)", h.Health, good, bad);
         Line("Homelessness", h.Homeless, good, bad);

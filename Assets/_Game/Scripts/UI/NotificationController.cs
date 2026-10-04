@@ -34,6 +34,7 @@ public sealed class NotificationController : MonoBehaviour
     private bool m_NudgedNoWater;     // M13: "dig a well" / "build a water tower" hint already shown
     private bool m_AnnouncedReady;    // "ready to advance" shown for the current age
     private bool m_AnnouncedRebuild;  // first redevelopment of the current age shown
+    private bool m_AnnouncedTraffic;   // first time commutes cost 1% happiness shown (M16)
     private bool m_AnnouncedLandValue; // first home / shop held at level 2 by land value shown (M12)
     private readonly bool[] m_AnnouncedCivic = new bool[5];   // [ServiceKind]: first time the line's need cost 2% shown (M14)
 
@@ -128,6 +129,7 @@ public sealed class NotificationController : MonoBehaviour
         m_AnnouncedReady = tech != null && tech.GetAdvanceStatus(population.Population).Ready;
         m_AnnouncedRebuild = false;
         m_AnnouncedLandValue = AnyHeldByLandValue();   // a new city starts over
+        m_AnnouncedTraffic = population.Happiness.Traffic <= -0.01f;
         HappinessBreakdown happiness = population.Happiness;
         foreach (ServiceKind kind in new[] { ServiceKind.Order, ServiceKind.Fire, ServiceKind.Health })
         {
@@ -196,6 +198,14 @@ public sealed class NotificationController : MonoBehaviour
         return false;
     }
 
+    // Once per city: the first time commute congestion costs happiness (M16).
+    private void CheckTraffic()
+    {
+        if (m_AnnouncedTraffic || m_GameManager.Population.Happiness.Traffic > -0.01f) return;
+        m_AnnouncedTraffic = true;
+        ShowToast("<color=#F2665A>Roads are jamming</color> — commutes cost residents happiness. Upgrade the busiest streets (Traffic view shows them in red).");
+    }
+
     // Once per city: the first home or shop that can't reach level 3 for lack of land value.
     private void CheckLandValue()
     {
@@ -224,6 +234,10 @@ public sealed class NotificationController : MonoBehaviour
                 string outdated = OutdatedBy(def);
                 if (outdated != null) replaces.Add($"the {def.DisplayName} replaces your {outdated}");
             }
+        }
+        foreach (RoadTierDefinition tier in tech.Techs.RoadTiers)
+        {
+            if (tier != null && tier.RequiredTech == done) unlocked.Add($"{tier.DisplayName} road");
         }
         string message = $"<color=#73D973>Research complete:</color> {done.DisplayName}";
         if (unlocked.Count > 0) message += $" — <b>{string.Join(", ", unlocked)}</b> unlocked";
@@ -376,6 +390,7 @@ public sealed class NotificationController : MonoBehaviour
         {
             CheckLandValue();
             CheckCivicNeeds();
+            CheckTraffic();
         }
     }
 
