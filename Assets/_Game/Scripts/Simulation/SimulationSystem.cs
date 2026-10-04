@@ -15,6 +15,8 @@ public sealed class SimulationSystem
     public EconomySystem Economy { get; }
     // The road tiers' costs, capacities and unlocks (M16); every tier is today's Paved road without ages.
     public RoadTiers RoadTiers { get; }
+    // The homes -> jobs commute flow and the congestion it causes (M16); derived, updated at the end of each tick.
+    public TrafficSystem Traffic { get; }
     // Funding per budget line (M15); a change re-feeds the funded sources to the spatial systems.
     public BudgetSystem Budget { get; }
     public PopulationSystem Population { get; }
@@ -79,6 +81,7 @@ public sealed class SimulationSystem
         if (ages != null) Tech = new TechSystem(ages, techs, config);
         Capacity = new CapacityModel(config, ages);
         RoadTiers = new RoadTiers(config, techs, tech => Tech != null && Tech.IsResearched(tech));
+        Traffic = new TrafficSystem(grid, config, Capacity, RoadTiers);
         roads.SetFrontage(RoadTiers.HasContent ? tier => RoadTiers.Frontage(tier) : null);
         Economy = new EconomySystem(config);
         Budget = new BudgetSystem(config, () => TechModifiers.LoanInterestMultiplier);
@@ -90,7 +93,7 @@ public sealed class SimulationSystem
         Pollution = new PollutionSystem(grid, config, Capacity, ages, () => TechModifiers);
         Civic = new CivicSystem(grid, config, Capacity, () => Population.Population, ages, () => TechModifiers);
         LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic,
-            () => Budget.EffectFactor(BudgetLine.Parks));
+            () => Budget.EffectFactor(BudgetLine.Parks), Traffic);
         Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water);
         grid.OnResized += () =>
         {
@@ -104,7 +107,15 @@ public sealed class SimulationSystem
     public ServiceStats MeasureServices()
     {
         return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution, LandValue, Water,
-            Civic, Budget.EffectFactor(BudgetLine.Parks));
+            Civic, Budget.EffectFactor(BudgetLine.Parks), Traffic);
+    }
+
+    // Recomputes the commute flow from today's population, employment and techs.
+    private void UpdateTraffic()
+    {
+        float occupancy = Population.Housing > 0 ? Math.Min(1f, (float)Population.Population / Population.Housing) : 0f;
+        float employment = Population.Workers > 0 ? (float)Population.Employed / Population.Workers : 0f;
+        Traffic.Update(occupancy, employment, TechModifiers.TrafficMultiplier);
     }
 
     // Research points earned per day at the current population: filled commercial jobs, research
@@ -132,6 +143,7 @@ public sealed class SimulationSystem
         Economy.Restore(money, incomePerDay, expensePerDay, taxResidential, taxCommercial, taxIndustrial);
         Population.RecountCapacity(m_Grid, Modifiers);
         Population.Restore(population, happiness);
+        UpdateTraffic();
         m_LastServices = MeasureServices();
         Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, m_LastServices,
             TechModifiers.HappinessBonus, TechModifiers.OrdinanceHappiness);
@@ -205,5 +217,9 @@ public sealed class SimulationSystem
         Budget.StepLoans();
 
         Tech?.Step(ResearchIncome());
+
+        // After everything that moves population, employment or techs, so a restored city (Restore
+        // recomputes it the same way) continues exactly like an uninterrupted one.
+        UpdateTraffic();
     }
 }

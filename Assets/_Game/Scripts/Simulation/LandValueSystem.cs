@@ -10,10 +10,12 @@ public readonly struct LandValueBreakdown
     public readonly float Technology;   // researched techs' LandValueBonus
     public readonly float Pollution;
     public readonly float Crime;        // (M14)
+    public readonly float Traffic;      // jammed roads beside the cell (M16), negative
 
     public LandValueBreakdown(float baseValue, float services, float heritage, float technology, float pollution,
-        float crime = 0f)
+        float crime = 0f, float traffic = 0f)
     {
+        Traffic = traffic;
         Crime = crime;
         Base = baseValue;
         Services = services;
@@ -22,7 +24,7 @@ public readonly struct LandValueBreakdown
         Pollution = pollution;
     }
 
-    public float Total => Mathf.Clamp01(Base + Services + Heritage + Technology + Pollution + Crime);
+    public float Total => Mathf.Clamp01(Base + Services + Heritage + Technology + Pollution + Crime + Traffic);
 }
 
 // Land value per cell (M12), 0..1: LandValueBase + services in range (capped) + kept historic
@@ -39,13 +41,15 @@ public sealed class LandValueSystem
     private readonly Func<TechModifiers> m_Tech;
     private readonly CivicSystem m_Civic;
     private readonly Func<float> m_ParkFactor;
+    private readonly TrafficSystem m_Traffic;
     private byte[] m_Heritage;
     private bool m_Dirty = true;
 
     // tech null = no tech bonus; civic null = no crime term.
     public LandValueSystem(GridData grid, BalanceConfig config, CoverageSystem coverage, PollutionSystem pollution,
-        Func<TechModifiers> tech = null, CivicSystem civic = null, Func<float> parkFactor = null)
+        Func<TechModifiers> tech = null, CivicSystem civic = null, Func<float> parkFactor = null, TrafficSystem traffic = null)
     {
+        m_Traffic = traffic;
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
         m_Coverage = coverage ?? throw new ArgumentNullException(nameof(coverage));
@@ -92,7 +96,8 @@ public sealed class LandValueSystem
         float tech = (m_Tech?.Invoke() ?? TechModifiers.None).LandValueBonus;
         float pollution = -m_Pollution.GetPollution(cell) * m_Config.LandValuePerPollution;
         float crime = m_Civic != null ? -m_Civic.GetCrime(cell) * m_Config.LandValuePerCrime : 0f;
-        return new LandValueBreakdown(m_Config.LandValueBase, services, heritage, tech, pollution, crime);
+        float traffic = m_Traffic != null ? -TrafficSystem.LandValueLossAt(m_Config, m_Traffic.LocalCongestion(cell)) : 0f;
+        return new LandValueBreakdown(m_Config.LandValueBase, services, heritage, tech, pollution, crime, traffic);
     }
 
     private void EnsureFresh()

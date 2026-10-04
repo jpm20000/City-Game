@@ -13,11 +13,13 @@ public readonly struct ServiceStats
     public readonly float FirePenalty;              // average per-home fire-risk penalty (capped per home; positive) (M14)
     public readonly float HealthPenalty;            // average per-home sickness penalty (positive) (M14)
     public readonly float EducatedShare;            // housing-weighted education cover at homes, 0..1 (M14)
+    public readonly float TrafficPenalty;           // average per-home commute-congestion penalty (capped per home; positive) (M16)
 
     public ServiceStats(float serviceBonus, float unpoweredHousingShare, float pollutionPenalty = 0f, float heritageBonus = 0f,
         float unwateredHousingShare = 0f, float crimePenalty = 0f, float firePenalty = 0f, float healthPenalty = 0f,
-        float educatedShare = 0f)
+        float educatedShare = 0f, float trafficPenalty = 0f)
     {
+        TrafficPenalty = trafficPenalty;
         CrimePenalty = crimePenalty;
         FirePenalty = firePenalty;
         HealthPenalty = healthPenalty;
@@ -34,7 +36,8 @@ public readonly struct ServiceStats
     // needing no water) leaves UnwateredHousingShare at 0; civic null leaves the civic terms at 0.
     public static ServiceStats Measure(GridData grid, BalanceConfig config, CoverageSystem coverage, PowerSystem power,
         CapacityModel capacityModel = null, bool countPower = true, PollutionSystem pollution = null,
-        LandValueSystem landValue = null, WaterSystem water = null, CivicSystem civic = null, float parkFactor = 1f)
+        LandValueSystem landValue = null, WaterSystem water = null, CivicSystem civic = null, float parkFactor = 1f,
+        TrafficSystem traffic = null)
     {
         bool countWater = water != null && water.Mode != WaterRule.None;
         capacityModel ??= new CapacityModel(config);
@@ -45,6 +48,7 @@ public readonly struct ServiceStats
         float fire = 0f;
         float sick = 0f;
         float educated = 0f;
+        float jam = 0f;
         int housing = 0;
         int unpowered = 0;
         int unwatered = 0;
@@ -65,6 +69,7 @@ public readonly struct ServiceStats
                 if (countWater && !water.HasWater(cell)) unwatered += capacity;
                 if (pollution != null) polluted += capacity * PollutionPenaltyAt(config, pollution.GetPollution(cell));
                 if (landValue != null) heritage += capacity * HeritageBonusAt(config, landValue.HeritageCount(cell));
+                if (traffic != null) jam += capacity * TrafficSystem.TrafficPenaltyAt(config, traffic.CommuteCongestion(cell));
                 if (civic != null)
                 {
                     civic.HomeNeeds(cell, capacity, ramp, out float cellCrime, out float cellFire, out float cellSick, out float cellEducation);
@@ -79,7 +84,7 @@ public readonly struct ServiceStats
         return housing == 0
             ? default
             : new ServiceStats(bonus / housing, (float)unpowered / housing, polluted / housing, heritage / housing,
-                (float)unwatered / housing, crime / housing, fire / housing, sick / housing, educated / housing);
+                (float)unwatered / housing, crime / housing, fire / housing, sick / housing, educated / housing, jam / housing);
     }
 
     // One home's happiness gain from kept historic blocks nearby (capped).

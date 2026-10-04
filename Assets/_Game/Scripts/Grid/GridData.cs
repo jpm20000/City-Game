@@ -188,6 +188,12 @@ public sealed class GridData
         return count;
     }
 
+    // Copies the row-major tier bytes into dest (hot paths: no allocation).
+    public void CopyRoadTiersTo(byte[] dest)
+    {
+        Buffer.BlockCopy(m_RoadTiers, 0, dest, 0, m_RoadTiers.Length);
+    }
+
     // Fills counts[tier] with the number of roads of each tier (index 0 stays 0).
     public void CountRoadsByTier(int[] counts)
     {

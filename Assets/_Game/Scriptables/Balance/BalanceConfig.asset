@@ -24,6 +24,13 @@ MonoBehaviour:
   m_RoadUpkeepPerDay: 1
   m_RoadCapacity: 160
   m_RoadTravelCost: 4
+  m_TripsPerWorker: 1
+  m_OutsideTripCost: 40
+  m_CongestionFree: 0.8
+  m_TrafficPenalty: 0.1
+  m_TrafficPenaltyCap: 0.08
+  m_LandValuePerCongestion: 0.1
+  m_LandValueCongestionCap: 0.1
   m_MaxGrowthPerDay: 3
   m_GrowthDemandThreshold: 0.15
   m_LevelCapacity: 040000000800000010000000i

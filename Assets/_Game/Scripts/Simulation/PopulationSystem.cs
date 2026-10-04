@@ -113,7 +113,8 @@ public sealed class PopulationSystem
             -services.CrimePenalty,
             -services.FirePenalty,
             -services.HealthPenalty,
-            ordinanceBonus);
+            ordinanceBonus,
+            -services.TrafficPenalty);
     }
 
     // Load / new game. Call RecountCapacity first so the derived worker/job stats are current.

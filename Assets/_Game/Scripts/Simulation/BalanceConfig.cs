@@ -24,6 +24,20 @@ public sealed class BalanceConfig : ScriptableObject
     [Tooltip("(M16) Commute-flow cost of entering a Paved road cell.")]
     [SerializeField] private int m_RoadTravelCost = 4;
 
+    [Header("Traffic (M16)")]
+    [Tooltip("(M16) Commute trips per resident per day (before the techs' traffic multiplier).")]
+    [SerializeField] private float m_TripsPerWorker = 1f;
+    [Tooltip("(M16) Flow cost of leaving town through a map-edge road: a last resort behind any job.")]
+    [SerializeField] private int m_OutsideTripCost = 40;
+    [Tooltip("(M16) Road load / capacity up to which nothing is lost.")]
+    [SerializeField] private float m_CongestionFree = 0.8f;
+    [Tooltip("(M16) Happiness a home loses per unit of commute congestion above CongestionFree.")]
+    [SerializeField] private float m_TrafficPenalty = 0.10f;
+    [SerializeField] private float m_TrafficPenaltyCap = 0.08f;
+    [Tooltip("(M16) Land value lost per unit of congestion above CongestionFree on the roads beside a cell.")]
+    [SerializeField] private float m_LandValuePerCongestion = 0.10f;
+    [SerializeField] private float m_LandValueCongestionCap = 0.10f;
+
     [Header("Growth")]
     [SerializeField] private int m_MaxGrowthPerDay = 3;
     [SerializeField] private float m_GrowthDemandThreshold = 0.15f;
@@ -180,6 +194,13 @@ public sealed class BalanceConfig : ScriptableObject
     public float RoadUpkeepPerDay => m_RoadUpkeepPerDay;
     public float RoadCapacity => m_RoadCapacity;
     public int RoadTravelCost => m_RoadTravelCost;
+    public float TripsPerWorker => m_TripsPerWorker;
+    public int OutsideTripCost => m_OutsideTripCost;
+    public float CongestionFree => m_CongestionFree;
+    public float TrafficPenalty => m_TrafficPenalty;
+    public float TrafficPenaltyCap => m_TrafficPenaltyCap;
+    public float LandValuePerCongestion => m_LandValuePerCongestion;
+    public float LandValueCongestionCap => m_LandValueCongestionCap;
 
     public int MaxGrowthPerDay => m_MaxGrowthPerDay;
     public float GrowthDemandThreshold => m_GrowthDemandThreshold;
