@@ -5,10 +5,10 @@ description: Plan and implement a City Game roadmap milestone or milestone step 
 
 # Milestone workflow (City Game)
 
-Where things live: standing rules → `AGENTS.md` (**Roadmap M11–M19**); plans, outlines and where each later milestone plugs in → `Docs/GamePlan.md` §12 (M15 is the live example; finished M10–M14 plans, with M11 / M12 / M14 as worked examples, are in `Docs/archive/Milestones-M10-M14.md`); how each system is built and tuned → `Docs/GamePlan.md` §13 *Systems reference*. `AGENTS.md` stays short: conventions and standing rules only.
+Where things live: standing rules → `AGENTS.md` (**Roadmap M11–M19**); the roadmap, outlines of milestones not yet started and where each later milestone plugs in → `Docs/GamePlan.md` §12; **each milestone's full plan lives in its own file, `Docs/milestones/Mxx.md`** (read only the one you need; M15 is the live example, M11 / M12 / M14 the finished worked examples); how each system is built and tuned → `Docs/GamePlan.md` §13 *Systems reference*. `AGENTS.md` stays short: conventions and standing rules only.
 
 ## Starting a milestone (no plan yet)
-1. Expand its §12 outline into a §11-style plan in `Docs/GamePlan.md`: goal, done-when, design decisions (defaults the user can change), architecture (pure sim vs runtime tables), lettered steps that each fit a session and leave the game playable, content tables, risks / open questions.
+1. Expand its §12 outline into a plan in a new `Docs/milestones/Mxx.md` (model it on `M15.md`; leave a short stub with a link in GamePlan §12): goal, done-when, design decisions (defaults the user can change), architecture (pure sim vs runtime tables), lettered steps that each fit a session and leave the game playable, content tables, risks / open questions.
 2. Check the plan against the standing rules in `AGENTS.md` (age-less baseline, saves + migration, per-cell state, content generator, rendering, UI patterns) and the milestone's entry in §12 *Where M13–M19 plug in*.
 3. Commit the plan on its own. Ask the user only about decisions that are genuinely theirs (design trade-offs, accepting a changed baseline — M12 asked exactly once: should the age-less sim change too); offer a recommended default and record the answer in the plan's decision table.
 
@@ -28,7 +28,7 @@ Where things live: standing rules → `AGENTS.md` (**Roadmap M11–M19**); plans
 - All EditMode tests green.
 - A **UI-only virtual-input play-through** of the milestone's player loop passes (`virtual-input-playthrough`).
 - Balance targets still met (`AgeBalanceTests`), benchmark re-run if the plan asked for it.
-- Docs: GamePlan §13 (systems as built), §12 (milestone marked done, step notes, status paragraph naming the next milestone) and §8 status; `AGENTS.md` Project bullet ("done / next") and `CLAUDE.md` header line ("M0–M1x are done"); update the plug-in notes for later milestones if this one changed the code they build on.
+- Docs: GamePlan §13 (systems as built), §12 (stub + status paragraph naming the next milestone) and the milestone's own `Docs/milestones/Mxx.md` (marked done, step notes) and §8 status; `AGENTS.md` Project bullet ("done / next") and `CLAUDE.md` header line ("M0–M1x are done"); update the plug-in notes for later milestones if this one changed the code they build on.
 
 ## Lessons from M14 (carry forward)
 - **Steps done without the Editor owe an Editor pass.** 14b / 14c ran in the sim harness; 14d started by compiling, running the Test Runner and taking the owed screenshots before any new work. List what is owed in the step note so the next session can't miss it.

@@ -14,7 +14,7 @@
 
 ## Skills (`.claude/skills/`, read by Claude Code and OpenCode)
 Step-by-step procedures live in skills (load the one that fits the task); per-system notes live in `Docs/GamePlan.md` §13. This file keeps conventions and standing rules.
-- `milestone-workflow` — planning and implementing a roadmap milestone or step (plan in GamePlan §12, per-step verify / document / commit loop, done-when).
+- `milestone-workflow` — planning and implementing a roadmap milestone or step (plan in `Docs/milestones/Mxx.md`, per-step verify / document / commit loop, done-when).
 - `unity-test-loop` — Unity MCP bridge and RunCommand rules, running EditMode tests via MCP, offline compile checks, domain reloads.
 - `unity-playmode-check` — Play-mode checks, fast-forwarding, screenshots (incl. the UI), protecting the save slot.
 - `virtual-input-playthrough` — UI-only play-throughs with a virtual mouse/keyboard; `PlaythroughDriver.cs` is the M11g template.
@@ -37,9 +37,9 @@ Step-by-step procedures live in skills (load the one that fits the task); per-sy
 - **Not `IsometricZAsY`** — `Docs/GamePlan.md` §2/§5 is stale on this point.
 
 ## Roadmap M11–M19
-Detailed plans live in `Docs/GamePlan.md` §12 (M15 has its full plan there, M16–M19 are outlines; the finished M10–M14 plans are archived in `Docs/archive/Milestones-M10-M14.md`).
+Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M15 exist; M16–M19 are outlines in `Docs/GamePlan.md` §12) — read only the one you need.
 
-**Workflow:** follow the `milestone-workflow` skill — plan in GamePlan §12 first, commit each step on its own; a milestone is done when EditMode tests are green, a **UI-only virtual-input play-through** of its loop passes (`virtual-input-playthrough`) and the docs (GamePlan §13 Systems reference + §8/§12 status; this file only if a convention changed) are updated.
+**Workflow:** follow the `milestone-workflow` skill — plan in `Docs/milestones/Mxx.md` first, commit each step on its own; a milestone is done when EditMode tests are green, a **UI-only virtual-input play-through** of its loop passes (`virtual-input-playthrough`) and the docs (GamePlan §13 Systems reference + §8/§12 status; this file only if a convention changed) are updated.
 
 **Standing rules (carry these into M12–M19)**
 - **Pure sim.** Rules and data live in `CityBuilder.Simulation` (ScriptableObjects referencing buildings by `Id` string; `BuildingDefinition` stays in `Assembly-CSharp`). Runtime code only feeds it (`CityModifiers`, `ServiceSource`) and draws it.
