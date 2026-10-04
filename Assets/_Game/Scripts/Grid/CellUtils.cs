@@ -11,6 +11,30 @@ public static class CellUtils
         new Vector2Int(0, -1),
     };
 
+    // Quarter-turn rotations about +Y that face a grid neighbour, in rotation order. A prefab's front
+    // is local +Z (M18 contract): rotation 0 faces grid +y, 1 faces +x, 2 faces -y, 3 faces -x.
+    private static readonly Vector2Int[] s_FacingSteps =
+    {
+        new Vector2Int(0, 1),
+        new Vector2Int(1, 0),
+        new Vector2Int(0, -1),
+        new Vector2Int(-1, 0),
+    };
+
+    // Which quarter turn (0..3, see above) makes a building on `cell` face a neighbouring road. The scan
+    // starts at a rotation picked from the cell hash, so corner lots with two roads vary but stay
+    // deterministic. With no road beside it the hash picks the rotation (its bits 20-21, as before M18).
+    public static int FacingRoad(GridData grid, Vector2Int cell, uint hash)
+    {
+        int start = (int)(hash >> 22 & 3);
+        for (int i = 0; i < 4; i++)
+        {
+            int rotation = (start + i) & 3;
+            if (grid.IsRoad(cell + s_FacingSteps[rotation])) return rotation;
+        }
+        return (int)(hash >> 20 & 3);
+    }
+
     public static bool IsInBounds(Vector2Int cell, Vector2Int size)
     {
         return cell.x >= 0 && cell.y >= 0 && cell.x < size.x && cell.y < size.y;

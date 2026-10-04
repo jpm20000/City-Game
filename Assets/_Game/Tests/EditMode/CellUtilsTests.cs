@@ -86,4 +86,37 @@ public sealed class CellUtilsTests
         CollectionAssert.Contains(cells, new Vector2Int(2, 1));
         CollectionAssert.DoesNotContain(cells, new Vector2Int(0, 2));
     }
+
+    // M18a: buildings face a neighbouring road. Rotation 0 faces +y, 1 +x, 2 -y, 3 -x.
+    [Test]
+    public void FacingRoad_TurnsTowardTheOnlyRoadBeside_WhateverTheHash()
+    {
+        var cell = new Vector2Int(5, 5);
+        var steps = new[] { new Vector2Int(0, 1), new Vector2Int(1, 0), new Vector2Int(0, -1), new Vector2Int(-1, 0) };
+        for (int rotation = 0; rotation < 4; rotation++)
+        {
+            var grid = new GridData(12, 12);
+            grid.SetRoad(cell + steps[rotation], true);
+            for (uint hash = 0; hash < 8; hash++)
+            {
+                Assert.AreEqual(rotation, CellUtils.FacingRoad(grid, cell, hash << 20), $"road at step {rotation}, hash {hash}");
+            }
+        }
+    }
+
+    [Test]
+    public void FacingRoad_CornerLotsPickByHash_AndNoRoadFallsBackToTheHash()
+    {
+        var cell = new Vector2Int(5, 5);
+        var grid = new GridData(12, 12);
+        grid.SetRoad(new Vector2Int(5, 6), true);   // +y
+        grid.SetRoad(new Vector2Int(6, 5), true);   // +x
+        var seen = new HashSet<int>();
+        for (uint pick = 0; pick < 4; pick++) seen.Add(CellUtils.FacingRoad(grid, cell, pick << 22));
+        CollectionAssert.AreEquivalent(new[] { 0, 1 }, seen, "both roads get chosen by some hash");
+        Assert.AreEqual(CellUtils.FacingRoad(grid, cell, 1u << 22), CellUtils.FacingRoad(grid, cell, 1u << 22), "deterministic");
+
+        var empty = new GridData(12, 12);
+        for (uint pick = 0; pick < 4; pick++) Assert.AreEqual((int)pick, CellUtils.FacingRoad(empty, cell, pick << 20));
+    }
 }

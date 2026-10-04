@@ -269,7 +269,7 @@ for asset, tier, rid, display, tech, cost, upkeep, capacity, travel, frontage, o
 
 # --- Age visual sets (M11e): fallback styles for the placeholder blocks, per zone and level 1..3. ---
 # (tint rgba: body = zone colour blended toward rgb by a; roof: 0 Default, 1 Pitched, 2 None;
-#  roof colour rgba, a = 0 -> shaded body colour; height multiplier). No prefabs yet (M18).
+#  roof colour rgba, a = 0 -> shaded body colour; height multiplier). Prefabs are Unity's: see read_prefabs (M18a).
 def style(tint, roof, roof_color, height):
     return (tint, roof, roof_color, height)
 
@@ -299,18 +299,47 @@ VISUALS = [
 def color(c):
     return "{r: %s, g: %s, b: %s, a: %s}" % tuple(c)
 
-def styles(field, entries):
+# M18a: Unity owns the Prefabs slots (the building kit generator / hand-made art fill them); this script owns
+# tints, roofs and heights. Before rewriting a set it reads the existing Prefabs blocks and writes them back.
+def read_prefabs(path):
+    """field -> one list of raw YAML lines per style (the lines under its Prefabs: key; [] = empty slot)."""
+    found, field = {}, None
+    if not os.path.exists(path):
+        return found
+    lines = io.open(path, encoding="utf-8").read().split("\n")
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip("\r")
+        if line.startswith("  m_") and line.endswith(":"):
+            field = line.strip()[:-1]
+            found[field] = []
+        elif line.startswith("  - Prefabs:") and field is not None:
+            block = []
+            if line.strip() != "- Prefabs: []":
+                while i + 1 < len(lines) and lines[i + 1].startswith("    - "):
+                    i += 1
+                    block.append(lines[i].rstrip("\r"))
+            found[field].append(block)
+        i += 1
+    return found
+
+def styles(field, entries, prefabs=None):
     out = "  %s:\n" % field
-    for tint, roof, roof_color, height in entries:
-        out += "  - Prefabs: []\n    Tint: %s\n    Roof: %d\n    RoofColor: %s\n    HeightScale: %s\n" % (
-            color(tint), roof, color(roof_color), height)
+    existing = (prefabs or {}).get(field, [])
+    for n, (tint, roof, roof_color, height) in enumerate(entries):
+        block = existing[n] if n < len(existing) else []
+        out += "  - Prefabs:%s\n    Tint: %s\n    Roof: %d\n    RoofColor: %s\n    HeightScale: %s\n" % (
+            ("\n" + "\n".join(block)) if block else " []", color(tint), roof, color(roof_color), height)
     return out
 
 for asset, age_id, residential, commercial, industrial in VISUALS:
     text = header(GUID_VISUAL_SET, asset, "AgeVisualSet", "Assembly-CSharp")
     text += "  m_AgeId: %s\n" % age_id
-    text += styles("m_Residential", residential) + styles("m_Commercial", commercial) + styles("m_Industrial", industrial)
-    write(os.path.join(ROOT, "Ages", "Visuals", asset + ".asset"), text, guid("visuals_" + age_id))
+    path = os.path.join(ROOT, "Ages", "Visuals", asset + ".asset")
+    kept = read_prefabs(path)
+    text += (styles("m_Residential", residential, kept) + styles("m_Commercial", commercial, kept)
+             + styles("m_Industrial", industrial, kept))
+    write(path, text, guid("visuals_" + age_id))
 
 print("ages", len(AGES), "techs", len(TECHS), "ordinances", len(ORDINANCES), "events", len(EVENTS), "road tiers", len(ROAD_TIERS), "visual sets", len(VISUALS))
 print("AgeDatabase guid", guid("age_database"), "TechDatabase guid", guid("tech_database"))

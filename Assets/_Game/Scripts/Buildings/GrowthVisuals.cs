@@ -185,6 +185,7 @@ public sealed class GrowthVisuals : MonoBehaviour
                 ReleaseVisual(grown);
                 m_Cells.Remove(cell);
             }
+            RefaceNeighbours(cell);
             return;
         }
 
@@ -218,6 +219,20 @@ public sealed class GrowthVisuals : MonoBehaviour
         }
 
         ApplyColors(cell, grown);
+    }
+
+    // A road laid or removed beside a grown cell turns its prefab to face the street (placeholder
+    // blocks are symmetric). Cells mid-pop pick the new rotation up on their next frame.
+    private void RefaceNeighbours(Vector2Int cell)
+    {
+        foreach (Vector2Int step in CellUtils.Neighbors4)
+        {
+            Vector2Int other = cell + step;
+            if (m_Cells.TryGetValue(other, out Grown neighbour) && neighbour.Prefab != null && neighbour.PopTime < 0f)
+            {
+                ApplyTransform(other, neighbour, 1f);
+            }
+        }
     }
 
     private AgeVisualSet.Style StyleFor(ZoneType zone, int level, int age)
@@ -312,7 +327,7 @@ public sealed class GrowthVisuals : MonoBehaviour
         if (grown.Prefab != null)
         {
             Transform t = grown.Prefab.Transform;
-            t.SetPositionAndRotation(ground, Quaternion.Euler(0f, (grown.Hash >> 20 & 3) * 90f, 0f));
+            t.SetPositionAndRotation(ground, Quaternion.Euler(0f, CellUtils.FacingRoad(m_Grid, cell, grown.Hash) * 90f, 0f));
             t.localScale = Vector3.one * scale;
             return;
         }
