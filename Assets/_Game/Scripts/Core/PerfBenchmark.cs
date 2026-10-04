@@ -39,7 +39,7 @@ public sealed class PerfBenchmark : MonoBehaviour
         for (int i = 0; i < 10; i++) yield return null;
 
         gameManager.Clock.SetSpeed(GameSpeed.Paused);
-        saveGame.NewCity(new Vector2Int(k_MapSize, k_MapSize));
+        saveGame.NewCity(new Vector2Int(k_MapSize, k_MapSize), -1, false);
         float buildStart = Time.realtimeSinceStartup;
         BuildCity(gameManager.Grid, gameManager.Ages != null ? gameManager.Ages.Count : 1);
         FeedUtilities(gameManager);

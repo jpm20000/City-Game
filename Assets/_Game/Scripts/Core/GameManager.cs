@@ -54,6 +54,9 @@ public sealed class GameManager : MonoBehaviour
         }
         Simulation = new SimulationSystem(Grid, Roads, m_Balance, Ages, Techs);
         Simulation.Economy.OnMoneyChanged += GameEvents.RaiseMoneyChanged;
+        // The startup city counts as a new one: disasters and events on (M17), the RNG seeded from the clock.
+        Simulation.Disasters.Enabled = true;
+        Simulation.Disasters.Random.Seed((ulong)System.Environment.TickCount);
         if (Simulation.Tech != null)
         {
             Simulation.Tech.TechCompleted += HandleTechCompleted;

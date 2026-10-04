@@ -25,6 +25,8 @@ public sealed class NewCityDialog : MonoBehaviour
     [SerializeField] private Button m_CreateButton;
     [SerializeField] private Button m_CancelButton;
 
+    private Toggle m_DisastersToggle;      // (M17) built at runtime under the age hint
+    private bool m_Disasters = true;
     private int m_SelectedSize;
     private int m_SelectedAge = -1;
 
@@ -61,9 +63,40 @@ public sealed class NewCityDialog : MonoBehaviour
             TMP_Text label = m_AgeButtons[i].GetComponentInChildren<TMP_Text>();
             if (label != null) label.text = ages[i].DisplayName;
         }
+        BuildDisastersToggle(ages != null);
         if (m_CreateButton != null) m_CreateButton.onClick.AddListener(Create);
         if (m_CancelButton != null) m_CancelButton.onClick.AddListener(Close);
         if (m_Panel != null) m_Panel.SetActive(false);
+    }
+
+    // The Disasters & events switch (M17): a toggle created under the age hint, so there is no prefab edit.
+    private void BuildDisastersToggle(bool hasAges)
+    {
+        if (m_AgeHint == null || !hasAges) return;
+        GameObject go = DefaultControls.CreateToggle(new DefaultControls.Resources());
+        go.name = "DisastersToggle";
+        Transform parent = m_AgeHint.transform.parent;
+        go.transform.SetParent(parent, false);
+        go.transform.SetSiblingIndex(m_AgeHint.transform.GetSiblingIndex() + 1);
+        var element = go.AddComponent<LayoutElement>();
+        element.minHeight = 28f;
+        element.preferredHeight = 28f;
+        var legacyLabel = go.GetComponentInChildren<Text>();
+        TMP_Text label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+        label.transform.SetParent(go.transform, false);
+        label.text = "Disasters & events (fires, plague, breakdowns, choices)";
+        label.fontSize = m_AgeHint.fontSize;
+        label.color = m_AgeHint.color;
+        label.raycastTarget = false;
+        var labelRect = (RectTransform)label.transform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(30f, 0f);
+        labelRect.offsetMax = Vector2.zero;
+        if (legacyLabel != null) Destroy(legacyLabel.gameObject);
+        m_DisastersToggle = go.GetComponent<Toggle>();
+        m_DisastersToggle.isOn = m_Disasters;
+        m_DisastersToggle.onValueChanged.AddListener(value => m_Disasters = value);
     }
 
     private void Update()
@@ -117,6 +150,6 @@ public sealed class NewCityDialog : MonoBehaviour
     private void Create()
     {
         Close();
-        if (m_SaveGame != null) m_SaveGame.NewCity(new Vector2Int(m_SelectedSize, m_SelectedSize), m_SelectedAge);
+        if (m_SaveGame != null) m_SaveGame.NewCity(new Vector2Int(m_SelectedSize, m_SelectedSize), m_SelectedAge, m_Disasters);
     }
 }

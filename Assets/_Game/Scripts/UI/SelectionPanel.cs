@@ -8,7 +8,7 @@ using UnityEngine.UI;
 // dozens of cells) are batched into at most one refresh per frame.
 public sealed class SelectionPanel : MonoBehaviour
 {
-    private enum Action { None, Demolish, Unzone }
+    private enum Action { None, Demolish, Unzone, Repair, Clear }
 
     [SerializeField] private PlacementController m_Placement;
     [SerializeField] private GameManager m_GameManager;
@@ -25,6 +25,7 @@ public sealed class SelectionPanel : MonoBehaviour
     private readonly StringBuilder m_Text = new();
     private Action m_Action;
     private bool m_ShowKeep;
+    private float m_RepairCost;       // of the selected broken plant / tower / pump (M17)
     private bool m_Dirty;
 
     private void Start()
@@ -69,8 +70,26 @@ public sealed class SelectionPanel : MonoBehaviour
         if (!m_Placement.HasSelection) return;
 
         Vector2Int cell = m_Placement.SelectedCell;
-        if (m_Action == Action.Demolish) m_Placement.DemolishAt(cell);
+        if (m_Action == Action.Demolish || m_Action == Action.Clear) m_Placement.DemolishAt(cell);
         else if (m_Action == Action.Unzone) m_Placement.Unzone(cell);
+        else if (m_Action == Action.Repair) RepairSelected(cell);
+    }
+
+    // Pays for the repair of the broken source on the selected cell (M17); an insufficient-funds toast otherwise.
+    private void RepairSelected(Vector2Int cell)
+    {
+        BuildingInstance building = m_Placement.GetBuildingAt(cell);
+        if (building == null) return;
+        SimulationSystem sim = m_GameManager.Simulation;
+        float cost = sim.RepairCost(building.Origin);
+        if (!sim.Repair(building.Origin))
+        {
+            GameEvents.RaiseInsufficientFunds(cost);
+            return;
+        }
+        GameEvents.RaiseMoneySpent(cost, building.transform.position);
+        GameEvents.RaiseNotification($"{building.Definition.DisplayName} repaired.");
+        Refresh();
     }
 
     // Toggles "Keep historical building" on the selected grown cell.
@@ -102,11 +121,17 @@ public sealed class SelectionPanel : MonoBehaviour
         if (building != null) DescribeBuilding(building);
         else if (grid.IsRoad(cell)) DescribeRoad(cell);
         else if (grid.GetBuildingLevel(cell) > 0) DescribeGrown(cell);
+        else if (grid.GetZone(cell) == ZoneType.None && m_GameManager.Simulation.Disasters.IsRubble(cell)) DescribeRubble(cell);
         else DescribeZone(cell);
 
         m_Body.text = m_Text.ToString().TrimEnd();
         if (m_ActionButton != null) m_ActionButton.gameObject.SetActive(m_Action != Action.None);
-        if (m_ActionLabel != null) m_ActionLabel.text = m_Action == Action.Unzone ? "Unzone" : "Demolish";
+        if (m_ActionLabel != null)
+        {
+            m_ActionLabel.text = m_Action == Action.Unzone ? "Unzone"
+                : m_Action == Action.Repair ? $"Repair  ${m_RepairCost:N0}"
+                : m_Action == Action.Clear ? "Clear rubble" : "Demolish";
+        }
         if (m_KeepButton != null) m_KeepButton.gameObject.SetActive(m_ShowKeep);
         if (m_ShowKeep && m_KeepLabel != null)
         {
@@ -139,6 +164,7 @@ public sealed class SelectionPanel : MonoBehaviour
             float rp = def.ResearchPerDay * m_GameManager.Simulation.TechModifiers.ResearchMultiplier;
             Line($"Research  +{rp:0.#} RP / day");
         }
+        DescribeBuildingHazards(building);
         if (def.CivicKind != ServiceKind.None && def.CivicRadius > 0)
         {
             Line($"{CivicLine(def.CivicKind)} within {def.CivicRadius} cells, strength {def.CivicStrength:P0}.");
@@ -158,7 +184,27 @@ public sealed class SelectionPanel : MonoBehaviour
                 Line($"<color=#F2C14E>Outdated</color> — replace with the {replacement.DisplayName} (strength {replacement.CivicStrength:P0}, reaches {replacement.CivicRadius} cells).");
             }
         }
-        m_Action = Action.Demolish;
+        m_Action = m_RepairCost > 0f || m_Repairable ? Action.Repair : Action.Demolish;
+    }
+
+    private bool m_Repairable;
+
+    // Fire and breakdown lines of a placed building (M17).
+    private void DescribeBuildingHazards(BuildingInstance building)
+    {
+        DisasterSystem disasters = m_GameManager.Simulation.Disasters;
+        m_Repairable = false;
+        m_RepairCost = 0f;
+        if (disasters.Fire.IsBurning(building.Origin))
+        {
+            Line($"<color=#FF7A29>On fire</color> — day {disasters.Fire.FireDays(building.Origin)} of {m_GameManager.Balance.FireBurnDays}. Fire cover puts fires out; otherwise it burns down and is not refunded.");
+        }
+        if (disasters.Breakdowns.IsBroken(building.Origin))
+        {
+            m_RepairCost = m_GameManager.Simulation.RepairCost(building.Origin);
+            m_Repairable = true;
+            Line($"<color=#F2665A>Broken down</color> — it supplies nothing for {disasters.Breakdowns.DaysLeft(building.Origin)} more days, or until repaired (${m_RepairCost:N0}).");
+        }
     }
 
     private static BudgetLine BudgetLineOf(ServiceKind kind)
@@ -351,6 +397,7 @@ public sealed class SelectionPanel : MonoBehaviour
         DescribeCommute(cell, zone);
         DescribePipe(cell);
         DescribeAge(cell, builtAge);
+        DescribeCellHazards(cell);
         if (level < maxLevel)
         {
             Line($"Next level: {unit.ToLowerInvariant()} {sim.Capacity.Capacity(level + 1, builtAge)}");
@@ -366,6 +413,28 @@ public sealed class SelectionPanel : MonoBehaviour
         }
         Line("<size=85%><color=#9AA3B2>Demolishing leaves the zone, so it will regrow.</color></size>");
         m_Action = Action.Demolish;
+    }
+
+    // Fire and plague on a grown block (M17).
+    private void DescribeCellHazards(Vector2Int cell)
+    {
+        DisasterSystem disasters = m_GameManager.Simulation.Disasters;
+        if (disasters.Fire.IsBurning(cell))
+        {
+            Line($"<color=#FF7A29>On fire</color> — day {disasters.Fire.FireDays(cell)} of {m_GameManager.Balance.FireBurnDays}. Fire cover puts fires out; otherwise it burns down and leaves rubble.");
+        }
+        if (disasters.Epidemic.IsInfected(cell)) Line("<color=#8FD14F>Plague</color> — its residents are sick and dying. Health care and a quarantine slow the spread.");
+        else if (disasters.Epidemic.IsRecovered(cell)) Line("<color=#9AA3B2>Recovered from the plague — immune until the outbreak ends.</color>");
+    }
+
+    // Bare rubble left by a fire (M17).
+    private void DescribeRubble(Vector2Int cell)
+    {
+        DisasterSystem disasters = m_GameManager.Simulation.Disasters;
+        m_Title.text = "Rubble";
+        Line($"Left by a fire; it clears by itself in {disasters.Rubble[cell.y * m_GameManager.Grid.Width + cell.x]} days.");
+        Line("Build, zone or demolish here to clear it now.");
+        m_Action = Action.Clear;
     }
 
     // Pollution, land value (with what makes it up) and heritage (M12).
@@ -522,6 +591,10 @@ public sealed class SelectionPanel : MonoBehaviour
         Line(BlockerText(cell, zone, "Growth"));
         DescribeEnvironment(cell, zone);
         DescribePipe(cell);
+        if (m_GameManager.Simulation.Disasters.IsRubble(cell))
+        {
+            Line($"<color=#F2665A>Rubble</color> from a fire — it clears in {m_GameManager.Simulation.Disasters.Rubble[cell.y * m_GameManager.Grid.Width + cell.x]} days, or paint the zone again to clear it now.");
+        }
         if (m_GameManager.Simulation.Rules.UpgradesNeedPower)
         {
             Line(BesideEnergisedRoad(cell)

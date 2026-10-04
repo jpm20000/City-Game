@@ -24,6 +24,9 @@ public sealed class DisasterSystem
     public byte[] Plague { get; private set; }
     public const byte PlagueRecovered = 255;
 
+    // Steps run while the switch was on (the runtime reads it to notice a new day's results; not saved).
+    public int Steps { get; private set; }
+
     public int PlagueCooldown { get; set; }
     public float PlagueRemainder { get; set; }
     public int PlagueDeaths { get; set; }
@@ -65,6 +68,12 @@ public sealed class DisasterSystem
     public bool IsRubble(UnityEngine.Vector2Int cell)
     {
         return m_Grid.InBounds(cell) && Rubble[cell.y * m_Grid.Width + cell.x] > 0;
+    }
+
+    // Rubble is cleared by building, zoning or demolishing on it (M17).
+    public void ClearRubble(UnityEngine.Vector2Int cell)
+    {
+        if (m_Grid.InBounds(cell)) Rubble[cell.y * m_Grid.Width + cell.x] = 0;
     }
 
     // The player's switch, but never on without age data (the legacy sim has no hazards or events).
@@ -110,6 +119,7 @@ public sealed class DisasterSystem
             Fire.ResetResults();
             return;
         }
+        Steps++;
         Events.Step();
         Fire.Step();
         Epidemic.Step();

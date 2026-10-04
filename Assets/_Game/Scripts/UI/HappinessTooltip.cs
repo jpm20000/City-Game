@@ -73,6 +73,8 @@ public sealed class HappinessTooltip : MonoBehaviour, IPointerEnterHandler, IPoi
         Line("Homelessness", h.Homeless, good, bad);
         Line("Technology", h.Technology, good, bad);
         Line("Ordinances", h.Ordinances, good, bad);
+        Line("Plague", h.Plague, good, bad);
+        Line("Events", h.Events, good, bad);
         Line("Heritage (kept blocks)", h.Heritage, good, bad);
         m_Builder.Append($"<b>Total  {h.Total:P0}</b>");
 

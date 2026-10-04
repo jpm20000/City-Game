@@ -295,7 +295,9 @@ public sealed class PlacementController : MonoBehaviour
 
     private void TryZone(Vector2Int cell)
     {
-        if (!CanZone(cell) || m_GridData.GetZone(cell) == m_ZoneBrush) return;
+        if (!CanZone(cell)) return;
+        ClearRubble(cell);      // painting over rubble clears it (M17)
+        if (m_GridData.GetZone(cell) == m_ZoneBrush) return;
 
         // Rezoning or unzoning bulldozes whatever had grown there.
         m_GridData.SetBuildingLevel(cell, 0);
@@ -330,8 +332,19 @@ public sealed class PlacementController : MonoBehaviour
         GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
     }
 
+    private void ClearRubble(Vector2Int cell)
+    {
+        m_GameManager.Simulation?.Disasters.ClearRubble(cell);
+    }
+
+    private bool IsRubble(Vector2Int cell)
+    {
+        return m_GameManager.Simulation != null && m_GameManager.Simulation.Disasters.IsRubble(cell);
+    }
+
     private void PlaceRoad(Vector2Int cell, byte tier)
     {
+        ClearRubble(cell);
         if (m_GridData.GetZone(cell) != ZoneType.None) m_GridData.SetZone(cell, ZoneType.None);
         m_GridData.SetRoadTier(cell, tier);
     }
@@ -367,6 +380,7 @@ public sealed class PlacementController : MonoBehaviour
         foreach (Vector2Int footprintCell in m_GridData.GetFootprint(origin, definition.Size, rotation))
         {
             m_GridData.SetZone(footprintCell, ZoneType.None);
+            ClearRubble(footprintCell);
         }
         m_Buildings[instance.OccupantId] = instance;
         m_GameManager.RegisterBuilding(instance);
@@ -397,6 +411,26 @@ public sealed class PlacementController : MonoBehaviour
         if (m_GridData == null || definition == null || definition.Prefab == null) return false;
         if (!m_GridData.CanPlace(origin, definition.Size, rotation)) return false;
         return CreateBuilding(definition, origin, rotation) != null;
+    }
+
+    // A building that burnt down (M17): the sim has already released its cells; this removes the object and its records. No refund.
+    public void RemoveBurnt(int occupantId)
+    {
+        if (!m_Buildings.TryGetValue(occupantId, out BuildingInstance instance)) return;
+        m_Buildings.Remove(occupantId);
+        if (m_SelectedCell.HasValue && GetBuildingAtOccupant(instance, m_SelectedCell.Value)) ClearSelection();
+        m_GameManager.UnregisterBuilding(instance);
+        instance.Demolish();
+        Destroy(instance.gameObject);
+    }
+
+    private static bool GetBuildingAtOccupant(BuildingInstance instance, Vector2Int cell)
+    {
+        foreach (Vector2Int c in CellUtils.GetFootprint(instance.Origin, instance.Definition.Size, instance.Rotation))
+        {
+            if (c == cell) return true;
+        }
+        return false;
     }
 
     public BuildingInstance GetBuildingAt(Vector2Int cell)
@@ -442,7 +476,8 @@ public sealed class PlacementController : MonoBehaviour
             && (m_GridData.IsRoad(cell)
                 || m_GridData.IsOccupied(cell)
                 || m_GridData.GetBuildingLevel(cell) > 0
-                || m_GridData.GetZone(cell) != ZoneType.None);
+                || m_GridData.GetZone(cell) != ZoneType.None
+                || IsRubble(cell));
     }
 
     private void UpdateSelection()
@@ -500,7 +535,11 @@ public sealed class PlacementController : MonoBehaviour
             return;
         }
 
-        if (!m_GridData.IsOccupied(cell)) return;
+        if (!m_GridData.IsOccupied(cell))
+        {
+            ClearRubble(cell);      // demolishing bare rubble clears it for free (M17)
+            return;
+        }
 
         int occupantId = m_GridData.GetOccupant(cell);
         if (!m_Buildings.TryGetValue(occupantId, out BuildingInstance instance)) return;
