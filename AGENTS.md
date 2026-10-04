@@ -37,7 +37,7 @@ Step-by-step procedures live in skills (load the one that fits the task); per-sy
 - **Not `IsometricZAsY`** — `Docs/GamePlan.md` §2/§5 is stale on this point.
 
 ## Roadmap M11–M19
-Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M15 exist; M16–M19 are outlines in `Docs/GamePlan.md` §12) — read only the one you need.
+Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M18 exist; M19 is an outline in `Docs/GamePlan.md` §12) — read only the one you need.
 
 **Workflow:** follow the `milestone-workflow` skill — plan in `Docs/milestones/Mxx.md` first, commit each step on its own; a milestone is done when EditMode tests are green, a **UI-only virtual-input play-through** of its loop passes (`virtual-input-playthrough`) and the docs (GamePlan §13 Systems reference + §8/§12 status; this file only if a convention changed) are updated.
 

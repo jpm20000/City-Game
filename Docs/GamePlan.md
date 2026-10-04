@@ -701,6 +701,16 @@ A Disasters & events switch in New City (on for new cities, **off for migrated s
 runs them, so no baseline moves. `AgeBalanceTests` off and on for fixed seeds. Save v6. Steps 17a RNG + switch +
 save v6 (17a done) · 17b fire (done) · 17c plague + breakdowns (done) · 17d events (done) · 17e UI (done) · 17f balance / perf / play-through / docs.
 
+### M18 — Art & atmosphere — planned (2026-10-04)
+
+Full plan: [Docs/milestones/M18.md](milestones/M18.md). Presentation only: no sim, save or balance change. A
+generated building kit (per age × zone × level, 2–3 variants, one shared palette material, facing the street) fills
+the `AgeVisualSet` slots under the prefab contract, and your hand-made prefabs can replace any slot later. Textured
+road sheets per tier and ground per age, a day/night cycle once per game month (derived from the date), generated
+SFX and per-age ambience with empty per-age music slots, a Sound panel, and cosmetic vehicles from the traffic
+load. Steps 18a art pipeline · 18b building kit · 18c roads and ground · 18d day/night · 18e audio · 18f vehicles
+(cuttable) · 18g perf / play-through / docs.
+
 ### Where M13–M19 plug in (integration notes)
 Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code that exists today; decide the details in each milestone's plan.
 
@@ -710,7 +720,7 @@ Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code t
 - **M15 Budget depth — done** (plan in `Docs/milestones/M15.md`). Original outline: per-service funding scales a service's radius and effect (`ServiceSource` / `CoverageSystem`); loans with interest live in `EconomySystem` (saved → version bump); ordinances are tech-unlocked toggles (a new `TechEffectType` if needed). `TaxPanel` grows into a budget panel in the `SidePanels` slot.
 - **M16 Traffic — done:** statistical load per road cell from the homes↔jobs flow (no agents); congestion lowers road access quality and happiness. Road tiers (dirt → cobble → paved → avenue → highway) become a per-road byte in `GridData` (saved → version bump), are unlocked by tech (the `UnlockRoadTier` idea in §12) and drawn per tier by `RoadTilemapView`. Traffic view. Watch the 96² benchmark.
 - **M17 Disasters & events** (plan in `Docs/milestones/M17.md`): fire spreads between cells without fire coverage, plague in the Medieval age without health coverage, plant breakdowns; random events with choices arrive as toasts or popups. Use a seeded RNG whose state is saved; an on/off switch goes in the New City dialog (and `SaveData`).
-- **M18 Art & atmosphere:** hand-made per-age prefabs go into the `AgeVisualSet` slots under the prefab contract (pivot at the ground centre of a 1×1 cell, +Y up, 1 unit = 1 cell, layer 9, a collider on the root, shared materials only, one or two materials; GamePlan §12). Also per-age road tiles, day/night lighting, music and ambience. Re-run `PerfBenchmark`.
+- **M18 Art & atmosphere** (plan in `Docs/milestones/M18.md`): hand-made per-age prefabs go into the `AgeVisualSet` slots under the prefab contract (pivot at the ground centre of a 1×1 cell, +Y up, 1 unit = 1 cell, layer 9, a collider on the root, shared materials only, one or two materials; GamePlan §12). Also per-age road tiles, day/night lighting, music and ambience. Re-run `PerfBenchmark`.
 - **M19 Release:** main menu, settings (audio, keybinds, UI scale), multiple save slots with thumbnails (`SaveGameController` is single-slot `city.json` today), a first-age tutorial and a Windows player build (see `perf-benchmark` for building a player and reverting the settings churn it leaves behind).
 
 ### M15–M19 outline (detailed plans written when each milestone starts)
@@ -729,7 +739,7 @@ cobble → paved → avenue → highway), unlocked by tech, with capacity and co
 in the timber ages), plague in the Medieval age without health coverage, plant breakdowns.
 Random events with choices are delivered as toasts or popups. Can be toggled in New City.
 
-**M18 — Art & atmosphere.** Your hand-made per-age assets go into the `AgeVisualSet` slots,
+**M18 — Art & atmosphere** (plan in `Docs/milestones/M18.md`). Your hand-made per-age assets go into the `AgeVisualSet` slots,
 along with per-age road tiles, day/night lighting, and per-age music and ambience. Optional extra:
 cosmetic carts/cars on busy roads (visual only).
 
@@ -751,7 +761,7 @@ land value, research from schooled residents, outdated tiers leave the toolbar; 
 decision, Industrial start re-recorded at 220 pop / 0.631; no save change; Services views, panel lines, toasts; `AgeBalanceTests`
 84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). **M15 done** (steps 15a–15e: funding per budget line, 50-150%, scaling upkeep and, with diminishing returns, reach, supply and strength; loans by age; 12 tech-unlocked ordinances; a Budget panel with the day's ledger; save v4; the default settings change nothing, Industrial start still 220 pop / 0.631; `AgeBalanceTests` 84 / 61 / 73 days with and without the budget player; 229 EditMode tests green plus the UI-only play-through). Next: M16 (traffic) — planned in `Docs/milestones/M16.md` (2026-10-04); start with step 16a.
 
-**M17 done** (steps 17a–17f: a seeded saved RNG, fire that spreads and burns blocks and placed buildings into rubble, plague, plant breakdowns with a repair price, 13 random events in a pausing popup, a New City switch, save v6; `AgeBalanceTests` hold with disasters on for three seeds (happiness floor 0.54 there), `Disasters.Step` 0.144 ms on a 630-pop 96² city and 1.44 ms on the fully grown stress city, no frame-time change in a player build, 336 EditMode tests green plus a UI-only play-through). Next: M18.
+**M17 done** (steps 17a–17f: a seeded saved RNG, fire that spreads and burns blocks and placed buildings into rubble, plague, plant breakdowns with a repair price, 13 random events in a pausing popup, a New City switch, save v6; `AgeBalanceTests` hold with disasters on for three seeds (happiness floor 0.54 there), `Disasters.Step` 0.144 ms on a 630-pop 96² city and 1.44 ms on the fully grown stress city, no frame-time change in a player build, 336 EditMode tests green plus a UI-only play-through). Next: M18 (art & atmosphere) — planned in `Docs/milestones/M18.md` (2026-10-04); start with step 18a.
 
 **M16 done** (steps 16a–16d: byte road tiers dirt / cobble / paved / avenue / highway with tech-unlocked content and Macadam, highways without frontage, save v5; `TrafficSystem` Dial's-algorithm flow with a Traffic happiness term and land-value line; tiered placement, upgrade drags, per-tier sprites, Traffic view and panel / tooltip / toast hooks; the engaged player lays best-tier roads and upgrades jams. `AgeBalanceTests` 84 / 61 / 57 days (budget 84 / 58 / 54), seeded baselines unchanged, traffic flow 0.29 ms on a 96² city in a player build, 260 EditMode tests green plus a UI-only play-through with 0 failed checks). Next: M17 (disasters & events) — planned in `Docs/milestones/M17.md` (2026-10-04); start with step 17a.
 
