@@ -29,17 +29,20 @@ public sealed class NewCityDialog : MonoBehaviour
     private bool m_Disasters = true;
     private int m_SelectedSize;
     private int m_SelectedAge = -1;
+    private System.Action m_Closer;
 
     public bool IsOpen => m_Panel != null && m_Panel.activeSelf;
 
     private void OnEnable()
     {
         if (m_GameMenu != null) m_GameMenu.NewRequested += Open;
+        EscapeRouter.Register(this, EscapeRouter.NewCity, TryEscape);
     }
 
     private void OnDisable()
     {
         if (m_GameMenu != null) m_GameMenu.NewRequested -= Open;
+        EscapeRouter.Unregister(this);
     }
 
     private void Start()
@@ -102,11 +105,6 @@ public sealed class NewCityDialog : MonoBehaviour
         m_DisastersToggle.onValueChanged.AddListener(value => m_Disasters = value);
     }
 
-    private void Update()
-    {
-        if (IsOpen && m_InputReader != null && m_InputReader.CancelPressed) Close();
-    }
-
     public void Open()
     {
         if (m_Panel == null) return;
@@ -117,11 +115,22 @@ public sealed class NewCityDialog : MonoBehaviour
         TechSystem tech = m_GameManager != null && m_GameManager.Simulation != null ? m_GameManager.Simulation.Tech : null;
         if (tech != null) SelectAge(tech.CurrentAge);
         m_Panel.SetActive(true);
+        transform.SetAsLastSibling();
+        m_Closer ??= Close;
+        if (GameFlow.Instance != null) GameFlow.Instance.WindowOpened(m_Closer);
+    }
+
+    private bool TryEscape()
+    {
+        if (!IsOpen) return false;
+        Close();
+        return true;
     }
 
     public void Close()
     {
         if (m_Panel != null) m_Panel.SetActive(false);
+        if (m_Closer != null && GameFlow.Instance != null) GameFlow.Instance.WindowClosed(m_Closer);
     }
 
     private void Select(int size)
@@ -152,7 +161,17 @@ public sealed class NewCityDialog : MonoBehaviour
 
     private void Create()
     {
-        Close();
-        if (m_SaveGame != null) m_SaveGame.NewCity(new Vector2Int(m_SelectedSize, m_SelectedSize), m_SelectedAge, m_Disasters);
+        int size = m_SelectedSize;
+        int age = m_SelectedAge;
+        bool disasters = m_Disasters;
+        void Make()
+        {
+            Close();
+            if (m_SaveGame != null) m_SaveGame.NewCity(new Vector2Int(size, size), age, disasters);
+        }
+
+        // Unsaved changes in the current city are asked about first.
+        if (GameFlow.Instance != null) GameFlow.Instance.GuardDiscard(Make);
+        else Make();
     }
 }

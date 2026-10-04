@@ -74,6 +74,25 @@ public sealed class PlacementController : MonoBehaviour
         }
     }
 
+    private void OnEnable()
+    {
+        EscapeRouter.Register(this, EscapeRouter.Tool, TryEscape);
+    }
+
+    private void OnDisable()
+    {
+        EscapeRouter.Unregister(this);
+    }
+
+    // Esc cancels the active tool and clears the selection; with neither it falls through (side panels, pause menu).
+    private bool TryEscape()
+    {
+        if (m_Mode == Mode.None && !HasSelection) return false;
+        SetMode(Mode.None);
+        ClearSelection();
+        return true;
+    }
+
     private void Update()
     {
         if (m_InputReader == null || m_GridData == null || m_GridSystem == null) return;
@@ -183,11 +202,6 @@ public sealed class PlacementController : MonoBehaviour
         else if (m_InputReader.DemolishPressed)
         {
             SetMode(m_Mode == Mode.Demolish ? Mode.None : Mode.Demolish);
-        }
-        else if (m_InputReader.CancelPressed)
-        {
-            SetMode(Mode.None);
-            ClearSelection();
         }
     }
 

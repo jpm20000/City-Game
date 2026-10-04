@@ -136,7 +136,7 @@ public sealed class SaveGameController : MonoBehaviour
             data.Day = clock.Day;
             data.Month = clock.Month;
             data.Year = clock.Year;
-            data.Speed = (int)clock.Speed;
+            data.Speed = (int)GameFlow.SpeedToSave(clock);
         }
 
         // Ordered by placement so the file is stable between saves of the same city.
@@ -147,6 +147,21 @@ public sealed class SaveGameController : MonoBehaviour
             data.Buildings.Add(new BuildingRecord(building.Definition.Id, building.Origin.x, building.Origin.y, building.Rotation));
         }
         return data;
+    }
+
+    // Rename / delete from the save browser, keeping CurrentName pointing at the city's own file.
+    public bool Rename(string oldName, string newName, out string finalName, out string error)
+    {
+        if (!SaveSlots.Rename(oldName, newName, out finalName, out error)) return false;
+        if (CurrentName == oldName) CurrentName = finalName;
+        return true;
+    }
+
+    public bool Delete(string name)
+    {
+        if (!SaveSlots.Delete(name)) return false;
+        if (CurrentName == name) CurrentName = "";
+        return true;
     }
 
     // --- Loading ---

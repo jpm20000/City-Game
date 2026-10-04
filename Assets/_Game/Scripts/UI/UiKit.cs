@@ -1,0 +1,148 @@
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+
+// Small helpers for the panels and dialogs that are built in code (Budget, Sound, the event popup, M19's menus), so
+// each of them doesn't carry its own copy of the same few widgets.
+public static class UiKit
+{
+    public static readonly Color PanelColor = new Color(0.10f, 0.12f, 0.16f, 0.97f);
+    public static readonly Color DimColor = new Color(0f, 0f, 0f, 0.55f);
+    public static readonly Color ButtonColor = new Color(0.24f, 0.27f, 0.33f);
+    public static readonly Color AccentColor = new Color(0.30f, 0.55f, 0.92f);
+    public static readonly Color DisabledColor = new Color(0.17f, 0.18f, 0.21f);
+    public static readonly Color TitleColor = new Color(0.95f, 0.80f, 0.35f);
+    public static readonly Color BodyColor = new Color(0.85f, 0.88f, 0.94f);
+    public static readonly Color MutedColor = new Color(0.60f, 0.64f, 0.70f);
+
+    public static RectTransform Row(Transform parent, float height)
+    {
+        var go = new GameObject("Row", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+        go.transform.SetParent(parent, false);
+        var layout = go.GetComponent<HorizontalLayoutGroup>();
+        layout.spacing = 6f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = false;
+        layout.childForceExpandHeight = true;
+        layout.childAlignment = TextAnchor.MiddleLeft;
+        go.GetComponent<LayoutElement>().minHeight = height;
+        return (RectTransform)go.transform;
+    }
+
+    public static TMP_Text Text(Transform parent, string text, float size, Color color, bool flexible = false)
+    {
+        var go = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
+        go.transform.SetParent(parent, false);
+        var tmp = go.GetComponent<TextMeshProUGUI>();
+        tmp.text = text;
+        tmp.fontSize = size;
+        tmp.color = color;
+        tmp.textWrappingMode = TextWrappingModes.Normal;
+        tmp.raycastTarget = false;
+        if (flexible) go.GetComponent<LayoutElement>().flexibleWidth = 1f;
+        return tmp;
+    }
+
+    // A text button. width 0 = as wide as the layout gives it. The label is the first child's text.
+    public static Button MakeButton(Transform parent, string label, UnityEngine.Events.UnityAction onClick, float width, Color? color = null)
+    {
+        var go = new GameObject(label + "Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
+        go.transform.SetParent(parent, false);
+        go.GetComponent<Image>().color = color ?? ButtonColor;
+        var element = go.GetComponent<LayoutElement>();
+        if (width > 0f) element.preferredWidth = width;
+        var button = go.GetComponent<Button>();
+        if (onClick != null) button.onClick.AddListener(onClick);
+        var text = Text(go.transform, label, 15, Color.white);
+        text.alignment = TextAlignmentOptions.Center;
+        var rect = (RectTransform)text.transform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
+        Object.Destroy(text.GetComponent<LayoutElement>());
+        return button;
+    }
+
+    public static void SetLabel(Button button, string label)
+    {
+        TMP_Text text = button.GetComponentInChildren<TMP_Text>();
+        if (text != null) text.text = label;
+    }
+
+    // A single-line text field with dark styling.
+    public static TMP_InputField InputField(Transform parent, string placeholder, int maxLength)
+    {
+        GameObject go = TMP_DefaultControls.CreateInputField(new TMP_DefaultControls.Resources());
+        go.name = "InputField";
+        go.transform.SetParent(parent, false);
+        go.GetComponent<Image>().color = new Color(0.06f, 0.07f, 0.10f, 1f);
+        var element = go.AddComponent<LayoutElement>();
+        element.minHeight = 32f;
+        element.flexibleWidth = 1f;
+        var field = go.GetComponent<TMP_InputField>();
+        field.characterLimit = maxLength;
+        field.lineType = TMP_InputField.LineType.SingleLine;
+        field.textComponent.color = Color.white;
+        field.textComponent.fontSize = 16;
+        if (field.placeholder is TMP_Text hint)
+        {
+            hint.text = placeholder;
+            hint.fontSize = 16;
+            hint.color = MutedColor;
+            hint.fontStyle = FontStyles.Normal;
+        }
+        return field;
+    }
+
+    // A modal window: a dimmed full-screen blocker with a centred, auto-height panel. Root is the blocker (toggle it
+    // with SetActive); Body is the panel's vertical layout, with the title already in it.
+    public sealed class Window
+    {
+        public GameObject Root;
+        public RectTransform Body;
+        public TMP_Text Title;
+
+        public void Show()
+        {
+            Root.SetActive(true);
+            Root.transform.SetAsLastSibling();
+        }
+
+        public void Hide() => Root.SetActive(false);
+        public bool IsOpen => Root != null && Root.activeSelf;
+    }
+
+    public static Window CreateWindow(Transform canvas, string name, string title, float width)
+    {
+        var window = new Window();
+        window.Root = new GameObject(name, typeof(RectTransform), typeof(Image));
+        window.Root.transform.SetParent(canvas, false);
+        var blocker = (RectTransform)window.Root.transform;
+        blocker.anchorMin = Vector2.zero;
+        blocker.anchorMax = Vector2.one;
+        blocker.offsetMin = blocker.offsetMax = Vector2.zero;
+        window.Root.GetComponent<Image>().color = DimColor;
+
+        var panel = new GameObject("Panel", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
+        panel.transform.SetParent(window.Root.transform, false);
+        var panelRect = (RectTransform)panel.transform;
+        panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
+        panelRect.sizeDelta = new Vector2(width, 0f);
+        panel.GetComponent<Image>().color = PanelColor;
+        var layout = panel.GetComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(20, 20, 16, 18);
+        layout.spacing = 10f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        panel.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        window.Body = panelRect;
+        window.Title = Text(panel.transform, title, 26, TitleColor);
+        window.Root.SetActive(false);
+        return window;
+    }
+}

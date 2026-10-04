@@ -64,3 +64,8 @@ End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; d
 - Write the scenario as a `Run()` with `Check(...)` lines that log the numbers, run it once, fix the *driver* for anything that is not a game bug, and rerun; the log file plus `grep -q "devices restored"` is the completion signal.
 - The scenario here did not save, so the save slot was untouched; back it up first only if yours does.
 
+
+## Notes from M19b (menus)
+- The HUD **New** button is hidden since M19b and **Load** is now **Menu**: start a New City by pressing Esc (nothing else open) and clicking the pause menu's `New cityButton` (`UI/PauseMenu/Panel/New cityButton`), and Load through `Load…` (`Load…Button`) and the browser's `Row_<name>` button. `PlaythroughDriver.cs` still has the older HUD paths: update them before reuse.
+- Menu windows are code-built under the `UI` canvas (`PauseMenu`, `SaveBrowser`, `ConfirmDialog`, `NewCityDialog`): find a button by its label inside the window (`<label>Button` names collide between windows, so search under one window root, see the 19b driver idea: `ButtonByLabel(root, "Load")`). Text fields: set `TMP_InputField.text` directly (typing through the virtual keyboard was not needed).
+- While a window is open the game is paused and `InputReader.Blocked` is true: gameplay keys do nothing, Esc still works. `GameFlow.Instance.State`, `.Browser`, `.Pause`, `EscapeRouter.LastHandled` are the state to check.

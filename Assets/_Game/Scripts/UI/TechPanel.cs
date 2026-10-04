@@ -70,6 +70,7 @@ public sealed class TechPanel : MonoBehaviour
         GameEvents.TechCompleted += OnTechCompleted;
         GameEvents.PopulationChanged += OnPopulationChanged;
         SidePanels.Opened += OnSidePanelOpened;
+        EscapeRouter.Register(this, EscapeRouter.SidePanel, TryEscape);
         m_Root.SetActive(false);
     }
 
@@ -81,6 +82,7 @@ public sealed class TechPanel : MonoBehaviour
         GameEvents.TechCompleted -= OnTechCompleted;
         GameEvents.PopulationChanged -= OnPopulationChanged;
         SidePanels.Opened -= OnSidePanelOpened;
+        EscapeRouter.Unregister(this);
     }
 
     private void MarkDirty() => m_Dirty = true;
@@ -91,6 +93,13 @@ public sealed class TechPanel : MonoBehaviour
     private void OnSidePanelOpened(object panel)
     {
         if (!ReferenceEquals(panel, this) && m_Root.activeSelf) m_Root.SetActive(false);
+    }
+
+    private bool TryEscape()
+    {
+        if (!m_Root.activeSelf) return false;
+        SetOpen(false);
+        return true;
     }
 
     private void SetOpen(bool open)

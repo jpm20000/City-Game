@@ -148,6 +148,7 @@ public sealed class BudgetPanel : MonoBehaviour
         GameEvents.TechCompleted += OnTechCompleted;
         GameEvents.AgeChanged += OnAgeChanged;
         SidePanels.Opened += OnSidePanelOpened;
+        EscapeRouter.Register(this, EscapeRouter.SidePanel, TryEscape);
     }
 
     private void OnDestroy()
@@ -157,9 +158,17 @@ public sealed class BudgetPanel : MonoBehaviour
         GameEvents.TechCompleted -= OnTechCompleted;
         GameEvents.AgeChanged -= OnAgeChanged;
         SidePanels.Opened -= OnSidePanelOpened;
+        EscapeRouter.Unregister(this);
     }
 
     // --- Open / close ---
+
+    private bool TryEscape()
+    {
+        if (!m_Open) return false;
+        Close();
+        return true;
+    }
 
     private void Toggle()
     {
@@ -397,53 +406,11 @@ public sealed class BudgetPanel : MonoBehaviour
 
     // --- Widgets ---
 
-    private static RectTransform Row(Transform parent, float height)
-    {
-        var go = new GameObject("Row", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
-        go.transform.SetParent(parent, false);
-        var layout = go.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = 6f;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = true;
-        layout.childAlignment = TextAnchor.MiddleLeft;
-        go.GetComponent<LayoutElement>().minHeight = height;
-        return (RectTransform)go.transform;
-    }
+    private static RectTransform Row(Transform parent, float height) => UiKit.Row(parent, height);
 
-    private static TMP_Text Text(Transform parent, string text, float size, Color color, bool flexible = false)
-    {
-        var go = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
-        go.transform.SetParent(parent, false);
-        var tmp = go.GetComponent<TextMeshProUGUI>();
-        tmp.text = text;
-        tmp.fontSize = size;
-        tmp.color = color;
-        tmp.textWrappingMode = TextWrappingModes.Normal;
-        tmp.raycastTarget = false;
-        if (flexible) go.GetComponent<LayoutElement>().flexibleWidth = 1f;
-        return tmp;
-    }
+    private static TMP_Text Text(Transform parent, string text, float size, Color color, bool flexible = false) => UiKit.Text(parent, text, size, color, flexible);
 
-    private static Button MakeButton(Transform parent, string label, UnityEngine.Events.UnityAction onClick, float width)
-    {
-        var go = new GameObject(label + "Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
-        go.transform.SetParent(parent, false);
-        go.GetComponent<Image>().color = ButtonColor;
-        var element = go.GetComponent<LayoutElement>();
-        if (width > 0f) element.preferredWidth = width;
-        var button = go.GetComponent<Button>();
-        button.onClick.AddListener(onClick);
-        var text = Text(go.transform, label, 15, Color.white);
-        text.alignment = TextAlignmentOptions.Center;
-        var rect = (RectTransform)text.transform;
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = rect.offsetMax = Vector2.zero;
-        Destroy(text.GetComponent<LayoutElement>());
-        return button;
-    }
+    private static Button MakeButton(Transform parent, string label, UnityEngine.Events.UnityAction onClick, float width) => UiKit.MakeButton(parent, label, onClick, width, ButtonColor);
 
     // Whole steps of 10%, from FundingMin to FundingMax.
     private static Slider MakeSlider(Transform parent, float funding, BalanceConfig config)

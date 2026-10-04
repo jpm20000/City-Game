@@ -76,6 +76,7 @@ public sealed class EventPopup : MonoBehaviour
 
         m_Footer = Text(panel.transform, "", 13, new Color(0.60f, 0.64f, 0.70f));
         m_Root.SetActive(false);
+        EscapeRouter.Register(this, EscapeRouter.Event, () => IsOpen);
     }
 
     private void OnEnable()
@@ -198,16 +199,5 @@ public sealed class EventPopup : MonoBehaviour
         return button;
     }
 
-    private static TMP_Text Text(Transform parent, string text, float size, Color color)
-    {
-        var go = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
-        go.transform.SetParent(parent, false);
-        var tmp = go.GetComponent<TextMeshProUGUI>();
-        tmp.text = text;
-        tmp.fontSize = size;
-        tmp.color = color;
-        tmp.textWrappingMode = TextWrappingModes.Normal;
-        tmp.raycastTarget = false;
-        return tmp;
-    }
+    private static TMP_Text Text(Transform parent, string text, float size, Color color) => UiKit.Text(parent, text, size, color);
 }

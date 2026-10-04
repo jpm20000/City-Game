@@ -16,6 +16,14 @@ public sealed class SoundPanel : MonoBehaviour
     private Slider m_Master, m_Music, m_Ambience, m_Sfx;
     private bool m_Open;
 
+    // The pause menu's Settings entry opens this panel (until the Settings screen of M19d).
+    public static SoundPanel Instance { get; private set; }
+
+    public void OpenPanel()
+    {
+        if (!m_Open) Open();
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Bootstrap()
     {
@@ -23,8 +31,11 @@ public sealed class SoundPanel : MonoBehaviour
         TaxPanel taxPanel = FindAnyObjectByType<TaxPanel>(FindObjectsInactive.Include);
         if (game == null || taxPanel == null) return;
 
+        // The HUD's own Save button (the pause menu and dialogs have buttons of that name too).
+        GameMenu hud = FindAnyObjectByType<GameMenu>(FindObjectsInactive.Include);
+        if (hud == null) return;
         Button save = null;
-        foreach (Button b in taxPanel.transform.root.GetComponentsInChildren<Button>(true))
+        foreach (Button b in hud.GetComponentsInChildren<Button>(true))
         {
             if (b.name == "SaveButton") save = b;
         }
@@ -38,7 +49,7 @@ public sealed class SoundPanel : MonoBehaviour
         Button toggle = Instantiate(save, save.transform.parent);
         toggle.name = "SoundButton";
         toggle.onClick.RemoveAllListeners();
-        toggle.GetComponentInChildren<TMP_Text>().text = "Sound";
+        toggle.GetComponentInChildren<TMP_Text>().text = "Settings";
         toggle.onClick.AddListener(panel.Toggle);
         toggle.interactable = true;
     }
@@ -89,11 +100,22 @@ public sealed class SoundPanel : MonoBehaviour
 
         m_Root.SetActive(false);
         SidePanels.Opened += OnSidePanelOpened;
+        Instance = this;
+        EscapeRouter.Register(this, EscapeRouter.SidePanel, TryEscape);
     }
 
     private void OnDestroy()
     {
         SidePanels.Opened -= OnSidePanelOpened;
+        EscapeRouter.Unregister(this);
+        if (Instance == this) Instance = null;
+    }
+
+    private bool TryEscape()
+    {
+        if (!m_Open) return false;
+        Close();
+        return true;
     }
 
     private void Toggle()
@@ -170,51 +192,9 @@ public sealed class SoundPanel : MonoBehaviour
         return slider;
     }
 
-    private static RectTransform Row(Transform parent, float height)
-    {
-        var go = new GameObject("Row", typeof(RectTransform), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
-        go.transform.SetParent(parent, false);
-        var layout = go.GetComponent<HorizontalLayoutGroup>();
-        layout.spacing = 6f;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = true;
-        layout.childAlignment = TextAnchor.MiddleLeft;
-        go.GetComponent<LayoutElement>().minHeight = height;
-        return (RectTransform)go.transform;
-    }
+    private static RectTransform Row(Transform parent, float height) => UiKit.Row(parent, height);
 
-    private static TMP_Text Text(Transform parent, string text, float size, Color color, bool flexible = false)
-    {
-        var go = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
-        go.transform.SetParent(parent, false);
-        var tmp = go.GetComponent<TextMeshProUGUI>();
-        tmp.text = text;
-        tmp.fontSize = size;
-        tmp.color = color;
-        tmp.textWrappingMode = TextWrappingModes.Normal;
-        tmp.raycastTarget = false;
-        if (flexible) go.GetComponent<LayoutElement>().flexibleWidth = 1f;
-        return tmp;
-    }
+    private static TMP_Text Text(Transform parent, string text, float size, Color color, bool flexible = false) => UiKit.Text(parent, text, size, color, flexible);
 
-    private static Button MakeButton(Transform parent, string label, UnityEngine.Events.UnityAction onClick, float width)
-    {
-        var go = new GameObject(label + "Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
-        go.transform.SetParent(parent, false);
-        go.GetComponent<Image>().color = ButtonColor;
-        var element = go.GetComponent<LayoutElement>();
-        if (width > 0f) element.preferredWidth = width;
-        var button = go.GetComponent<Button>();
-        button.onClick.AddListener(onClick);
-        var text = Text(go.transform, label, 15, Color.white);
-        text.alignment = TextAlignmentOptions.Center;
-        var rect = (RectTransform)text.transform;
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = rect.offsetMax = Vector2.zero;
-        Destroy(text.GetComponent<LayoutElement>());
-        return button;
-    }
+    private static Button MakeButton(Transform parent, string label, UnityEngine.Events.UnityAction onClick, float width) => UiKit.MakeButton(parent, label, onClick, width, ButtonColor);
 }

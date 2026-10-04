@@ -2,8 +2,9 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-// HUD Save / Load / New buttons. Load is disabled until a save exists; New raises NewRequested, which
-// the New City dialog listens to (it discards the current city only when the player confirms there).
+// The HUD's Save / Menu buttons (M19b). The scene still has Save / Load / New: Load is relabelled Menu (it opens the
+// pause menu) and New is hidden (New city lives in the pause menu), so the HUD group keeps its size. Save asks
+// GameFlow, which saves the city's own file or opens the Save as window; without a GameFlow it saves directly.
 public sealed class GameMenu : MonoBehaviour
 {
     [SerializeField] private SaveGameController m_SaveGame;
@@ -12,46 +13,40 @@ public sealed class GameMenu : MonoBehaviour
     [SerializeField] private Button m_NewButton;
 
     public event Action NewRequested;
+    public event Action MenuRequested;
+    public event Action SaveRequested;
 
     private void Start()
     {
         if (m_SaveGame == null) return;
 
-        if (m_SaveButton != null) m_SaveButton.onClick.AddListener(() =>
+        if (m_SaveButton != null) m_SaveButton.onClick.AddListener(OnSaveClicked);
+        if (m_LoadButton != null)
         {
-            m_SaveGame.Save();
-            RefreshLoadButton();
-        });
-        if (m_LoadButton != null) m_LoadButton.onClick.AddListener(() => m_SaveGame.Load());
-        if (m_NewButton != null) m_NewButton.onClick.AddListener(OnNewClicked);
-
-        RefreshLoadButton();
+            UiKit.SetLabel(m_LoadButton, "Menu");
+            m_LoadButton.interactable = true;
+            m_LoadButton.onClick.AddListener(OnMenuClicked);
+        }
+        if (m_NewButton != null) m_NewButton.gameObject.SetActive(false);
     }
 
-    private void OnEnable()
-    {
-        GameEvents.Notification += OnNotification;
-    }
-
-    private void OnDisable()
-    {
-        GameEvents.Notification -= OnNotification;
-    }
-
-    // F5 saves bypass the button; any notification is a cheap moment to recheck the file.
-    private void OnNotification(string message)
-    {
-        RefreshLoadButton();
-    }
-
-    private void OnNewClicked()
+    // The pause menu's New city entry: the New City dialog listens for this (it discards the current city only when
+    // the player confirms there).
+    public void RequestNew()
     {
         if (NewRequested != null) NewRequested.Invoke();
         else Debug.LogWarning("GameMenu: nothing handles New (no NewCityDialog in the scene?).", this);
     }
 
-    private void RefreshLoadButton()
+    private void OnSaveClicked()
     {
-        if (m_LoadButton != null && m_SaveGame != null) m_LoadButton.interactable = m_SaveGame.HasSave;
+        if (SaveRequested != null) SaveRequested.Invoke();
+        else m_SaveGame.Save();
+    }
+
+    private void OnMenuClicked()
+    {
+        if (MenuRequested != null) MenuRequested.Invoke();
+        else Debug.LogWarning("GameMenu: nothing handles Menu (no GameFlow?).", this);
     }
 }

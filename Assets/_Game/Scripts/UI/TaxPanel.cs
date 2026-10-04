@@ -34,6 +34,7 @@ public sealed class TaxPanel : MonoBehaviour
         GameEvents.CashFlowChanged += OnCashFlowChanged;
         GameEvents.CityLoaded += OnCityLoaded;
         SidePanels.Opened += OnSidePanelOpened;
+        EscapeRouter.Register(this, EscapeRouter.SidePanel, TryEscape);
 
         SetOpen(false);
     }
@@ -43,6 +44,14 @@ public sealed class TaxPanel : MonoBehaviour
         GameEvents.CashFlowChanged -= OnCashFlowChanged;
         GameEvents.CityLoaded -= OnCityLoaded;
         SidePanels.Opened -= OnSidePanelOpened;
+        EscapeRouter.Unregister(this);
+    }
+
+    private bool TryEscape()
+    {
+        if (!m_Root.activeSelf) return false;
+        SetOpen(false);
+        return true;
     }
 
     private void SetOpen(bool open)

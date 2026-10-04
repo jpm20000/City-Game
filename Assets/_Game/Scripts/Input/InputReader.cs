@@ -22,21 +22,25 @@ public sealed class InputReader : MonoBehaviour
     private InputAction m_QuickLoadAction;
     private InputAction m_CycleOverlayAction;
 
-    public Vector2 Pan => m_PanAction.ReadValue<Vector2>();
-    public float Zoom => m_ZoomAction.ReadValue<float>();
+    // Set by GameFlow while a menu or dialog is open: every gameplay action reads as idle except Cancel (Esc), which
+    // the EscapeRouter needs to close things.
+    public bool Blocked { get; set; }
+
+    public Vector2 Pan => Blocked ? Vector2.zero : m_PanAction.ReadValue<Vector2>();
+    public float Zoom => Blocked ? 0f : m_ZoomAction.ReadValue<float>();
     public Vector2 Pointer => m_PointerAction.ReadValue<Vector2>();
-    public bool ConfirmPressed => m_ConfirmAction.WasPressedThisFrame();
-    public bool ConfirmHeld => m_ConfirmAction.IsPressed();
+    public bool ConfirmPressed => !Blocked && m_ConfirmAction.WasPressedThisFrame();
+    public bool ConfirmHeld => !Blocked && m_ConfirmAction.IsPressed();
     public bool CancelPressed => m_CancelAction.WasPressedThisFrame();
-    public bool RotatePressed => m_RotateAction.WasPressedThisFrame();
-    public bool DemolishPressed => m_DemolishAction.WasPressedThisFrame();
-    public bool RoadToolPressed => m_RoadToolAction.WasPressedThisFrame();
-    public bool PipeToolPressed => m_PipeToolAction.WasPressedThisFrame();
-    public bool DebugTogglePressed => m_DebugToggleAction.WasPressedThisFrame();
-    public bool QuickSavePressed => m_QuickSaveAction.WasPressedThisFrame();
-    public bool QuickLoadPressed => m_QuickLoadAction.WasPressedThisFrame();
-    public bool CycleOverlayPressed => m_CycleOverlayAction.WasPressedThisFrame();
-    public int SpeedDelta => Mathf.RoundToInt(m_SpeedDeltaAction.ReadValue<float>());
+    public bool RotatePressed => !Blocked && m_RotateAction.WasPressedThisFrame();
+    public bool DemolishPressed => !Blocked && m_DemolishAction.WasPressedThisFrame();
+    public bool RoadToolPressed => !Blocked && m_RoadToolAction.WasPressedThisFrame();
+    public bool PipeToolPressed => !Blocked && m_PipeToolAction.WasPressedThisFrame();
+    public bool DebugTogglePressed => !Blocked && m_DebugToggleAction.WasPressedThisFrame();
+    public bool QuickSavePressed => !Blocked && m_QuickSaveAction.WasPressedThisFrame();
+    public bool QuickLoadPressed => !Blocked && m_QuickLoadAction.WasPressedThisFrame();
+    public bool CycleOverlayPressed => !Blocked && m_CycleOverlayAction.WasPressedThisFrame();
+    public int SpeedDelta => Blocked ? 0 : Mathf.RoundToInt(m_SpeedDeltaAction.ReadValue<float>());
 
     private void Awake()
     {
