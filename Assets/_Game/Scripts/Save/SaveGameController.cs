@@ -280,7 +280,9 @@ public sealed class SaveGameController : MonoBehaviour
             Debug.LogWarning($"SaveGameController: no showcase city ({error}).", this);
             yield break;
         }
-        ApplyShowcase(data);
+        GameFlow.Instance.ShowcaseApplying(true);
+        try { ApplyShowcase(data); }
+        finally { GameFlow.Instance.ShowcaseApplying(false); }
         m_GameManager.Clock.SetSpeed(GameSpeed.x1);
     }
 #endif
