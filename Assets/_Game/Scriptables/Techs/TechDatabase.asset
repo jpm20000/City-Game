@@ -49,3 +49,16 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0c55116f51ef58bc9a33a1da9d8a0225, type: 2}
   - {fileID: 11400000, guid: 0e87d16c928f54eca891b15664d16fbf, type: 2}
   - {fileID: 11400000, guid: e428f1d01e055ce3b40552754fcd1848, type: 2}
+  m_Ordinances:
+  - {fileID: 11400000, guid: 2aef2064a113538588a459d7705010fa, type: 2}
+  - {fileID: 11400000, guid: 23fb8106f7a35fad98827f51cc387284, type: 2}
+  - {fileID: 11400000, guid: 761928453153595dabad49deb38f25c4, type: 2}
+  - {fileID: 11400000, guid: 11cde4b013fb511399130f7dd6724622, type: 2}
+  - {fileID: 11400000, guid: 3a5fcf9eb03658789d737081e9d854db, type: 2}
+  - {fileID: 11400000, guid: 032e7441e06c5732b5e3955ded8c1909, type: 2}
+  - {fileID: 11400000, guid: 80a1975123055109a629d14d380de50d, type: 2}
+  - {fileID: 11400000, guid: 12b1bb6c8ff65c889653d5321e38acef, type: 2}
+  - {fileID: 11400000, guid: a15fd6cc358a5911957ac298a3340497, type: 2}
+  - {fileID: 11400000, guid: 9a928d3c967459f69c33c2e283ef7d3d, type: 2}
+  - {fileID: 11400000, guid: 3722e21edfb85d76bebc43064f4462aa, type: 2}
+  - {fileID: 11400000, guid: a24469893d7d5ba1a2ada42b99a220db, type: 2}

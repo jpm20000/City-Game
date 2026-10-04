@@ -8,6 +8,7 @@ GUID_AGE_DEF = "a13593af433dd8440a3d802b066bb1d8"
 GUID_AGE_DB = "241edd6ee45d45b4fa2b67e623070894"
 GUID_TECH_DEF = "4a81a50374d8fd1488dba7cf9e9b874e"
 GUID_TECH_DB = "a6bee4b53f8793c4b9cc00b60f5ad9a0"
+GUID_ORDINANCE_DEF = "0b5f2a6c1d3e4f7a8b9c0d1e2f3a4b5c"   # Scripts/Simulation/Ages/OrdinanceDefinition.cs (M15)
 GUID_VISUAL_SET = "e8eec815828e415cad1c610865718a24"   # Scripts/Buildings/AgeVisualSet.cs (Assembly-CSharp)
 NS = uuid.UUID("6f1c0e52-8d0a-4c3a-9a51-3c1d2b7e9f10")
 
@@ -38,7 +39,7 @@ def array(lines, indent="  "):
     return "[]" if not lines else "\n" + "\n".join(indent + "- " + l for l in lines)
 
 # Effect types: 0 UnlockBuilding, 1 ResearchMultiplier, 2 DemandMultiplier, 3 HappinessBonus, 4 UpkeepMultiplier,
-# 5 PollutionMultiplier, 6 LandValueBonus (M12)
+# 5 PollutionMultiplier, 6 LandValueBonus (M12), 7 CivicNeedMultiplier (M15), 8 LoanInterestMultiplier (M15)
 R, C, I = "Residential", "Commercial", "Industrial"
 def demand(zone, v): return (2, zone, v)
 def research(v): return (1, "", v)
@@ -46,6 +47,8 @@ def happy(v): return (3, "", v)
 def upkeep(v): return (4, "", v)
 def pollution(v): return (5, "", v)
 def land_value(v): return (6, "", v)
+def civic_need(kind, v): return (7, kind, v)
+def loan_interest(v): return (8, "", v)
 
 # (asset name, id, display, age, cost, prerequisites, effects, description)
 TECHS = [
@@ -63,7 +66,7 @@ TECHS = [
     # Renaissance
     ("PrintingPress", "printing_press", "Printing Press", 1, 200, ["monasticism"], [research(1.25)], "Books for everyone. Research +25%."),
     ("Academies", "academies", "Academies", 1, 250, ["printing_press"], [], "Halls of scholarship. Unlocks the Academy, which produces research and educates the homes around it."),
-    ("Banking", "banking", "Banking", 1, 220, ["guilds"], [demand(C, 1.15)], "Credit and bills of exchange. Commercial demand +15%."),
+    ("Banking", "banking", "Banking", 1, 220, ["guilds"], [demand(C, 1.15), loan_interest(0.5)], "Credit and bills of exchange. Commercial demand +15%. Loans cost half the interest."),
     ("Aqueducts", "aqueducts", "Aqueducts", 1, 160, ["masonry"], [], "Channels carry spring water into town. Unlocks the Fountain, which waters and cheers the blocks around it."),
     ("Architecture", "architecture", "Architecture", 1, 200, ["masonry"], [land_value(0.05)], "Proportion, domes and planned facades. Land value +5% everywhere."),
     ("CivicPlanning", "civic_planning", "Civic Planning", 1, 260, ["architecture"], [happy(0.03)], "Squares, straight streets and order. Happiness +3%. Unlocks the Constabulary."),
@@ -103,6 +106,40 @@ AGES = [
     ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""], 0.6, 3, 2, 0.2, 40000),
 ]
 
+
+# Ordinances (M15): city-wide policies a tech unlocks. (asset, id, display, tech id, cost/day, cost/resident/day, effects, description)
+ORDINANCES = [
+    ("FeastDays", "feast_days", "Feast Days", "charters", 0, 0.03, [happy(0.03), demand(C, 1.05)],
+     "Holidays cheer the town and the market. Happiness +3%, commercial demand +5%."),
+    ("Curfew", "curfew", "Curfew", "town_watch", 3, 0, [civic_need("Order", 0.7), happy(-0.01), demand(C, 0.9)],
+     "Bells ring the town indoors at dusk. Crime -30%, happiness -1%, commercial demand -10%."),
+    ("HerbGardens", "herb_gardens", "Herb Gardens", "herbalism", 0, 0.02, [civic_need("Health", 0.85)],
+     "Every household tends healing herbs. Sickness -15%."),
+    ("FireCode", "fire_code", "Fire Code", "architecture", 0, 0.02, [civic_need("Fire", 0.7), demand(I, 0.95)],
+     "Stone chimneys and cleared thatch. Fire risk -30%, industrial demand -5%."),
+    ("StreetLighting", "street_lighting", "Street Lighting", "civic_planning", 0, 0.03, [civic_need("Order", 0.8), happy(0.01)],
+     "Lamps along the straight streets. Crime -20%, happiness +1%."),
+    ("PublicLectures", "public_lectures", "Public Lectures", "printing_press", 0, 0.04, [research(1.1)],
+     "Open lectures spread learning. Research +10%."),
+    ("SmokeAbatement", "smoke_abatement", "Smoke Abatement", "factories", 0, 0.03, [pollution(0.8), demand(I, 0.9)],
+     "Tall chimneys and smoke inspectors. Pollution -20%, industrial demand -10%."),
+    ("BuildingCode", "building_code", "Building Code", "steel_frames", 0, 0.02, [civic_need("Fire", 0.75), land_value(0.02)],
+     "Inspected frames and fire doors. Fire risk -25%, land value +2%."),
+    ("WorkmensFares", "workmens_fares", "Workmen's Fares", "electric_trams", 0, 0.03, [demand(R, 1.1)],
+     "Cheap tram fares for commuters. Residential demand +10%."),
+    ("FreeClinics", "free_clinics", "Free Clinics", "public_sanitation", 0, 0.04, [civic_need("Health", 0.8)],
+     "A doctor in every district. Sickness -20%."),
+    ("NeighbourhoodWatch", "neighbourhood_watch", "Neighbourhood Watch", "mass_media", 2, 0, [civic_need("Order", 0.8), happy(0.01)],
+     "Residents report what they see. Crime -20%, happiness +1%."),
+    ("CarFreeSundays", "car_free_sundays", "Car-free Sundays", "automobiles", 0, 0, [pollution(0.9), happy(0.02), demand(C, 0.95)],
+     "One quiet day a week. Pollution -10%, happiness +2%, commercial demand -5%."),
+]
+ORDINANCE_OF_TECH = {o[3]: o[2] for o in ORDINANCES}
+
+# Each unlocking tech says so in its description.
+TECHS = [(a, b, c, d, e, f, g, desc + (" Enables the %s ordinance." % ORDINANCE_OF_TECH[b] if b in ORDINANCE_OF_TECH else ""))
+         for a, b, c, d, e, f, g, desc in TECHS]
+
 tech_guid = {t[1]: guid("tech_" + t[1]) for t in TECHS}
 
 for asset, tid, display, age, cost, prereqs, effects, desc in TECHS:
@@ -136,7 +173,15 @@ write(os.path.join(ROOT, "Ages", "AgeDatabase.asset"), text, guid("age_database"
 
 text = header(GUID_TECH_DB, "TechDatabase", "TechDatabase")
 text += "  m_Techs:%s\n" % array([ref(tech_guid[t[1]]) for t in TECHS])
+text += "  m_Ordinances:%s\n" % array([ref(guid("ordinance_" + o[1])) for o in ORDINANCES])
 write(os.path.join(ROOT, "Techs", "TechDatabase.asset"), text, guid("tech_database"))
+
+for asset, oid, display, tech, per_day, per_resident, effects, desc in ORDINANCES:
+    text = header(GUID_ORDINANCE_DEF, asset, "OrdinanceDefinition")
+    text += "  m_Id: %s\n  m_DisplayName: %s\n  m_Description: %s\n  m_RequiredTech: %s\n" % (oid, q(display), q(desc), ref(tech_guid[tech]))
+    text += "  m_CostPerDay: %s\n  m_CostPerResident: %s\n" % (per_day, per_resident)
+    text += "  m_Effects:\n" + "".join("  - Type: %d\n    Target: %s\n    Value: %s\n" % (t, target, v) for t, target, v in effects)
+    write(os.path.join(ROOT, "Techs", "Ordinances", asset + ".asset"), text, guid("ordinance_" + oid))
 
 # --- Age visual sets (M11e): fallback styles for the placeholder blocks, per zone and level 1..3. ---
 # (tint rgba: body = zone colour blended toward rgb by a; roof: 0 Default, 1 Pitched, 2 None;
@@ -183,5 +228,5 @@ for asset, age_id, residential, commercial, industrial in VISUALS:
     text += styles("m_Residential", residential) + styles("m_Commercial", commercial) + styles("m_Industrial", industrial)
     write(os.path.join(ROOT, "Ages", "Visuals", asset + ".asset"), text, guid("visuals_" + age_id))
 
-print("ages", len(AGES), "techs", len(TECHS), "visual sets", len(VISUALS))
+print("ages", len(AGES), "techs", len(TECHS), "ordinances", len(ORDINANCES), "visual sets", len(VISUALS))
 print("AgeDatabase guid", guid("age_database"), "TechDatabase guid", guid("tech_database"))

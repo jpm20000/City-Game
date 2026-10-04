@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: mass_media
   m_DisplayName: Mass Media
-  m_Description: 'Radio and television in every home.'
+  m_Description: 'Radio and television in every home. Enables the Neighbourhood Watch ordinance.'
   m_Age: 3
   m_Cost: 800
   m_Prerequisites: 

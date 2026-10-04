@@ -47,6 +47,7 @@ public static class SaveSystem
             data.ActiveResearch = tech.Active != null ? tech.Active.Id : "";
             data.ResearchProgress = tech.Progress;
             foreach (ResearchProject project in tech.Queue) data.ResearchQueue.Add(project.Id);
+            foreach (OrdinanceDefinition ordinance in tech.EnactedOrdinances) data.Ordinances.Add(ordinance.Id);
         }
         return data;
     }
@@ -112,6 +113,7 @@ public static class SaveSystem
             if (tech.Ages.IsValidIndex(data.Age))
             {
                 dropped = tech.Restore(data.Age, data.Researched, data.ActiveResearch, data.ResearchProgress, data.ResearchQueue);
+                dropped += tech.RestoreOrdinances(data.Ordinances);
             }
             else
             {

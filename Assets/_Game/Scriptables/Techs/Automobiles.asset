@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: automobiles
   m_DisplayName: Automobiles
-  m_Description: 'A car in every garage.'
+  m_Description: 'A car in every garage. Enables the Car-free Sundays ordinance.'
   m_Age: 3
   m_Cost: 900
   m_Prerequisites: 

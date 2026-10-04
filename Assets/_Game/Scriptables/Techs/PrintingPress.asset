@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: printing_press
   m_DisplayName: Printing Press
-  m_Description: 'Books for everyone. Research +25%.'
+  m_Description: 'Books for everyone. Research +25%. Enables the Public Lectures ordinance.'
   m_Age: 1
   m_Cost: 200
   m_Prerequisites: 

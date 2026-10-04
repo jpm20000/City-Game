@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: factories
   m_DisplayName: Factories
-  m_Description: 'Mass production under one roof.'
+  m_Description: 'Mass production under one roof. Enables the Smoke Abatement ordinance.'
   m_Age: 2
   m_Cost: 500
   m_Prerequisites: 

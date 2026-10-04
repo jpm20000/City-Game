@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: town_watch
   m_DisplayName: Town Watch
-  m_Description: 'Watchmen walk the streets and ring the fire bell. Unlocks the Watch House and the Bucket Brigade.'
+  m_Description: 'Watchmen walk the streets and ring the fire bell. Unlocks the Watch House and the Bucket Brigade. Enables the Curfew ordinance.'
   m_Age: 0
   m_Cost: 40
   m_Prerequisites: 

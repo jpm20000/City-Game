@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: architecture
   m_DisplayName: Architecture
-  m_Description: 'Proportion, domes and planned facades. Land value +5% everywhere.'
+  m_Description: 'Proportion, domes and planned facades. Land value +5% everywhere. Enables the Fire Code ordinance.'
   m_Age: 1
   m_Cost: 200
   m_Prerequisites: 

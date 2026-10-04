@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: banking
   m_DisplayName: Banking
-  m_Description: 'Credit and bills of exchange. Commercial demand +15%.'
+  m_Description: 'Credit and bills of exchange. Commercial demand +15%. Loans cost half the interest.'
   m_Age: 1
   m_Cost: 220
   m_Prerequisites: 
@@ -23,3 +23,6 @@ MonoBehaviour:
   - Type: 2
     Target: Commercial
     Value: 1.15
+  - Type: 8
+    Target: 
+    Value: 0.5

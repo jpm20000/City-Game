@@ -223,4 +223,24 @@ public sealed class ContentTests
         }
         Assert.AreEqual(m_Config.LoanAmount, m_Ages[m_Ages.Legacy].LoanAmount, "the age-less amount is the Industrial one");
     }
+
+    [Test]
+    public void Ordinances_AreSpreadOverTheAges_AndTheirEffectsAreWellFormed()
+    {
+        var perAge = new int[m_Ages.Count];
+        foreach (OrdinanceDefinition ordinance in m_Techs.Ordinances)
+        {
+            perAge[ordinance.Age]++;
+            Assert.IsNotEmpty(ordinance.Effects, ordinance.Id);
+            foreach (TechEffect effect in ordinance.Effects)
+            {
+                Assert.AreNotEqual(TechEffectType.UnlockBuilding, effect.Type, $"{ordinance.Id}: ordinances do not unlock buildings");
+                if (effect.Type == TechEffectType.CivicNeedMultiplier)
+                {
+                    Assert.IsTrue(effect.Target == "Order" || effect.Target == "Fire" || effect.Target == "Health", $"{ordinance.Id}: {effect.Target}");
+                }
+            }
+        }
+        for (int age = 0; age < perAge.Length; age++) Assert.That(perAge[age], Is.InRange(2, 5), $"ordinances in {m_Ages[age].Id}");
+    }
 }

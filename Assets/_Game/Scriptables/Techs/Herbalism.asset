@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: herbalism
   m_DisplayName: Herbalism
-  m_Description: 'Healing herbs and those who know them. Unlocks the Apothecary, which cares for the sick nearby.'
+  m_Description: 'Healing herbs and those who know them. Unlocks the Apothecary, which cares for the sick nearby. Enables the Herb Gardens ordinance.'
   m_Age: 0
   m_Cost: 35
   m_Prerequisites: 

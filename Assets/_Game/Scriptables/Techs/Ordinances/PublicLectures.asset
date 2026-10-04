@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5f2a6c1d3e4f7a8b9c0d1e2f3a4b5c, type: 3}
+  m_Name: PublicLectures
+  m_EditorClassIdentifier: CityBuilder.Simulation::OrdinanceDefinition
+  m_Id: public_lectures
+  m_DisplayName: 'Public Lectures'
+  m_Description: 'Open lectures spread learning. Research +10%.'
+  m_RequiredTech: {fileID: 11400000, guid: f914d17a0f805758baeec027f4f02b5c, type: 2}
+  m_CostPerDay: 0
+  m_CostPerResident: 0.04
+  m_Effects:
+  - Type: 1
+    Target: 
+    Value: 1.1

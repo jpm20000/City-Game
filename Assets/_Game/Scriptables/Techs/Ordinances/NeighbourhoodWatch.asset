@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b5f2a6c1d3e4f7a8b9c0d1e2f3a4b5c, type: 3}
+  m_Name: NeighbourhoodWatch
+  m_EditorClassIdentifier: CityBuilder.Simulation::OrdinanceDefinition
+  m_Id: neighbourhood_watch
+  m_DisplayName: 'Neighbourhood Watch'
+  m_Description: 'Residents report what they see. Crime -20%, happiness +1%.'
+  m_RequiredTech: {fileID: 11400000, guid: 2938298197a15a9d8da1b3f15f749f82, type: 2}
+  m_CostPerDay: 2
+  m_CostPerResident: 0
+  m_Effects:
+  - Type: 7
+    Target: Order
+    Value: 0.8
+  - Type: 3
+    Target: 
+    Value: 0.01

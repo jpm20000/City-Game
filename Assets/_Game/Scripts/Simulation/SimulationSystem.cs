@@ -77,14 +77,14 @@ public sealed class SimulationSystem
         if (ages != null) Tech = new TechSystem(ages, techs, config);
         Capacity = new CapacityModel(config, ages);
         Economy = new EconomySystem(config);
-        Budget = new BudgetSystem(config);
+        Budget = new BudgetSystem(config, () => TechModifiers.LoanInterestMultiplier);
         Population = new PopulationSystem(config, Capacity);
         Demand = new DemandSystem(config);
         Power = new PowerSystem(grid, config, Capacity);
         Water = new WaterSystem(grid, config, Capacity, () => Rules.Water);
         Coverage = new CoverageSystem(grid.Width, grid.Height);
         Pollution = new PollutionSystem(grid, config, Capacity, ages, () => TechModifiers);
-        Civic = new CivicSystem(grid, config, Capacity, () => Population.Population, ages);
+        Civic = new CivicSystem(grid, config, Capacity, () => Population.Population, ages, () => TechModifiers);
         LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic,
             () => Budget.EffectFactor(BudgetLine.Parks));
         Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water);
@@ -130,7 +130,7 @@ public sealed class SimulationSystem
         Population.Restore(population, happiness);
         m_LastServices = MeasureServices();
         Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, m_LastServices,
-            TechModifiers.HappinessBonus);
+            TechModifiers.HappinessBonus, TechModifiers.OrdinanceHappiness);
         Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial, TechModifiers);
     }
 
@@ -149,9 +149,10 @@ public sealed class SimulationSystem
         float pipes = m_Grid.CountPipes() * m_Config.PipeUpkeepPerDay;
         float multiplier = TechModifiers.UpkeepMultiplier;
         float loans = Budget.DailyLoanPayments;
-        float expense = (modifiers.UpkeepPerDay + fundingDelta + roads + pipes) * multiplier + loans;
+        float ordinances = Tech != null ? Tech.OrdinanceCostPerDay(Population.Population) : 0f;
+        float expense = (modifiers.UpkeepPerDay + fundingDelta + roads + pipes) * multiplier + loans + ordinances;
         return new BudgetBreakdown(residential, commercial, industrial, byLine, modifiers.UpkeepPerDay - sourceUpkeep,
-            roads, pipes, multiplier, loans, expense);
+            roads, pipes, multiplier, loans, ordinances, expense);
     }
 
     // The principal a loan taken now would carry: the age's LoanAmount, else the config default.
@@ -193,7 +194,7 @@ public sealed class SimulationSystem
         Population.RecountCapacity(m_Grid, modifiers);
         m_LastServices = MeasureServices();
         Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, m_LastServices,
-            tech.HappinessBonus);
+            tech.HappinessBonus, tech.OrdinanceHappiness);
 
         BudgetBreakdown ledger = Ledger();
         Economy.ApplyDay(ledger.Income, ledger.Expense);

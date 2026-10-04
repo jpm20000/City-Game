@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: steel_frames
   m_DisplayName: Steel Frames
-  m_Description: 'Skeletons of steel let buildings climb.'
+  m_Description: 'Skeletons of steel let buildings climb. Enables the Building Code ordinance.'
   m_Age: 2
   m_Cost: 550
   m_Prerequisites: 

@@ -13,6 +13,7 @@ public sealed class TechSystem
     private readonly BalanceConfig m_Config;
     private readonly HashSet<TechDefinition> m_Researched = new();
     private readonly List<ResearchProject> m_Queue = new();
+    private readonly HashSet<OrdinanceDefinition> m_Enacted = new();
 
     public AgeDatabase Ages => m_Ages;
     public TechDatabase Techs => m_Techs;
@@ -41,6 +42,68 @@ public sealed class TechSystem
     }
 
     public bool IsResearched(TechDefinition tech) => tech != null && m_Researched.Contains(tech);
+
+    private void Refold() => Modifiers = TechModifiers.Fold(Researched, EnactedOrdinances);
+
+    // --- Ordinances (M15) ---
+
+    // Researched and so available to enact.
+    public bool IsUnlocked(OrdinanceDefinition ordinance) => ordinance != null && IsResearched(ordinance.RequiredTech);
+
+    public bool IsEnacted(OrdinanceDefinition ordinance) => ordinance != null && m_Enacted.Contains(ordinance);
+
+    // Enacted ordinances in database order.
+    public IEnumerable<OrdinanceDefinition> EnactedOrdinances
+    {
+        get
+        {
+            foreach (OrdinanceDefinition ordinance in m_Techs.Ordinances)
+            {
+                if (ordinance != null && m_Enacted.Contains(ordinance)) yield return ordinance;
+            }
+        }
+    }
+
+    // False when the ordinance is locked or already enacted.
+    public bool Enact(OrdinanceDefinition ordinance)
+    {
+        if (!IsUnlocked(ordinance) || !m_Enacted.Add(ordinance)) return false;
+        Refold();
+        return true;
+    }
+
+    public bool Repeal(OrdinanceDefinition ordinance)
+    {
+        if (ordinance == null || !m_Enacted.Remove(ordinance)) return false;
+        Refold();
+        return true;
+    }
+
+    // What the enacted ordinances cost per day at this population.
+    public float OrdinanceCostPerDay(int population)
+    {
+        float total = 0f;
+        foreach (OrdinanceDefinition ordinance in m_Enacted) total += ordinance.DailyCost(population);
+        return total;
+    }
+
+    // Load: enacts the saved ordinances that exist and are unlocked; returns how many were dropped.
+    public int RestoreOrdinances(IEnumerable<string> ids)
+    {
+        m_Enacted.Clear();
+        int dropped = 0;
+        if (ids != null)
+        {
+            foreach (string id in ids)
+            {
+                OrdinanceDefinition ordinance = m_Techs.GetOrdinanceById(id);
+                if (ordinance != null && IsUnlocked(ordinance)) m_Enacted.Add(ordinance);
+                else dropped++;
+            }
+        }
+        Refold();
+        return dropped;
+    }
 
     // Researched techs in database order (deterministic, independent of completion order).
     public IEnumerable<TechDefinition> Researched
@@ -202,7 +265,7 @@ public sealed class TechSystem
             else
             {
                 m_Researched.Add(done.Tech);
-                Modifiers = TechModifiers.Fold(Researched);
+                Refold();
             }
             PromoteNext();
             completed++;
@@ -226,7 +289,8 @@ public sealed class TechSystem
         m_Queue.Clear();
         Progress = 0f;
         ResearchPerDay = 0f;
-        Modifiers = TechModifiers.Fold(Researched);
+        m_Enacted.Clear();
+        Refold();
     }
 
     // The techs a city starting in the given age has researched: every tech of earlier ages plus
@@ -264,7 +328,8 @@ public sealed class TechSystem
                 else dropped++;
             }
         }
-        Modifiers = TechModifiers.Fold(Researched);
+        m_Enacted.Clear();
+        Refold();
 
         Active = null;
         m_Queue.Clear();

@@ -7,10 +7,23 @@ using UnityEngine;
 public sealed class TechDatabase : ScriptableObject
 {
     [SerializeField] private List<TechDefinition> m_Techs = new();
+    [Tooltip("(M15) City-wide policies unlocked by techs.")]
+    [SerializeField] private List<OrdinanceDefinition> m_Ordinances = new();
 
     private Dictionary<string, TechDefinition> m_ById;
 
     public IReadOnlyList<TechDefinition> Techs => m_Techs;
+    public IReadOnlyList<OrdinanceDefinition> Ordinances => m_Ordinances;
+
+    public OrdinanceDefinition GetOrdinanceById(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return null;
+        foreach (OrdinanceDefinition ordinance in m_Ordinances)
+        {
+            if (ordinance != null && ordinance.Id == id) return ordinance;
+        }
+        return null;
+    }
 
     public TechDefinition GetById(string id)
     {
@@ -124,6 +137,22 @@ public sealed class TechDatabase : ScriptableObject
                 }
             }
         }
+        var ordinanceIds = new HashSet<string>();
+        for (int i = 0; i < m_Ordinances.Count; i++)
+        {
+            OrdinanceDefinition ordinance = m_Ordinances[i];
+            if (ordinance == null)
+            {
+                errors.Add($"Ordinance #{i} is missing.");
+                continue;
+            }
+            if (string.IsNullOrEmpty(ordinance.Id)) errors.Add($"Ordinance #{i} has no Id.");
+            else if (!ordinanceIds.Add(ordinance.Id)) errors.Add($"Duplicate ordinance Id '{ordinance.Id}'.");
+            if (ordinance.RequiredTech == null || !known.Contains(ordinance.RequiredTech))
+                errors.Add($"Ordinance '{ordinance.Id}' needs a tech that is in the TechDatabase.");
+            if (ordinance.CostPerDay < 0f || ordinance.CostPerResident < 0f) errors.Add($"Ordinance '{ordinance.Id}' has a negative cost.");
+        }
+
         return errors.Count == before;
     }
 
@@ -154,5 +183,10 @@ public sealed class TechDatabase : ScriptableObject
     {
         m_Techs = new List<TechDefinition>(techs);
         m_ById = null;
+    }
+
+    internal void InitOrdinances(params OrdinanceDefinition[] ordinances)
+    {
+        m_Ordinances = new List<OrdinanceDefinition>(ordinances);
     }
 }

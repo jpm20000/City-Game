@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: charters
   m_DisplayName: Charters
-  m_Description: 'A town charter grants rights to its citizens. Happiness +2%.'
+  m_Description: 'A town charter grants rights to its citizens. Happiness +2%. Enables the Feast Days ordinance.'
   m_Age: 0
   m_Cost: 70
   m_Prerequisites: 

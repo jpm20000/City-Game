@@ -57,7 +57,8 @@ public sealed class PopulationSystem
     }
 
     // techBonus = researched techs' happiness bonus (TechModifiers.HappinessBonus).
-    public void Step(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services, float techBonus = 0f)
+    public void Step(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services, float techBonus = 0f,
+        float ordinanceBonus = 0f)
     {
         // Residents above capacity (e.g. after a demolish) are homeless and leave this tick.
         Homeless = Mathf.Max(0, Population - Housing);
@@ -72,15 +73,15 @@ public sealed class PopulationSystem
 
         RecountEmployment();
 
-        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus);
+        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus, ordinanceBonus);
         AverageHappiness = Happiness.Total;
     }
 
     // Load / new game: rebuilds the breakdown for the UI without touching the saved AverageHappiness.
     public void RefreshHappinessBreakdown(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services,
-        float techBonus = 0f)
+        float techBonus = 0f, float ordinanceBonus = 0f)
     {
-        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus);
+        Happiness = ComputeHappiness(taxResidential, taxCommercial, taxIndustrial, services, techBonus, ordinanceBonus);
     }
 
     // Happiness lost to taxes above the threshold (positive number). Also used by the tax panel preview.
@@ -92,7 +93,7 @@ public sealed class PopulationSystem
     }
 
     private HappinessBreakdown ComputeHappiness(float taxResidential, float taxCommercial, float taxIndustrial, ServiceStats services,
-        float techBonus)
+        float techBonus, float ordinanceBonus)
     {
         // Unemployment, pollution, blackouts and dry homes ramp in with size: new towns are always
         // lopsided and can't afford a power plant yet.
@@ -111,7 +112,8 @@ public sealed class PopulationSystem
             -m_Config.WaterPenalty * cityWeight * services.UnwateredHousingShare,
             -services.CrimePenalty,
             -services.FirePenalty,
-            -services.HealthPenalty);
+            -services.HealthPenalty,
+            ordinanceBonus);
     }
 
     // Load / new game. Call RecountCapacity first so the derived worker/job stats are current.

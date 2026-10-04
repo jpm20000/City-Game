@@ -51,6 +51,11 @@ public sealed class CivicSystem
     private readonly CapacityModel m_Capacity;
     private readonly Func<int> m_Population;
     private readonly float[] m_FireRiskByAge;   // per age index; empty without ages
+    private readonly Func<TechModifiers> m_Tech;   // ordinances' need multipliers (M15); null = x1
+    private TechModifiers m_NeedsFor;               // the modifiers the three cached multipliers were read from
+    private float m_CrimeMultiplier = 1f;
+    private float m_FireMultiplier = 1f;
+    private float m_SickMultiplier = 1f;
     private IReadOnlyList<ServiceSource> m_Sources = Array.Empty<ServiceSource>();
 
     public CivicCoverage Cover { get; }
@@ -58,8 +63,9 @@ public sealed class CivicSystem
     // population: the city's current population (drives the ramp); null = always fully ramped.
     // ages: fire risk per built age; null = BalanceConfig.FireRisk everywhere.
     public CivicSystem(GridData grid, BalanceConfig config, CapacityModel capacity = null, Func<int> population = null,
-        AgeDatabase ages = null)
+        AgeDatabase ages = null, Func<TechModifiers> tech = null)
     {
+        m_Tech = tech;
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_Config = config ?? throw new ArgumentNullException(nameof(config));
         m_Capacity = capacity ?? new CapacityModel(config, ages);
@@ -84,6 +90,17 @@ public sealed class CivicSystem
         Cover.Recompute(m_Sources);
     }
 
+    // Crime, fire risk and sickness x the enacted ordinances' multipliers, refreshed when the modifiers object changes.
+    private void RefreshNeeds()
+    {
+        TechModifiers tech = m_Tech?.Invoke() ?? TechModifiers.None;
+        if (ReferenceEquals(tech, m_NeedsFor)) return;
+        m_NeedsFor = tech;
+        m_CrimeMultiplier = tech.CivicNeed(ServiceKind.Order);
+        m_FireMultiplier = tech.CivicNeed(ServiceKind.Fire);
+        m_SickMultiplier = tech.CivicNeed(ServiceKind.Health);
+    }
+
     // 0 below CivicFreePopulation, 1 from CivicFullPopulation, linear between.
     public float Ramp => RampAt(m_Config, m_Population?.Invoke() ?? int.MaxValue);
 
@@ -103,7 +120,9 @@ public sealed class CivicSystem
         if (zone != ZoneType.Residential && zone != ZoneType.Commercial || m_Grid.GetBuildingLevel(cell) == 0) return 0f;
         int capacity = m_Capacity.CapacityOf(m_Grid, cell);
         if (capacity == 0) return 0f;
-        return Mathf.Min(1f, capacity * m_Config.CrimePerCapacity) * Ramp * (1f - Cover.GetStrength(ServiceKind.Order, cell));
+        RefreshNeeds();
+        return Mathf.Min(1f, capacity * m_Config.CrimePerCapacity) * Ramp * (1f - Cover.GetStrength(ServiceKind.Order, cell))
+            * m_CrimeMultiplier;
     }
 
     public float GetFireRisk(Vector2Int cell) => Explain(cell).FireRisk;
@@ -112,6 +131,7 @@ public sealed class CivicSystem
     public CivicBreakdown Explain(Vector2Int cell)
     {
         if (!m_Grid.InBounds(cell)) return default;
+        RefreshNeeds();
         float ramp = Ramp;
         ZoneType zone = m_Grid.GetZone(cell);
         int capacity = m_Capacity.CapacityOf(m_Grid, cell);
@@ -127,8 +147,8 @@ public sealed class CivicSystem
         if (zone == ZoneType.Industrial) fireBase *= m_Config.FireRiskIndustrialFactor;
         float sickness = capacity > 0 && zone == ZoneType.Residential ? ramp * (1f - health) : 0f;
 
-        return new CivicBreakdown(ramp, crimePotential, order, crimePotential * ramp * (1f - order),
-            fireBase, fire, fireBase * ramp * (1f - fire), health, sickness, education);
+        return new CivicBreakdown(ramp, crimePotential, order, crimePotential * ramp * (1f - order) * m_CrimeMultiplier,
+            fireBase, fire, fireBase * ramp * (1f - fire) * m_FireMultiplier, health, sickness * m_SickMultiplier, education);
     }
 
     // Hot path for ServiceStats.Measure (14d): a grown home's needs, given the capacity it already
@@ -136,15 +156,16 @@ public sealed class CivicSystem
     public void HomeNeeds(Vector2Int cell, int capacity, float ramp, out float crime, out float fireRisk, out float sickness,
         out float education)
     {
+        RefreshNeeds();
         int width = m_Grid.Width;
         int i = cell.y * width + cell.x;
         float order = Cover.StrengthAt(ServiceKind.Order, i);
         float fire = Cover.StrengthAt(ServiceKind.Fire, i);
         float health = Cover.StrengthAt(ServiceKind.Health, i);
         education = Cover.StrengthAt(ServiceKind.Education, i);
-        crime = Mathf.Min(1f, capacity * m_Config.CrimePerCapacity) * ramp * (1f - order);
-        fireRisk = FireRiskOfAge(m_Grid.GetBuiltAge(cell)) * ramp * (1f - fire);
-        sickness = ramp * (1f - health);
+        crime = Mathf.Min(1f, capacity * m_Config.CrimePerCapacity) * ramp * (1f - order) * m_CrimeMultiplier;
+        fireRisk = FireRiskOfAge(m_Grid.GetBuiltAge(cell)) * ramp * (1f - fire) * m_FireMultiplier;
+        sickness = ramp * (1f - health) * m_SickMultiplier;
     }
 
     private float FireRiskOfAge(int builtAge)
