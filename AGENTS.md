@@ -3,7 +3,7 @@
 ## Project
 - Unity **6000.6.3f1**, URP 17.6.0, Linear, PC target, new Input System only (`activeInputHandler: 1`).
 - Isometric 2.5D city-builder with an abstract (statistical) simulation. Design, roadmap and the per-system reference: `Docs/GamePlan.md` (§12 roadmap, §13 systems).
-- **Roadmap M10–M19** (`Docs/GamePlan.md` §12): the city spans history through 4 ages (Medieval 750, Renaissance 1450, Industrial 1760, Modern 1945) with research, a tech tree and a selectable starting age. M10 (map size, perf, New City), M11 (ages, research, save v2), M12 (local pollution, land value, heritage), M13 (water: wells, towers, pipes, save v3) M14 (civic services: order, fire, health, education) M15 (budget: funding per service line, loans, ordinances, save v4) M16 (traffic: homes→jobs commute flow, five road tiers, Traffic view, save v5), M17 (disasters & events: fire, plague, breakdowns, random events with choices, a seeded saved RNG, save v6) and M18 (art & atmosphere: a generated building kit, textured roads and ground, day/night, audio, vehicles; presentation only, no save change) are **done**; **M19 is next**. Standing rules: see **Roadmap M11–M19** below; where each later milestone plugs in: `Docs/GamePlan.md` §12.
+- **Roadmap M10–M19 (complete)** (`Docs/GamePlan.md` §12): the city spans history through 4 ages (Medieval 750, Renaissance 1450, Industrial 1760, Modern 1945) with research, a tech tree and a selectable starting age. M10 (map size, perf, New City), M11 (ages, research, save v2), M12 (local pollution, land value, heritage), M13 (water: wells, towers, pipes, save v3) M14 (civic services: order, fire, health, education) M15 (budget: funding per service line, loans, ordinances, save v4) M16 (traffic: homes→jobs commute flow, five road tiers, Traffic view, save v5), M17 (disasters & events: fire, plague, breakdowns, random events with choices, a seeded saved RNG, save v6) M18 (art & atmosphere: a generated building kit, textured roads and ground, day/night, audio, vehicles; presentation only, no save change) and M19 (release: title screen over a showcase city, pause menu and one Esc router, named saves with thumbnails and autosaves, save v7, one Settings window with rebindable keys, a Medieval tutorial, a Windows release **Chronopolis 1.0.0** by J-man Studios with installer and `-smokeTest`) are **done**; the roadmap is complete. Standing rules: see **Roadmap M11–M19** below; where each later milestone plugs in: `Docs/GamePlan.md` §12.
 - Game code lives under `Assets/_Game/` (never at `Assets/` root). Default scene: `Assets/_Game/Scenes/Main.unity`.
 
 ## Build / run / test
@@ -37,7 +37,7 @@ Step-by-step procedures live in skills (load the one that fits the task); per-sy
 - **Not `IsometricZAsY`** — `Docs/GamePlan.md` §2/§5 is stale on this point.
 
 ## Roadmap M11–M19
-Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M18 exist; M19 is an outline in `Docs/GamePlan.md` §12) — read only the one you need.
+Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M19 exist) — read only the one you need.
 
 **Workflow:** follow the `milestone-workflow` skill — plan in `Docs/milestones/Mxx.md` first, commit each step on its own; a milestone is done when EditMode tests are green, a **UI-only virtual-input play-through** of its loop passes (`virtual-input-playthrough`) and the docs (GamePlan §13 Systems reference + §8/§12 status; this file only if a convention changed) are updated.
 

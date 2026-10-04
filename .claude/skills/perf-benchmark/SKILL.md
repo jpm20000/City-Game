@@ -49,3 +49,7 @@ Editor frame times mislead: Hierarchy/editor overhead makes GameObject create/de
 Regressions to watch: per-instance materials or `MaterialPropertyBlock`s (they drop renderers out of the SRP Batcher / GPU Resident Drawer — this was 23 ms frames / 110 ms zoomed out before M10b), creating/destroying GameObjects per change instead of pooling, and per-tick full-map scans in new sim systems.
 
 Record new numbers in this table and in GamePlan §12's milestone notes.
+
+## Notes from M19g
+- The title screen is skipped by `-perfBenchmark` (and `-smokeTest`, `-skipMenu`, batch mode), so the benchmark numbers are the in-city numbers as before. A **release** player (`CityBuilder > Build Windows Release`) has no `PerfBenchmark` or debug panel: benchmark in a development player, check the release with `-smokeTest -savesDir <folder>` (exit code 0 and `smoke_test.txt` next to `Player.log`). A player build churns `Assets/Settings`, `ProjectSettings` and some `Art/Civic*.mat`: `git checkout --` them after committing the intended settings.
+- Recorded M19 numbers (development player, 1080p): default zoom 1.34 ms median, zoomed out 1.61, edit every frame 2.27-2.49, sim tick 2.57 ms.
