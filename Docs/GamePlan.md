@@ -425,7 +425,7 @@ Each milestone is independently verifiable before moving on.
 | 18 | Art & atmosphere | Hand-made per-age assets through the M11 visual sets, day/night, audio | Every age has its own skyline |
 | 19 | Release | Main menu, settings, save slots, player build | A standalone build plays start to finish |
 
-**Status (2026-10-04):** M0–M15 implemented — the vertical slice is complete, M15 (§12) added budget lines with funding, loans, ordinances and a Budget panel (save v4), M14 (§12) added civic services (order, fire, health and education lines; crime, fire risk and sickness as happiness terms, crime in land value, research from schooled residents, outdated tiers), M13 (§12) made every age need water (wells, then towers, pumps and pipes; save v3), M12 (§12) made pollution local and added land value (level 3 needs it) and the heritage bonus, M9 (§11) added power, park coverage and info views, M10 (§12) made the map size per city (default 64²) with a New City dialog, and M11 (§12) added four ages, research and a 30-tech tree, per-age growth rules and looks, redevelopment with Keep historical, save v2 with migration, and a starting-age picker. M7 shipped as UGUI + TextMeshPro
+**Status (2026-10-04):** M0–M16 implemented — the vertical slice is complete, M16 (§12) added a statistical homes→jobs commute (`TrafficSystem`), five tech-unlocked road tiers stored per road (save v5), a Traffic happiness term and land-value line, tiered placement with upgrade drags and a Traffic view, M15 (§12) added budget lines with funding, loans, ordinances and a Budget panel (save v4), M14 (§12) added civic services (order, fire, health and education lines; crime, fire risk and sickness as happiness terms, crime in land value, research from schooled residents, outdated tiers), M13 (§12) made every age need water (wells, then towers, pumps and pipes; save v3), M12 (§12) made pollution local and added land value (level 3 needs it) and the heritage bonus, M9 (§11) added power, park coverage and info views, M10 (§12) made the map size per city (default 64²) with a New City dialog, and M11 (§12) added four ages, research and a 30-tech tree, per-age growth rules and looks, redevelopment with Keep historical, save v2 with migration, and a starting-age picker. M7 shipped as UGUI + TextMeshPro
 prefabs (`Prefabs/UI/`): HUD, build toolbar (`ToolbarController`, building buttons
 generated from the database), selection panel, taxes panel, notifications (toast +
 debt banner) and an F1 debug panel. The zone-painting tool landed early (after M6),
@@ -681,7 +681,7 @@ and the four civic lines; loans by age; 12 tech-unlocked ordinances; the Taxes p
 daily ledger; save v4. Defaults are identity (no baseline change). Steps 15a funding (pure) · 15b loans + save v4 ·
 15c ordinances · 15d UI · 15e balance / play-through / docs. All five steps are done.
 
-### M16 — Traffic — in progress (16a, 16b done 2026-10-04)
+### M16 — Traffic — done (2026-10-04)
 
 Full plan: [Docs/milestones/M16.md](milestones/M16.md). A statistical homes → jobs commute (one Dial pass over the
 road graph per tick) loads every road cell; congestion costs happiness (a Traffic term from each home's commute) and
@@ -740,9 +740,11 @@ land value, research from schooled residents, outdated tiers leave the toolbar; 
 decision, Industrial start re-recorded at 220 pop / 0.631; no save change; Services views, panel lines, toasts; `AgeBalanceTests`
 84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). **M15 done** (steps 15a–15e: funding per budget line, 50-150%, scaling upkeep and, with diminishing returns, reach, supply and strength; loans by age; 12 tech-unlocked ordinances; a Budget panel with the day's ledger; save v4; the default settings change nothing, Industrial start still 220 pop / 0.631; `AgeBalanceTests` 84 / 61 / 73 days with and without the budget player; 229 EditMode tests green plus the UI-only play-through). Next: M16 (traffic) — planned in `Docs/milestones/M16.md` (2026-10-04); start with step 16a.
 
+**M16 done** (steps 16a–16d: byte road tiers dirt / cobble / paved / avenue / highway with tech-unlocked content and Macadam, highways without frontage, save v5; `TrafficSystem` Dial's-algorithm flow with a Traffic happiness term and land-value line; tiered placement, upgrade drags, per-tier sprites, Traffic view and panel / tooltip / toast hooks; the engaged player lays best-tier roads and upgrades jams. `AgeBalanceTests` 84 / 61 / 57 days (budget 84 / 58 / 54), seeded baselines unchanged, traffic flow 0.29 ms on a 96² city in a player build, 260 EditMode tests green plus a UI-only play-through with 0 failed checks). Next: M17.
+
 ---
 
-## 13. Systems reference (as built, M0–M15)
+## 13. Systems reference (as built, M0–M16)
 
 What each system is, where it lives and the numbers it was tuned to. Moved here from `AGENTS.md` (2026-10-03) so that file stays a short list of conventions; update the matching section in the same commit as any change (see the `milestone-workflow` skill). Where this section and the earlier sections of this document disagree, this section describes the code as built.
 
