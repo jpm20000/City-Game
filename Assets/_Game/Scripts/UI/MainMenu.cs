@@ -26,6 +26,7 @@ public sealed class MainMenu
         panel.anchoredPosition = new Vector2(120f, 0f);
         m_Window.Title.fontSize = 54;
         m_Window.Title.alignment = TextAlignmentOptions.Center;
+        AddLogo(panel);
         TMP_Text tagline = UiKit.Text(panel, "From the Middle Ages to the Modern Era", 15, UiKit.MutedColor);
         tagline.alignment = TextAlignmentOptions.Center;
 
@@ -45,6 +46,24 @@ public sealed class MainMenu
         versionRect.anchoredPosition = new Vector2(16f, 12f);
         versionRect.sizeDelta = new Vector2(200f, 24f);
         Object.Destroy(version.GetComponent<LayoutElement>());
+    }
+
+    // The logo (Resources/Logo) replaces the title text; without the asset the text stays.
+    private void AddLogo(RectTransform panel)
+    {
+        Sprite logo = Resources.Load<Sprite>("Logo");
+        if (logo == null) return;
+        m_Window.Title.gameObject.SetActive(false);
+        var go = new GameObject("Logo", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        go.transform.SetParent(panel, false);
+        go.transform.SetSiblingIndex(m_Window.Title.transform.GetSiblingIndex());
+        var image = go.GetComponent<Image>();
+        image.sprite = logo;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+        var element = go.GetComponent<LayoutElement>();
+        element.preferredWidth = 380f;
+        element.preferredHeight = 380f * logo.rect.height / logo.rect.width;
     }
 
     public void Show()

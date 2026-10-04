@@ -8,6 +8,7 @@ AppPublisher={{COMPANY}}
 DefaultDirName={autopf}\{{PRODUCT}}
 DefaultGroupName={{PRODUCT}}
 DisableProgramGroupPage=yes
+SetupIconFile={{ICON}}
 UninstallDisplayIcon={app}\{{EXE}}
 OutputDir={{OUTPUT}}
 OutputBaseFilename={{SETUPNAME}}

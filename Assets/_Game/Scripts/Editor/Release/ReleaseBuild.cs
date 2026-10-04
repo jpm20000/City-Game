@@ -55,7 +55,7 @@ public static class ReleaseBuild
         Texture2D biggest = Load("256");
         if (biggest == null)
         {
-            Debug.LogWarning($"ReleaseBuild: {IconFolder} has no icons; run Tools/gen_icon.py.");
+            Debug.LogWarning($"ReleaseBuild: {IconFolder} has no icons; add the icon PNGs (Art/Icon/icon_<size>.png, from Tools/release/Chronopolis.ico).");
             return;
         }
         PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { biggest }, IconKind.Application);
@@ -141,6 +141,7 @@ public static class ReleaseBuild
             .Replace("{{VERSION}}", PlayerSettings.bundleVersion)
             .Replace("{{SOURCE}}", folder)
             .Replace("{{OUTPUT}}", root)
+            .Replace("{{ICON}}", Path.Combine(ProjectRoot, "Tools", "release", Product + ".ico"))
             .Replace("{{EXE}}", Product + ".exe")
             .Replace("{{SETUPNAME}}", name + "_setup");
         string iss = Path.Combine(root, name + ".iss");
