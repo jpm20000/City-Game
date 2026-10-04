@@ -273,6 +273,7 @@ public sealed class PlacementController : MonoBehaviour
         }
         m_GridData.SetPipe(cell, true);
         GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
+        AudioController.Play(SfxId.PipeLay, m_GridSystem.CellToWorld(cell));
     }
 
     private bool TrySpend(float cost)
@@ -302,6 +303,7 @@ public sealed class PlacementController : MonoBehaviour
         // Rezoning or unzoning bulldozes whatever had grown there.
         m_GridData.SetBuildingLevel(cell, 0);
         m_GridData.SetZone(cell, m_ZoneBrush);
+        AudioController.Play(SfxId.ZonePaint, m_GridSystem.CellToWorld(cell));
     }
 
     private void TryPlaceRoad(Vector2Int cell)
@@ -330,6 +332,7 @@ public sealed class PlacementController : MonoBehaviour
 
         PlaceRoad(cell, tier);
         GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
+        AudioController.Play(existing != 0 ? SfxId.RoadUpgrade : SfxId.RoadLay, m_GridSystem.CellToWorld(cell));
     }
 
     private void ClearRubble(Vector2Int cell)
@@ -353,7 +356,11 @@ public sealed class PlacementController : MonoBehaviour
     {
         if (m_Selected == null || m_Selected.Prefab == null) return;
         if (!m_GameManager.CanBuild(m_Selected)) return;
-        if (!m_GridData.CanPlace(cell, m_Selected.Size, m_Rotation)) return;
+        if (!m_GridData.CanPlace(cell, m_Selected.Size, m_Rotation))
+        {
+            AudioController.Play(SfxId.Refused);
+            return;
+        }
         if (!m_GameManager.Economy.CanAfford(m_Selected.Cost))
         {
             GameEvents.RaiseInsufficientFunds(m_Selected.Cost);
@@ -363,6 +370,7 @@ public sealed class PlacementController : MonoBehaviour
         if (CreateBuilding(m_Selected, cell, m_Rotation) == null) return;
         m_GameManager.Economy.Spend(m_Selected.Cost);
         GameEvents.RaiseMoneySpent(m_Selected.Cost, FootprintCenter(cell, m_Selected.Size, m_Rotation));
+        AudioController.Play(SfxId.Place, FootprintCenter(cell, m_Selected.Size, m_Rotation));
     }
 
     // Instantiates, occupies and registers a building; clears zoning under it. No cost check.
@@ -526,12 +534,14 @@ public sealed class PlacementController : MonoBehaviour
         if (m_GridData.IsRoad(cell))
         {
             m_GridData.SetRoad(cell, false);
+            AudioController.Play(SfxId.Demolish, m_GridSystem.CellToWorld(cell));
             return;
         }
 
         if (m_GridData.GetBuildingLevel(cell) > 0)
         {
             m_GridData.SetBuildingLevel(cell, 0);
+            AudioController.Play(SfxId.Demolish, m_GridSystem.CellToWorld(cell));
             return;
         }
 
@@ -547,6 +557,7 @@ public sealed class PlacementController : MonoBehaviour
         m_Buildings.Remove(occupantId);
         m_GameManager.UnregisterBuilding(instance);
         instance.Demolish();
+        AudioController.Play(SfxId.Demolish, instance.transform.position);
         Destroy(instance.gameObject);
     }
 

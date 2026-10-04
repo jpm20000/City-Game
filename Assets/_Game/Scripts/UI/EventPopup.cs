@@ -120,7 +120,11 @@ public sealed class EventPopup : MonoBehaviour
 
     private void Show(EventDefinition definition)
     {
-        if (!IsOpen) m_PreviousSpeed = m_Game.Clock.Speed;
+        if (!IsOpen)
+        {
+            m_PreviousSpeed = m_Game.Clock.Speed;
+            AudioController.Play(SfxId.EventOpen);
+        }
         m_ShownId = definition.Id;
         transform.SetAsLastSibling();
 
@@ -150,6 +154,7 @@ public sealed class EventPopup : MonoBehaviour
     private void Choose(int index)
     {
         if (!m_Game.Simulation.Disasters.Events.Choose(index)) return;
+        AudioController.Play(SfxId.EventChoice);
         Hide(true);
     }
 

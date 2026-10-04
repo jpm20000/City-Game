@@ -119,6 +119,7 @@ public sealed class DisasterController : MonoBehaviour
                 ? "<color=#FF7A29>Fire!</color> A block is burning."
                 : "<color=#FF7A29>Fire!</color> A block is burning and may spread. Fire stations and water put fires out; roads slow them. [V] Fire view shows the cover.");
             m_FireHintShown = true;
+            AudioController.Play(SfxId.FireStart);
         }
         m_LostBlocks += fire.LostBlocks;
         if (m_Burning && fire.BurningCount == 0)
@@ -137,6 +138,7 @@ public sealed class DisasterController : MonoBehaviour
                 ? "<color=#8FD14F>Plague</color> has broken out."
                 : "<color=#8FD14F>Plague</color> has broken out — homes without health care catch it and residents die. Apothecaries and a quarantine slow it.");
             m_PlagueHintShown = true;
+            AudioController.Play(SfxId.PlagueBell);
         }
         if (plague.Ended) Toast($"The plague is over — {d.PlagueDeaths} resident{(d.PlagueDeaths == 1 ? "" : "s")} died.");
 
@@ -148,6 +150,7 @@ public sealed class DisasterController : MonoBehaviour
             Toast($"<color=#F2665A>The {name} has broken down</color> — select it to repair it (${cost:N0}) or wait {m_Game.Balance.BreakdownDays} days."
                 + (m_BreakdownHintShown ? "" : " Older and underfunded plants break down more often."));
             m_BreakdownHintShown = true;
+            AudioController.Play(SfxId.Breakdown);
         }
     }
 

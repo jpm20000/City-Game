@@ -205,6 +205,7 @@ MonoBehaviour:
   m_GrowthVisuals: {fileID: 189747473}
   m_TileArt: {fileID: 11400000, guid: 234d90d4244957d8baf958849c412d35, type: 2}
   m_KitMaterial: {fileID: 2100000, guid: b4eea88c5e01da747b1db0ec716ca502, type: 2}
+  m_AudioCatalog: {fileID: 11400000, guid: 44defdf140f655e9b7ff55b2b88fb143, type: 2}
 --- !u!4 &189747471
 Transform:
   m_ObjectHideFlags: 0

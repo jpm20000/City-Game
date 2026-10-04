@@ -20,6 +20,11 @@ public sealed class ToolButton : MonoBehaviour, IPointerEnterHandler, IPointerEx
     private Color m_CostColor;
     private bool m_CostColorCached;
 
+    private void Start()
+    {
+        if (m_Button != null) m_Button.onClick.AddListener(() => AudioController.Play(SfxId.Click));
+    }
+
     public Button Button => m_Button;
     public string Tooltip { get; set; }
 

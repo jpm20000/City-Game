@@ -202,6 +202,10 @@ public sealed class GrowthVisuals : MonoBehaviour
         // Growth and redevelopment (a new built age) pop; a rezone recolour or a level drop is instant.
         int age = m_Grid.GetBuiltAge(cell);
         bool grew = level > grown.Level || (grown.Level > 0 && age != grown.Age);
+        if (level > grown.Level && grown.Level > 0 && AudioController.AllowGrowthSounds)
+        {
+            AudioController.Play(SfxId.LevelUp, new Vector3(cell.x + 0.5f, 0f, cell.y + 0.5f));
+        }
         grown.Level = level;
         grown.Age = age;
         grown.Style = StyleFor(grown.Zone, level, age);

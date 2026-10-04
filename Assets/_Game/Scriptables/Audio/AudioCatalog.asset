@@ -1,0 +1,128 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c07a2b5d4e6f4a8b9c0d1e2f3a4b5c81, type: 3}
+  m_Name: AudioCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::AudioCatalog
+  m_Sfx:
+  - Id: 0
+    Volume: 0.45
+    Clips:
+    - {fileID: 8300000, guid: 3cb1ab607b425ad1bffcce323b982cbf, type: 3}
+    - {fileID: 8300000, guid: 7b82cdd3d6d357ffa709f8a00f785675, type: 3}
+  - Id: 1
+    Volume: 0.9
+    Clips:
+    - {fileID: 8300000, guid: b75000a9026d5dd6a73cebe03af7c9b2, type: 3}
+    - {fileID: 8300000, guid: 444e41281ee358079f401e6a428efdd3, type: 3}
+    - {fileID: 8300000, guid: 16693beccc4d5a3995d2c541fb713399, type: 3}
+  - Id: 2
+    Volume: 0.5
+    Clips:
+    - {fileID: 8300000, guid: 3141bbc984fd52618a34b0be5553a9d2, type: 3}
+    - {fileID: 8300000, guid: 765821a202125d37982b59960559d6ff, type: 3}
+  - Id: 3
+    Volume: 0.55
+    Clips:
+    - {fileID: 8300000, guid: 4369577aa9a853278ca54da6657b5a57, type: 3}
+    - {fileID: 8300000, guid: 2de967a3caea5191aea4bf64d44104f6, type: 3}
+    - {fileID: 8300000, guid: 92494bc12c8555ac8bd6f3e5820fcbf9, type: 3}
+  - Id: 4
+    Volume: 0.6
+    Clips:
+    - {fileID: 8300000, guid: f774472d024f5777add99a87f7e7a9b1, type: 3}
+  - Id: 5
+    Volume: 0.55
+    Clips:
+    - {fileID: 8300000, guid: fd400e043d525528a4929297036ba993, type: 3}
+    - {fileID: 8300000, guid: e3c9595be1d65448a4063d98fe423bd4, type: 3}
+  - Id: 6
+    Volume: 0.9
+    Clips:
+    - {fileID: 8300000, guid: 21b4c56b75ab518e8730262acddf029b, type: 3}
+    - {fileID: 8300000, guid: d62da3cf4f8151bdb73b2beaa28cbabf, type: 3}
+  - Id: 7
+    Volume: 0.6
+    Clips:
+    - {fileID: 8300000, guid: 35542f8843fa530fbd4e55aa4d40a89d, type: 3}
+  - Id: 8
+    Volume: 0.6
+    Clips:
+    - {fileID: 8300000, guid: 474b7fcdb1d952a481cef4bc926c228e, type: 3}
+  - Id: 9
+    Volume: 0.35
+    Clips:
+    - {fileID: 8300000, guid: 9cf106b697405b5fa1890f2d1967b9c2, type: 3}
+  - Id: 10
+    Volume: 0.3
+    Clips:
+    - {fileID: 8300000, guid: 206267604902581f9752d222612effc7, type: 3}
+    - {fileID: 8300000, guid: 3dd4a43f3f85519bbb1dc72279f9c9ad, type: 3}
+  - Id: 11
+    Volume: 0.7
+    Clips:
+    - {fileID: 8300000, guid: 6de65481aa635d38a641c508d5bcbad8, type: 3}
+  - Id: 12
+    Volume: 0.85
+    Clips:
+    - {fileID: 8300000, guid: f689b6f7bf4e50aeb44714c9d17817c6, type: 3}
+  - Id: 13
+    Volume: 0.7
+    Clips:
+    - {fileID: 8300000, guid: f2113e3d48ea5193bfe8b8ca3e2aab5e, type: 3}
+  - Id: 14
+    Volume: 0.7
+    Clips:
+    - {fileID: 8300000, guid: 5672048d4cd35ca383dd44244e13ffa2, type: 3}
+  - Id: 15
+    Volume: 0.9
+    Clips:
+    - {fileID: 8300000, guid: 69253017e6905b319c769fe6e0f1ac8c, type: 3}
+  - Id: 16
+    Volume: 0.8
+    Clips:
+    - {fileID: 8300000, guid: 6c6b2c842d185cfb89b1449807010998, type: 3}
+  - Id: 17
+    Volume: 0.8
+    Clips:
+    - {fileID: 8300000, guid: c6f6a7f2abe0589cbfdfd1531021101a, type: 3}
+  - Id: 18
+    Volume: 0.7
+    Clips:
+    - {fileID: 8300000, guid: 473a18c2c59c5e63b1ef25f15a4e7f07, type: 3}
+  - Id: 19
+    Volume: 0.55
+    Clips:
+    - {fileID: 8300000, guid: dd098acd092d51a59e518223cff49739, type: 3}
+  - Id: 20
+    Volume: 0.55
+    Clips:
+    - {fileID: 8300000, guid: 9c965af223ea5259b98a0939eed47a57, type: 3}
+  m_Ambience:
+  - Base: {fileID: 8300000, guid: f0dc9cfba3fd5bbe974cfbea1c9dfcbf, type: 3}
+    City: {fileID: 8300000, guid: 52573b585df75d22b85ad61519890e9f, type: 3}
+    Industry: {fileID: 8300000, guid: ed77a95770855c719cc8af8c7c2746ff, type: 3}
+  - Base: {fileID: 8300000, guid: 46321cb0437253dfb637cfc368c8fd56, type: 3}
+    City: {fileID: 8300000, guid: b07aaba486055c838f6ac417e5a05199, type: 3}
+    Industry: {fileID: 8300000, guid: a8a72b4f858355bc9b8b74f8d68ac793, type: 3}
+  - Base: {fileID: 8300000, guid: 537a85b6c3115e75804a5c8c71258fb1, type: 3}
+    City: {fileID: 8300000, guid: 6c38c12be98c5ea7b2e2a9bd8392fe00, type: 3}
+    Industry: {fileID: 8300000, guid: 31590cb543d557c38e37d92e8764fb02, type: 3}
+  - Base: {fileID: 8300000, guid: 2730751fa0ae55e4a7cc8e222f8c3120, type: 3}
+    City: {fileID: 8300000, guid: 91af61f26a5351e38a396026491b3e8c, type: 3}
+    Industry: {fileID: 8300000, guid: 2423067da79c5aea9521373053d50ee5, type: 3}
+  m_Music:
+  - Tracks: []
+  - Tracks: []
+  - Tracks: []
+  - Tracks: []
+  m_Night: {fileID: 8300000, guid: a03bbedcad9f54628707e3b6488ee8b4, type: 3}
+  m_Fire: {fileID: 8300000, guid: bc2386c0107b5036bb6598d55c17bc41, type: 3}

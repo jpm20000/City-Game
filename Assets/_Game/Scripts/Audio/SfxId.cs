@@ -1,0 +1,25 @@
+// Every sound effect the game plays (M18e). Append only: the AudioCatalog stores the number.
+public enum SfxId
+{
+    Click,
+    Place,
+    ZonePaint,
+    RoadLay,
+    RoadUpgrade,
+    PipeLay,
+    Demolish,
+    Refused,
+    NoMoney,
+    Toast,
+    LevelUp,
+    ResearchDone,
+    AgeAdvance,
+    EventOpen,
+    EventChoice,
+    FireStart,
+    PlagueBell,
+    Breakdown,
+    Repair,
+    Save,
+    Load,
+}

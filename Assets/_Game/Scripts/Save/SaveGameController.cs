@@ -54,6 +54,7 @@ public sealed class SaveGameController : MonoBehaviour
         }
 
         GameEvents.RaiseNotification($"City saved — Day {data.Day}, Month {data.Month}, Year {data.Year}");
+        AudioController.Play(SfxId.Save);
         return true;
     }
 

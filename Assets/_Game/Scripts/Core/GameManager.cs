@@ -16,6 +16,8 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField] private TileArtSet m_TileArt;
     [Tooltip("The shared building-kit material: its window glow follows the day/night cycle (M18d).")]
     [SerializeField] private Material m_KitMaterial;
+    [Tooltip("Sound effects, ambience and music (M18e). Empty = a silent game.")]
+    [SerializeField] private AudioCatalog m_AudioCatalog;
 
     private CityModifiers m_Modifiers;
     private readonly List<BuildingInstance> m_SourceBuildings = new();
@@ -336,6 +338,7 @@ public sealed class GameManager : MonoBehaviour
         if (m_Time == null) return;
         DayNight = gameObject.AddComponent<DayNightCycle>();
         DayNight.Init(m_Time, FindAnyObjectByType<InfoOverlay>(), m_KitMaterial);
+        if (m_AudioCatalog != null) gameObject.AddComponent<AudioController>().Init(m_AudioCatalog, this);
     }
 
     // The ground follows the city's current age (M18c): 4 art variants per age, picked per cell by hash.
@@ -412,7 +415,9 @@ public sealed class GameManager : MonoBehaviour
 
     private void HandleTick()
     {
+        AudioController.AllowGrowthSounds = true;      // level-up sounds are for growth in play, not a load's blocks popping in
         Simulation.Tick();
+        AudioController.AllowGrowthSounds = false;
         if (Simulation.Growth.Redeveloped.Count > 0) GameEvents.RaiseRedeveloped(Simulation.Growth.Redeveloped.Count);
         RaiseStateEvents();
     }

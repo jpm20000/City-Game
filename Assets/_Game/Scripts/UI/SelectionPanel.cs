@@ -89,6 +89,7 @@ public sealed class SelectionPanel : MonoBehaviour
         }
         GameEvents.RaiseMoneySpent(cost, building.transform.position);
         GameEvents.RaiseNotification($"{building.Definition.DisplayName} repaired.");
+        AudioController.Play(SfxId.Repair, building.transform.position);
         Refresh();
     }
 
