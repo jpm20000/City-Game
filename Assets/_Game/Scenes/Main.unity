@@ -203,6 +203,7 @@ MonoBehaviour:
   m_TechDatabase: {fileID: 11400000, guid: 2816ddb3faba57f89134050973d81936, type: 2}
   m_Time: {fileID: 189747472}
   m_GrowthVisuals: {fileID: 189747473}
+  m_TileArt: {fileID: 11400000, guid: 234d90d4244957d8baf958849c412d35, type: 2}
 --- !u!4 &189747471
 Transform:
   m_ObjectHideFlags: 0

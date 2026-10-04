@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public sealed class GameManager : MonoBehaviour
 {
@@ -11,6 +12,8 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField] private TechDatabase m_TechDatabase;
     [SerializeField] private TimeManager m_Time;
     [SerializeField] private GrowthVisuals m_GrowthVisuals;
+    [Tooltip("Road and ground art (M18c). Empty = the runtime-drawn roads and the scene's ground tile.")]
+    [SerializeField] private TileArtSet m_TileArt;
 
     private CityModifiers m_Modifiers;
     private readonly List<BuildingInstance> m_SourceBuildings = new();
@@ -25,6 +28,7 @@ public sealed class GameManager : MonoBehaviour
     public AgeDatabase Ages => m_AgeDatabase != null && m_TechDatabase != null ? m_AgeDatabase : null;
     public TechDatabase Techs => m_AgeDatabase != null && m_TechDatabase != null ? m_TechDatabase : null;
     public TimeManager Clock => m_Time;
+    public TileArtSet TileArt => m_TileArt;
     public SimulationSystem Simulation { get; private set; }
     public EconomySystem Economy => Simulation?.Economy;
     public PopulationSystem Population => Simulation?.Population;
@@ -65,6 +69,10 @@ public sealed class GameManager : MonoBehaviour
 
         if (m_GrowthVisuals != null) m_GrowthVisuals.Init(Grid, Ages);
 
+        GameEvents.AgeChanged += ApplyGroundArt;
+        GameEvents.CityLoaded += ApplyGroundArt;
+        ApplyGroundArt();
+
         if (m_Time != null)
         {
             m_Time.Init(m_Balance);
@@ -81,6 +89,14 @@ public sealed class GameManager : MonoBehaviour
     private void OnDestroy()
     {
         if (m_Time != null) m_Time.OnTick -= HandleTick;
+        GameEvents.AgeChanged -= ApplyGroundArt;
+        GameEvents.CityLoaded -= ApplyGroundArt;
+        foreach (TileBase[] tiles in m_GroundTiles.Values)
+        {
+            if (tiles == null) continue;
+            foreach (TileBase tile in tiles) Destroy(tile);
+        }
+        m_GroundTiles.Clear();
     }
 
     public void RegisterBuilding(BuildingInstance building)
@@ -309,6 +325,32 @@ public sealed class GameManager : MonoBehaviour
         }
         Simulation.Sources = m_Sources;
         m_PowerDirty = true;
+    }
+
+    // The ground follows the city's current age (M18c): 4 art variants per age, picked per cell by hash.
+    private readonly Dictionary<int, TileBase[]> m_GroundTiles = new();
+
+    private void ApplyGroundArt(int age) => ApplyGroundArt();
+
+    private void ApplyGroundArt()
+    {
+        if (m_TileArt == null || m_GridSystem == null) return;
+        int age = Simulation != null && Simulation.Tech != null ? Simulation.Tech.CurrentAge : 2;
+        if (!m_GroundTiles.TryGetValue(age, out TileBase[] tiles))
+        {
+            var made = new List<TileBase>();
+            for (int v = 0; v < TileArtSet.GroundVariants; v++)
+            {
+                Sprite sprite = m_TileArt.Ground(age, v);
+                if (sprite == null) continue;
+                Tile tile = ScriptableObject.CreateInstance<Tile>();
+                tile.sprite = sprite;
+                made.Add(tile);
+            }
+            tiles = made.Count > 0 ? made.ToArray() : null;
+            m_GroundTiles[age] = tiles;
+        }
+        m_GridSystem.SetGroundVariants(tiles);
     }
 
     // New city / load replaced the map (GridData.Resize). The sim systems resize themselves.

@@ -16,6 +16,8 @@ public sealed class GridSystem : MonoBehaviour
     private TileBase m_GroundTile;
     private Vector2Int m_PaintedSize;
     private bool m_Initialized;
+    private TileBase[] m_GroundVariants;    // M18c: art variants, picked per cell by hash; null = the scene's tile
+    private bool m_GroundDirty;
 
     public Vector2Int GridSize => m_GridSize;
 
@@ -55,19 +57,51 @@ public sealed class GridSystem : MonoBehaviour
         return new Vector3Int(logical.x + m_TileXMin, m_TileYMax - 1 - logical.y, 0);
     }
 
+    // Ground art (M18c): these tiles replace the scene's single ground tile, one picked per cell by a hash
+    // (so the same city always looks the same). Null or empty = back to the scene's tile. Repaints at once.
+    public void SetGroundVariants(TileBase[] variants)
+    {
+        EnsureInitialized();
+        m_GroundVariants = variants != null && variants.Length > 0 ? variants : null;
+        m_GroundDirty = true;
+        PaintGround(m_GridSize);
+    }
+
     // Repaints the ground to cover logical cells (0..size-1)². Called by GameManager when the map is resized.
     public void PaintGround(Vector2Int size)
     {
         EnsureInitialized();
         m_GridSize = size;
-        if (size == m_PaintedSize || m_GroundTile == null) return;
+        if ((size == m_PaintedSize && !m_GroundDirty) || (m_GroundTile == null && m_GroundVariants == null)) return;
 
         m_GroundTilemap.ClearAllTiles();
         Vector3Int min = LogicalToTileCell(new Vector2Int(0, size.y - 1));
         BoundsInt block = new BoundsInt(min, new Vector3Int(size.x, size.y, 1));
         TileBase[] tiles = new TileBase[size.x * size.y];
-        System.Array.Fill(tiles, m_GroundTile);
+        if (m_GroundVariants == null)
+        {
+            System.Array.Fill(tiles, m_GroundTile);
+        }
+        else
+        {
+            // Block order is x fastest from the tile-space minimum; tile rows run opposite to logical y.
+            for (int ty = 0; ty < size.y; ty++)
+            {
+                for (int tx = 0; tx < size.x; tx++)
+                {
+                    tiles[ty * size.x + tx] = m_GroundVariants[GroundHash(tx, size.y - 1 - ty) % (uint)m_GroundVariants.Length];
+                }
+            }
+        }
         m_GroundTilemap.SetTilesBlock(block, tiles);
         m_PaintedSize = size;
+        m_GroundDirty = false;
+    }
+
+    private static uint GroundHash(int x, int y)
+    {
+        uint h = (uint)(x * 374761393) ^ (uint)(y * 668265263);
+        h = (h ^ (h >> 13)) * 1274126177u;
+        return h ^ (h >> 16);
     }
 }

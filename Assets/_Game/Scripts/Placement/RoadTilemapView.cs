@@ -68,17 +68,23 @@ public sealed class RoadTilemapView : GridTilemapView
         }
     }
 
+    // The tile art (M18c) supplies a sprite per tier and connection mask; any missing one is drawn here.
     protected override void CreateTiles()
     {
+        TileArtSet art = GameManager != null ? GameManager.TileArt : null;
         for (int tier = 1; tier <= k_Tiers; tier++)
         {
             Style style = StyleOf(tier);
             for (int mask = 0; mask < 16; mask++)
             {
-                Texture2D texture = DrawRoad(tier, mask, style);
-                m_Textures[tier - 1, mask] = texture;
-                Sprite sprite = Sprite.Create(texture, new Rect(0, 0, k_Size, k_Size), new Vector2(0.5f, 0.5f), k_Size);
-                m_Sprites[tier - 1, mask] = sprite;
+                Sprite sprite = art != null ? art.Road(tier, mask) : null;
+                if (sprite == null)
+                {
+                    Texture2D texture = DrawRoad(tier, mask, style);
+                    m_Textures[tier - 1, mask] = texture;
+                    sprite = Sprite.Create(texture, new Rect(0, 0, k_Size, k_Size), new Vector2(0.5f, 0.5f), k_Size);
+                    m_Sprites[tier - 1, mask] = sprite;
+                }
                 m_ConnectedTiles[tier - 1, mask] = CreateTile(sprite, Color.white);
                 m_DisconnectedTiles[tier - 1, mask] = CreateTile(sprite, m_DisconnectedTint);
             }
