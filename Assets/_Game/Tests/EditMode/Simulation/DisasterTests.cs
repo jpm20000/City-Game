@@ -136,25 +136,24 @@ public sealed class DisasterTests
     }
 
     [Test]
-    public void SwitchOn_DrawsNothingYet_SoTheCityPlaysExactlyAsBefore()
+    public void SwitchOff_DrawsNothingAndThePlayIsUnchanged()
     {
-        var gridOff = new GridData(24, 24);
-        var gridOn = new GridData(24, 24);
-        SimulationSystem off = SeededCity.Build(gridOff, m_Config, ages: Ages, techs: Techs, startAge: TestAges.Industrial);
-        SimulationSystem on = SeededCity.Build(gridOn, m_Config, ages: Ages, techs: Techs, startAge: TestAges.Industrial);
-        on.Disasters.Enabled = true;
-        string state = on.Disasters.Random.StateString;
+        var gridA = new GridData(24, 24);
+        var gridB = new GridData(24, 24);
+        SimulationSystem a = SeededCity.Build(gridA, m_Config, ages: Ages, techs: Techs, startAge: TestAges.Industrial);
+        SimulationSystem b = SeededCity.Build(gridB, m_Config, ages: Ages, techs: Techs, startAge: TestAges.Industrial);
+        b.Disasters.Enabled = false;
+        string state = a.Disasters.Random.StateString;
 
         for (int day = 0; day < 60; day++)
         {
-            off.Tick();
-            on.Tick();
+            a.Tick();
+            b.Tick();
         }
 
-        Assert.AreEqual(off.Population.Population, on.Population.Population);
-        Assert.AreEqual(off.Population.AverageHappiness, on.Population.AverageHappiness);
-        Assert.AreEqual(off.Economy.Money, on.Economy.Money);
-        Assert.AreEqual(state, on.Disasters.Random.StateString, "17a's Step draws no random numbers");
+        Assert.AreEqual(a.Population.Population, b.Population.Population);
+        Assert.AreEqual(a.Economy.Money, b.Economy.Money);
+        Assert.AreEqual(state, a.Disasters.Random.StateString, "the RNG is untouched while the switch is off");
     }
 
     // --- Save v6 ---

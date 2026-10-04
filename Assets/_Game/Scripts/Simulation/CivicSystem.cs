@@ -168,6 +168,21 @@ public sealed class CivicSystem
         sickness = ramp * (1f - health) * m_SickMultiplier;
     }
 
+    // Fire risk of a built age before the ramp and cover (M17: the fire system's flammability reads it).
+    public float FireBaseOfAge(int builtAge) => FireRiskOfAge(builtAge);
+
+    // A grown block's fire risk without the capacity lookup and the other civic numbers: the daily ignition
+    // sum reads it for every grown block (M17). Same number as Explain(cell).FireRisk; 0 on undeveloped land.
+    public float GrownFireRisk(Vector2Int cell, float ramp)
+    {
+        if (m_Grid.GetBuildingLevel(cell) == 0) return 0f;
+        RefreshNeeds();
+        float risk = FireRiskOfAge(m_Grid.GetBuiltAge(cell));
+        if (m_Grid.GetZone(cell) == ZoneType.Industrial) risk *= m_Config.FireRiskIndustrialFactor;
+        float fire = Cover.StrengthAt(ServiceKind.Fire, cell.y * m_Grid.Width + cell.x);
+        return risk * ramp * (1f - fire) * m_FireMultiplier;
+    }
+
     private float FireRiskOfAge(int builtAge)
     {
         return builtAge >= 0 && builtAge < m_FireRiskByAge.Length ? m_FireRiskByAge[builtAge] : m_Config.FireRisk;

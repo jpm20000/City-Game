@@ -31,6 +31,15 @@ MonoBehaviour:
   m_TrafficPenaltyCap: 0.08
   m_LandValuePerCongestion: 0.1
   m_LandValueCongestionCap: 0.1
+  m_FireIgnitionPerRisk: 0.0015
+  m_FireSpreadChance: 0.3
+  m_FireJumpFactor: 0.15
+  m_PlacedFlammability: 0.5
+  m_FireExtinguishBase: 0.1
+  m_FireExtinguishPerCover: 0.7
+  m_DryExtinguishFactor: 0.5
+  m_FireBurnDays: 3
+  m_RubbleDays: 15
   m_MaxGrowthPerDay: 3
   m_GrowthDemandThreshold: 0.15
   m_LevelCapacity: 040000000800000010000000i

@@ -579,6 +579,8 @@ public sealed class SelectionPanel : MonoBehaviour
                     : $"<color=#F2665A>{verb} blocked:</color> needs water — connect a water tower to its road.";
             case GrowthBlocker.WaterAtCapacity:
                 return $"<color=#F2C14E>{verb} waiting:</color> its water network is at capacity — build another water tower.";
+            case GrowthBlocker.Rubble:
+                return $"<color=#F2665A>{verb} blocked:</color> rubble from a fire — it clears in a few days.";
             case GrowthBlocker.Occupied:
                 return $"<color=#F2665A>{verb} blocked:</color> a placed building occupies this cell.";
             case GrowthBlocker.AgeMaxLevel:

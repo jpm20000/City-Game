@@ -15,4 +15,5 @@ public enum GrowthBlocker
     LowLandValue,       // home or shop at level 2 whose land value is below LandValueForLevel3 (M12)
     NoWater,            // grown cell without water can't upgrade: no well in reach, or not on a fed pipe network (M13)
     WaterAtCapacity,    // piped, but its network can't supply the upgrade (M13)
+    Rubble,             // a fire destroyed it and the rubble hasn't cleared yet (M17)
 }

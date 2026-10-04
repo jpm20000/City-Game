@@ -23,6 +23,7 @@ public sealed class GrowthSystem
     private readonly TechSystem m_Tech;
     private readonly LandValueSystem m_LandValue;
     private readonly WaterSystem m_Water;
+    private readonly Func<Vector2Int, bool> m_Rubble;   // M17; null = nothing ever burns
     private readonly List<Vector2Int> m_Changed = new();
     private readonly HashSet<Vector2Int> m_ChangedSet = new();
     private readonly List<Vector2Int> m_Redeveloped = new();
@@ -33,10 +34,12 @@ public sealed class GrowthSystem
     }
 
     // tech null = no ages (AgeRules.Legacy, nothing is ever outdated); landValue null = no level-3 gate;
-    // water null = no water gate.
+    // water null = no water gate; rubble null = no rubble (M17: a burnt cell is closed until it clears).
     public GrowthSystem(GridData grid, RoadNetwork roads, PowerSystem power, BalanceConfig config,
-        CapacityModel capacity, TechSystem tech, LandValueSystem landValue = null, WaterSystem water = null)
+        CapacityModel capacity, TechSystem tech, LandValueSystem landValue = null, WaterSystem water = null,
+        Func<Vector2Int, bool> rubble = null)
     {
+        m_Rubble = rubble;
         m_Water = water;
         m_LandValue = landValue;
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
@@ -121,6 +124,7 @@ public sealed class GrowthSystem
         ZoneType zone = m_Grid.GetZone(cell);
         if (zone == ZoneType.None || m_Grid.IsRoad(cell)) return GrowthBlocker.NotZoned;
         if (m_Grid.IsOccupied(cell)) return GrowthBlocker.Occupied;
+        if (m_Rubble != null && m_Rubble(cell)) return GrowthBlocker.Rubble;
 
         AgeRules rules = Rules;
         int level = m_Grid.GetBuildingLevel(cell);
@@ -230,6 +234,7 @@ public sealed class GrowthSystem
             && m_Grid.GetBuildingLevel(cell) == level
             && !m_Grid.IsRoad(cell)
             && !m_Grid.IsOccupied(cell)
+            && (m_Rubble == null || !m_Rubble(cell))
             && m_Roads.HasRoadAccess(cell);
     }
 }

@@ -38,6 +38,25 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_LandValuePerCongestion = 0.10f;
     [SerializeField] private float m_LandValueCongestionCap = 0.10f;
 
+    [Header("Disasters (M17)")]
+    [Tooltip("(M17) Chance per day of a new fire = 1 - exp(-this x the sum of every grown block's fire risk).")]
+    [SerializeField] private float m_FireIgnitionPerRisk = 0.0015f;
+    [Tooltip("(M17) Chance per day that a burning block sets a neighbour alight, before flammability and fire cover.")]
+    [SerializeField] private float m_FireSpreadChance = 0.3f;
+    [Tooltip("(M17) Spread chance across a one-cell road, as a share of the normal one.")]
+    [SerializeField] private float m_FireJumpFactor = 0.15f;
+    [Tooltip("(M17) How flammable a placed building is next to a grown block of the same age.")]
+    [SerializeField] private float m_PlacedFlammability = 0.5f;
+    [Tooltip("(M17) Daily chance a fire goes out by itself; fire cover adds FireExtinguishPerCover x its strength.")]
+    [SerializeField] private float m_FireExtinguishBase = 0.1f;
+    [SerializeField] private float m_FireExtinguishPerCover = 0.7f;
+    [Tooltip("(M17) Extinguish chance x this where the water rule is on but the block has no water.")]
+    [SerializeField] private float m_DryExtinguishFactor = 0.5f;
+    [Tooltip("(M17) Days a fire may burn before the block is destroyed.")]
+    [SerializeField] private int m_FireBurnDays = 3;
+    [Tooltip("(M17) Days rubble blocks regrowth.")]
+    [SerializeField] private int m_RubbleDays = 15;
+
     [Header("Growth")]
     [SerializeField] private int m_MaxGrowthPerDay = 3;
     [SerializeField] private float m_GrowthDemandThreshold = 0.15f;
@@ -201,6 +220,15 @@ public sealed class BalanceConfig : ScriptableObject
     public float TrafficPenaltyCap => m_TrafficPenaltyCap;
     public float LandValuePerCongestion => m_LandValuePerCongestion;
     public float LandValueCongestionCap => m_LandValueCongestionCap;
+    public float FireIgnitionPerRisk => m_FireIgnitionPerRisk;
+    public float FireSpreadChance => m_FireSpreadChance;
+    public float FireJumpFactor => m_FireJumpFactor;
+    public float PlacedFlammability => m_PlacedFlammability;
+    public float FireExtinguishBase => m_FireExtinguishBase;
+    public float FireExtinguishPerCover => m_FireExtinguishPerCover;
+    public float DryExtinguishFactor => m_DryExtinguishFactor;
+    public int FireBurnDays => m_FireBurnDays;
+    public int RubbleDays => m_RubbleDays;
 
     public int MaxGrowthPerDay => m_MaxGrowthPerDay;
     public float GrowthDemandThreshold => m_GrowthDemandThreshold;

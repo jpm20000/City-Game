@@ -84,7 +84,6 @@ public sealed class SimulationSystem
         Capacity = new CapacityModel(config, ages);
         RoadTiers = new RoadTiers(config, techs, tech => Tech != null && Tech.IsResearched(tech));
         Traffic = new TrafficSystem(grid, config, Capacity, RoadTiers);
-        Disasters = new DisasterSystem(grid, ages != null);
         roads.SetFrontage(RoadTiers.HasContent ? tier => RoadTiers.Frontage(tier) : null);
         Economy = new EconomySystem(config);
         Budget = new BudgetSystem(config, () => TechModifiers.LoanInterestMultiplier);
@@ -97,7 +96,8 @@ public sealed class SimulationSystem
         Civic = new CivicSystem(grid, config, Capacity, () => Population.Population, ages, () => TechModifiers);
         LandValue = new LandValueSystem(grid, config, Coverage, Pollution, () => TechModifiers, Civic,
             () => Budget.EffectFactor(BudgetLine.Parks), Traffic);
-        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water);
+        Disasters = new DisasterSystem(grid, config, ages != null, Civic, Water, () => TechModifiers, () => Tech != null ? Tech.CurrentAge : 0);
+        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water, Disasters.IsRubble);
         grid.OnResized += () =>
         {
             Coverage.Resize(grid.Width, grid.Height);
@@ -111,6 +111,25 @@ public sealed class SimulationSystem
     {
         return ServiceStats.Measure(m_Grid, m_Config, Coverage, Power, Capacity, Rules.UpgradesNeedPower, Pollution, LandValue, Water,
             Civic, Budget.EffectFactor(BudgetLine.Parks), Traffic);
+    }
+
+    // Raised at the end of a tick in which fires destroyed placed buildings (M17), with their occupant ids. The
+    // sim has already released their cells and dropped their sources; the runtime removes the objects and its
+    // building records (no refund) and sets Sources / Modifiers again.
+    public event Action<IReadOnlyList<int>> BuildingsDestroyed;
+
+    // Sources whose building burnt down stop counting at once (power, water, cover and upkeep sources alike).
+    private void DropDestroyedSources()
+    {
+        IReadOnlyList<int> destroyed = Disasters.Fire.DestroyedBuildings;
+        if (destroyed.Count == 0) return;
+        var kept = new List<ServiceSource>(m_Sources.Count);
+        foreach (ServiceSource source in m_Sources)
+        {
+            if (!Disasters.Fire.WasDestroyed(source.Origin)) kept.Add(source);
+        }
+        if (kept.Count != m_Sources.Count) Sources = kept;
+        BuildingsDestroyed?.Invoke(destroyed);
     }
 
     // Recomputes the commute flow from today's population, employment and techs.
@@ -222,6 +241,7 @@ public sealed class SimulationSystem
         Tech?.Step(ResearchIncome());
 
         Disasters.Step();
+        DropDestroyedSources();
 
         // After everything that moves population, employment or techs, so a restored city (Restore
         // recomputes it the same way) continues exactly like an uninterrupted one.

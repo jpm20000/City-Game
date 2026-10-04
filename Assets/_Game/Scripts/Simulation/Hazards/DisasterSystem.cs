@@ -12,6 +12,7 @@ public sealed class DisasterSystem
     private bool m_Enabled;
 
     public SimRandom Random { get; } = new SimRandom();
+    public FireSystem Fire { get; }
 
     // Fire days of each burning cell (0 = not burning), rubble days left, and plague (0 = healthy,
     // 1..PlagueDays = days infected, PlagueRecovered = immune until the outbreak ends).
@@ -34,16 +35,26 @@ public sealed class DisasterSystem
     public List<EventRecord> ActiveEvents { get; } = new();
     public List<EventRecord> RecentEvents { get; } = new();
 
-    public DisasterSystem(GridData grid, bool hasAges)
+    // The fire system reads the civic cover, the water rule and the techs' hazard multipliers; age gives the
+    // current age index (placed buildings burn by it).
+    public DisasterSystem(GridData grid, BalanceConfig config, bool hasAges, CivicSystem civic, WaterSystem water,
+        Func<TechModifiers> tech, Func<int> age)
     {
         m_Grid = grid ?? throw new ArgumentNullException(nameof(grid));
         m_HasAges = hasAges;
         Allocate();
+        Fire = new FireSystem(this, grid, config, civic, water, tech, age, Random);
         grid.OnResized += () =>
         {
             Allocate();
             Clear();
         };
+    }
+
+    // Rubble from a fire still blocks growth on this cell (M17).
+    public bool IsRubble(UnityEngine.Vector2Int cell)
+    {
+        return m_Grid.InBounds(cell) && Rubble[cell.y * m_Grid.Width + cell.x] > 0;
     }
 
     // The player's switch, but never on without age data (the legacy sim has no hazards or events).
@@ -78,10 +89,15 @@ public sealed class DisasterSystem
     }
 
     // The daily step, called by SimulationSystem.Tick after research and before the traffic flow. The hazards
-    // arrive in 17b (fire), 17c (plague, breakdowns) and 17d (events), drawing from Random in that fixed order.
+    // arrive in 17b (fire, done), 17c (plague, breakdowns) and 17d (events), drawing from Random in that fixed order.
     public void Step()
     {
-        if (!Enabled) return;
+        if (!Enabled)
+        {
+            Fire.ResetResults();
+            return;
+        }
+        Fire.Step();
     }
 
     // Writes the switch, the RNG state and every hazard layer into a save.

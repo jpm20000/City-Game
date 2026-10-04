@@ -79,7 +79,7 @@ internal sealed class EngagedCity
     public float MinHappiness { get; private set; } = 1f;
     public float MinMoney { get; private set; } = float.MaxValue;
 
-    public EngagedCity(BalanceConfig config, int startAge, int size = 64)
+    public EngagedCity(BalanceConfig config, int startAge, int size = 64, bool disasters = false, ulong seed = 1)
     {
         m_Config = config;
         Ages = AssetDatabase.LoadAssetAtPath<AgeDatabase>(AgeDatabasePath);
@@ -91,7 +91,7 @@ internal sealed class EngagedCity
         StartAge = startAge;
         Grid = new GridData(size, size);
         Sim = new SimulationSystem(Grid, new RoadNetwork(Grid), config, Ages, Techs);
-        SaveData fresh = SaveSystem.CreateNew(size, size, config, Ages, Techs, startAge);
+        SaveData fresh = SaveSystem.CreateNew(size, size, config, Ages, Techs, startAge, disasters, seed);
         LayOut();
         SaveSystem.ApplySimulation(fresh, Sim);
         AgeEntries.Add((0, startAge, 0));
