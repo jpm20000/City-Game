@@ -12,7 +12,7 @@ Every action goes through Input System events, so the EventSystem, `InputReader`
 2. By default device input doesn't reach game actions in an unfocused Editor. Set (in memory only — there is no settings asset) `InputSystem.settings.editorInputBehaviorInPlayMode = AllDeviceInputAlwaysGoesToGameView` and `backgroundBehavior = IgnoreFocus`.
 3. `InputSystem.DisableDevice` the real `Mouse.current` / `Keyboard.current` (else the physical mouse overrides), `AddDevice<Mouse>` / `<Keyboard>` virtual ones and `MakeCurrent()` them. Remove them and re-enable the real ones in a `finally`.
 4. Run the scenario as a coroutine on any scene MonoBehaviour (`GameManager.StartCoroutine`), log each step to a file in the scratchpad, and wait for it from the shell with a background loop such as `for i in $(seq 1 200); do grep -q "devices restored" log && break; sleep 3; done; cat log`.
-5. Back up `city.json` first if the scenario saves (see `unity-playmode-check`), and restore it afterwards.
+5. If the scenario saves, set `SaveSlots.Root` to a scratchpad folder first (see `unity-playmode-check`); the real saves are then untouched.
 
 ## Input primitives
 - Each step: `InputSystem.QueueStateEvent(device, state)` then `yield return null` ×2.
@@ -44,7 +44,7 @@ End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; d
 - **Find runtime-built UI by what it says, not by order.** `FindObjectsByType` order is unspecified, so "the first Enact button" was a different ordinance each run: find the `TMP_Text` with the row's label and take the `Button` in its parent. Buttons made at runtime are named `<label>Button` (`Take loanButton`, `Repay $18,750Button`: match by prefix).
 - **Click a slider track at a fraction of its width** (world corners to screen, inset by the handle half-width): 0 = minimum, 1 = maximum, 0.5 = the middle step. Setup shortcuts are fine when labelled DEBUG: the debug panel's Seed button plus two Skip clicks gave a 220-pop Industrial city.
 - Hover target for the happiness tooltip is the `HappinessTooltip` component's own GameObject; read its text by searching all active `TMP_Text`s for `<b>Happiness</b>`.
-- The scenario saves and loads: back up `city.json` first and copy it back afterwards (the real save was a version-1 file).
+- The scenario saves and loads: point `SaveSlots.Root` at a scratchpad folder first (see `unity-playmode-check`).
 
 ## Notes from the M14 play-through (UI-only, 49 checks, 0 failed)
 - Scenario: Medieval 64² (wells, grow without services, tooltip, research the civic techs by clicking the next researchable step of their prerequisite chain, place from the toolbar, step the Services button) then Industrial 64² (plants and towers on the zoned row beside the road **before anything grows**, Constabulary, research Telegraph, read the outdated panel, Police Station by a held home).

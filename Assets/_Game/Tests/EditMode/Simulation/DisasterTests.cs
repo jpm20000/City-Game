@@ -181,7 +181,6 @@ public sealed class DisasterTests
         SaveData data = V5Save(TestAges.Industrial);
         Assert.IsTrue(SaveMigrations.TryMigrate(data, Ages, Techs, out string error), error);
 
-        Assert.AreEqual(6, data.Version);
         Assert.AreEqual(SaveData.CurrentVersion, data.Version);
         Assert.IsFalse(data.Disasters);
         Assert.AreEqual(16, data.Fires.Length);

@@ -1,33 +1,134 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-// Single-slot save/load (F5 / F9, plus the HUD game menu) and New City. Rebuilds the scene from a
-// SaveData: clear placed buildings -> restore grid -> re-place buildings -> restore sim -> calendar.
+// Named saves, quicksave / autosave and New City (M19a; single slot before). Rebuilds the scene from a SaveData: clear
+// placed buildings -> restore grid -> re-place buildings -> restore sim -> calendar. The files live in SaveSlots.Root
+// (persistentDataPath/Saves, or `-savesDir <path>` on the command line; Play-mode checks can set SaveSlots.Root after
+// startup to keep the player's saves out of it).
 public sealed class SaveGameController : MonoBehaviour
 {
-    private const string k_FileName = "city.json";
+    private const string k_LegacyFileName = "city.json";
+    private const string k_SavesFolder = "Saves";
+    private const string k_SavesDirArg = "-savesDir";
 
     [SerializeField] private GameManager m_GameManager;
     [SerializeField] private PlacementController m_Placement;
     [SerializeField] private InputReader m_InputReader;
 
-    public string SavePath => Path.Combine(Application.persistentDataPath, k_FileName);
-    public bool HasSave => File.Exists(SavePath);
+    // The Manual save the current city was last saved to or loaded from ("" = none yet): what Save() overwrites.
+    public string CurrentName { get; private set; } = "";
+    public string CityName { get; private set; } = "";
+    // Tutorial progress carried through saves (-1 = no tutorial); the tutorial itself arrives in M19f.
+    public int Tutorial { get; set; } = SaveData.NoTutorial;
+    // True when the city changed since it was last saved or loaded.
+    public bool Dirty { get; private set; }
+
+    public string SavesFolder => SaveSlots.HasRoot ? SaveSlots.Root : "";
+    public bool HasSave => SaveSlots.HasAny();
+
+    private void Awake()
+    {
+        SaveSlots.Root = ResolveRoot();
+        string legacy = Path.Combine(Application.persistentDataPath, k_LegacyFileName);
+        if (SaveSlots.ImportLegacy(legacy, m_GameManager != null ? m_GameManager.Ages : null, m_GameManager != null ? m_GameManager.Techs : null))
+        {
+            Debug.Log($"SaveGameController: imported {legacy} as '{SaveSlots.LegacyImportName}'.", this);
+        }
+    }
+
+    private static string ResolveRoot()
+    {
+        string[] args = Environment.GetCommandLineArgs();
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (args[i] == k_SavesDirArg && !string.IsNullOrWhiteSpace(args[i + 1])) return args[i + 1];
+        }
+        return Path.Combine(Application.persistentDataPath, k_SavesFolder);
+    }
+
+    private void OnEnable()
+    {
+        GameEvents.CellChanged += OnCityChanged;
+        GameEvents.DateChanged += OnDateChanged;
+        GameEvents.BudgetChanged += MarkDirty;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.CellChanged -= OnCityChanged;
+        GameEvents.DateChanged -= OnDateChanged;
+        GameEvents.BudgetChanged -= MarkDirty;
+    }
+
+    private void OnCityChanged(Vector2Int cell) => Dirty = true;
+    private void OnDateChanged(int day, int month, int year) => Dirty = true;
+    private void MarkDirty() => Dirty = true;
 
     private void Update()
     {
         if (m_InputReader == null) return;
 
-        if (m_InputReader.QuickSavePressed) Save();
+        if (m_InputReader.QuickSavePressed) QuickSave();
         else if (m_InputReader.QuickLoadPressed) Load();
     }
 
+    // --- Saving ---
+
+    // The HUD Save button: the city's own save (the Manual slot it was last saved to or loaded from), or a new one
+    // named after the city (or "City <date>").
     public bool Save()
+    {
+        string name = CurrentName;
+        if (string.IsNullOrEmpty(name) || SaveSlots.KindOf(name) != SaveKind.Manual)
+        {
+            string city = string.IsNullOrWhiteSpace(CityName) ? $"City {DateTime.Now:yyyy-MM-dd}" : CityName;
+            name = SaveSlots.UniqueName(city);
+        }
+        return SaveAs(name, SaveKind.Manual);
+    }
+
+    // F5: one quicksave per city, overwritten each time.
+    public bool QuickSave() => SaveAs(SaveSlots.QuickName(CityName), SaveKind.Quick);
+
+    // The timed autosave: the oldest of the rotating autosave slots.
+    public bool Autosave() => SaveAs(SaveSlots.NextAutosave(), SaveKind.Auto);
+
+    // Writes the city to the named slot (sanitized; an existing save of that name is replaced). Manual saves become
+    // the city's current save; quick and autosaves leave that alone, so Save() keeps its own file.
+    public bool SaveAs(string name, SaveKind kind = SaveKind.Manual)
     {
         if (!IsReady()) return false;
 
+        name = SaveSlots.SanitizeName(name);
+        SaveData data = Capture();
+        string ageName = m_GameManager.CurrentAgeName;
+        SaveSummary summary = SaveSummary.From(data, kind, DateTime.UtcNow.Ticks, Application.version, ageName);
+        byte[] png = ThumbnailCapture.Capture(Camera.main);
+
+        if (!SaveSlots.Write(name, data, summary, png, out string error))
+        {
+            Debug.LogError($"SaveGameController: save '{name}' failed: {error}", this);
+            GameEvents.RaiseNotification($"Save failed: {error}");
+            return false;
+        }
+
+        if (kind == SaveKind.Manual) CurrentName = name;
+        Dirty = false;
+        if (kind != SaveKind.Auto)
+        {
+            GameEvents.RaiseNotification($"City saved — {name} (Day {data.Day}, Month {data.Month}, Year {data.Year})");
+            AudioController.Play(SfxId.Save);
+        }
+        return true;
+    }
+
+    private SaveData Capture()
+    {
         SaveData data = SaveSystem.Capture(m_GameManager.Grid, m_GameManager.Simulation);
+        data.CityName = CityName ?? "";
+        data.Tutorial = Tutorial;
 
         TimeManager clock = m_GameManager.Clock;
         if (clock != null)
@@ -45,35 +146,52 @@ public sealed class SaveGameController : MonoBehaviour
         {
             data.Buildings.Add(new BuildingRecord(building.Definition.Id, building.Origin.x, building.Origin.y, building.Rotation));
         }
-
-        if (!SaveSystem.TryWrite(SavePath, data, out string error))
-        {
-            Debug.LogError($"SaveGameController: save to {SavePath} failed: {error}", this);
-            GameEvents.RaiseNotification($"Save failed: {error}");
-            return false;
-        }
-
-        GameEvents.RaiseNotification($"City saved — Day {data.Day}, Month {data.Month}, Year {data.Year}");
-        AudioController.Play(SfxId.Save);
-        return true;
+        return data;
     }
 
+    // --- Loading ---
+
+    // F9 / the HUD Load button: the newest save of the current city, else the newest save of all.
     public bool Load()
     {
         if (!IsReady()) return false;
 
-        if (!SaveSystem.TryRead(SavePath, out SaveData data, out string error, m_GameManager.Ages, m_GameManager.Techs))
+        List<SaveSummary> saves = SaveSlots.List(m_GameManager.Ages, m_GameManager.Techs);
+        SaveSummary pick = null;
+        foreach (SaveSummary save in saves)
+        {
+            if (save.Damaged) continue;
+            if (!string.IsNullOrEmpty(CityName) && save.CityName == CityName) { pick = save; break; }
+            if (pick == null) pick = save;
+        }
+        if (pick == null)
+        {
+            GameEvents.RaiseNotification("No saved city to load.");
+            return false;
+        }
+        return Load(pick.Name);
+    }
+
+    public bool Load(string name)
+    {
+        if (!IsReady()) return false;
+
+        if (!SaveSlots.TryRead(name, out SaveData data, out string error, m_GameManager.Ages, m_GameManager.Techs))
         {
             GameEvents.RaiseNotification($"Couldn't load: {error}");
             return false;
         }
 
         int skipped = Apply(data);
+        CurrentName = SaveSlots.KindOf(name) == SaveKind.Manual ? name : "";
+        Dirty = false;
         GameEvents.RaiseNotification(skipped == 0
-            ? $"City loaded — Day {data.Day}, Month {data.Month}, Year {data.Year}"
+            ? $"City loaded — {name} (Day {data.Day}, Month {data.Month}, Year {data.Year})"
             : $"City loaded — {skipped} building(s) could not be restored");
         return true;
     }
+
+    // --- New city ---
 
     // Keeps the current map size.
     public void NewCity()
@@ -89,12 +207,16 @@ public sealed class SaveGameController : MonoBehaviour
 
     // startAge = age index (ignored without age data); -1 = the Industrial age.
     // disasters = the Disasters & events switch (M17); the RNG starts from the clock.
-    public void NewCity(Vector2Int size, int startAge, bool disasters = true)
+    public void NewCity(Vector2Int size, int startAge, bool disasters = true, string cityName = "")
     {
         if (!IsReady()) return;
 
-        Apply(SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs, startAge,
-            disasters, (ulong)System.Environment.TickCount));
+        SaveData data = SaveSystem.CreateNew(size.x, size.y, m_GameManager.Balance, m_GameManager.Ages, m_GameManager.Techs, startAge,
+            disasters, (ulong)Environment.TickCount);
+        data.CityName = cityName ?? "";
+        Apply(data);
+        CurrentName = "";
+        Dirty = false;
         string age = m_GameManager.CurrentAgeName;
         GameEvents.RaiseNotification(age != null ? $"New city — {size.x}×{size.y}, {age}" : $"New city — {size.x}×{size.y}");
     }
@@ -131,8 +253,11 @@ public sealed class SaveGameController : MonoBehaviour
             clock.SetSpeed((GameSpeed)Mathf.Clamp(data.Speed, (int)GameSpeed.Paused, (int)GameSpeed.x4));
         }
 
+        CityName = data.CityName ?? "";
+        Tutorial = data.Tutorial;
         m_GameManager.RaiseStateEvents();
         GameEvents.RaiseCityLoaded();
+        Dirty = false;
         return skipped;
     }
 

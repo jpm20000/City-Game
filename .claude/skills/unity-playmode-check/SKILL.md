@@ -14,7 +14,7 @@ description: Verify City Game changes in Play mode through the Unity MCP bridge 
 - After Play mode, `git status`: Play sessions can rewrite `Assets/Settings/*.asset`, `ProjectSettings/*.asset` and sometimes `Main.unity` — revert unintended churn (see `perf-benchmark` and `scene-prefab-editing`).
 
 ## Save slot — protect it
-`SaveGameController.Save()`, the HUD Save button and F5 write the player's real save: `%USERPROFILE%/AppData/LocalLow/DefaultCompany/City Game/city.json`. Before any check that saves, copy it to the scratchpad; copy it back afterwards and confirm (`head -c 15` shows the version). `SaveGameController.NewCity()` is in-memory only.
+`SaveGameController.Save()` / `SaveAs` / `QuickSave` / `Autosave`, the HUD Save button and F5 write named saves into the real `.../DefaultCompany/City Game/Saves/` folder (M19a). Before any check that saves, set `SaveSlots.Root` to a scratchpad folder (`SaveSlots.Root = dir;` in a RunCommand once Play mode has started; `Awake` sets it, so set it afterwards). `SaveGameController.NewCity()` is in-memory only.
 
 ## Seeing the game
 - `Unity_Camera_Capture` without an id returns the **Scene View**, not the game camera.

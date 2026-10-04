@@ -42,6 +42,11 @@ public static class SaveMigrations
             V5ToV6(data);
             data.Version = 6;
         }
+        if (data.Version == 6)
+        {
+            V6ToV7(data);
+            data.Version = 7;
+        }
 
         data.Buildings ??= new();
         data.Loans ??= new();
@@ -54,6 +59,7 @@ public static class SaveMigrations
         data.Researched ??= new();
         data.ResearchQueue ??= new();
         data.ActiveResearch ??= "";
+        data.CityName ??= "";
 
         if (ages != null && techs != null)
         {
@@ -143,6 +149,13 @@ public static class SaveMigrations
         data.DaysToNextEvent = 0;
         data.ActiveEvents = new List<EventRecord>();
         data.RecentEvents = new List<EventRecord>();
+    }
+
+    // v7 adds the city name and the tutorial progress (M19). Older cities are unnamed and have no tutorial.
+    private static void V6ToV7(SaveData data)
+    {
+        data.CityName = "";
+        data.Tutorial = SaveData.NoTutorial;
     }
 
     // A city saved without ages played by today's rules: it becomes an Industrial city with every

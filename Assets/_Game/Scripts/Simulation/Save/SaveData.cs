@@ -7,8 +7,9 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
     public const int NoAge = -1;
+    public const int NoTutorial = -1;
 
     public int Version = CurrentVersion;
 
@@ -67,6 +68,11 @@ public sealed class SaveData
     public int DaysToNextEvent;
     public List<EventRecord> ActiveEvents = new();
     public List<EventRecord> RecentEvents = new();
+
+    // v7 (M19): the city's name ("" = unnamed) and the tutorial's progress (-1 = no tutorial, else the index of the
+    // current objective; past the last = finished).
+    public string CityName = "";
+    public int Tutorial = NoTutorial;
 
     public List<BuildingRecord> Buildings = new();
 }

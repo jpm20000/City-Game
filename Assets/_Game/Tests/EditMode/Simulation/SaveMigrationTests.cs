@@ -362,4 +362,38 @@ public sealed class SaveMigrationTests
         Assert.AreEqual(0, data.Ordinances.Count);
         CollectionAssert.AreEqual(saved.Levels, data.Levels, "nothing else changes");
     }
+
+    // --- v6 -> v7 (M19) ---
+
+    [Test]
+    public void V6Save_MigratesToV7_Unnamed_WithoutATutorial()
+    {
+        var grid = new GridData(24, 24);
+        SimulationSystem sim = SeededCity.Run(grid, m_Config, 20);
+        SaveData saved = SaveSystem.Capture(grid, sim);
+        saved.Version = 6;
+        saved.CityName = null;
+        saved.Tutorial = 5;
+
+        SaveData data = Read(SaveSystem.ToJson(saved), withAges: false);
+
+        Assert.AreEqual(7, SaveData.CurrentVersion);
+        Assert.AreEqual(SaveData.CurrentVersion, data.Version);
+        Assert.AreEqual("", data.CityName);
+        Assert.AreEqual(SaveData.NoTutorial, data.Tutorial);
+        CollectionAssert.AreEqual(saved.Levels, data.Levels, "nothing else changes");
+    }
+
+    [Test]
+    public void V7Save_KeepsItsCityNameAndTutorialProgress()
+    {
+        SaveData saved = SaveSystem.CreateNew(4, 4, m_Config);
+        saved.CityName = "Ashford";
+        saved.Tutorial = 3;
+
+        SaveData data = Read(SaveSystem.ToJson(saved), withAges: false);
+
+        Assert.AreEqual("Ashford", data.CityName);
+        Assert.AreEqual(3, data.Tutorial);
+    }
 }
