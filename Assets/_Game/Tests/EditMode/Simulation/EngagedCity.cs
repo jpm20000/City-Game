@@ -135,7 +135,11 @@ internal sealed class EngagedCity
     private void LayOut()
     {
         int line = CrossLine;
-        for (int i = 0; i <= line + RoadSpacing; i++) Grid.SetRoad(new Vector2Int(i, line), true);
+        // M16: the starting road is the best street tier of the starting age (Dirt in Medieval, Paved from Industrial).
+        var starting = new HashSet<string>();
+        foreach (TechDefinition tech in TechSystem.StartingTechs(Ages, Techs, StartAge)) starting.Add(tech.Id);
+        byte startTier = RoadTiers.BestStreet(Techs, tech => starting.Contains(tech.Id));
+        for (int i = 0; i <= line + RoadSpacing; i++) Grid.SetRoadTier(new Vector2Int(i, line), startTier);
 
         int blocks = (Grid.Width - 1) / RoadSpacing;
         Vector2 centre = new Vector2(line, line);
@@ -186,10 +190,11 @@ internal sealed class EngagedCity
                 if (Grid.InBounds(cell) && !Grid.IsRoad(cell) && !roads.Contains(cell)) roads.Add(cell);
             }
         }
-        float cost = roads.Count * m_Config.RoadCost;
+        byte tier = Sim.RoadTiers.BestStreetTier;
+        float cost = roads.Count * Sim.RoadTiers.Cost(tier);
         if (!free && Sim.Economy.Money - cost < Cushion) return false;
         if (!free) Sim.Economy.Spend(cost);
-        foreach (Vector2Int cell in roads) Grid.SetRoad(cell, true);
+        foreach (Vector2Int cell in roads) Grid.SetRoadTier(cell, tier);
         m_Unopened.RemoveAt(0);
 
         if (service) m_FreeBlocks.Add(origin);
@@ -263,6 +268,7 @@ internal sealed class EngagedCity
     {
         Research();
         Expand();
+        UpgradeJammedRoads();
         if (UseBudget) ManageBudget();
         Build();
         int age = Sim.Tech.CurrentAge;
@@ -271,6 +277,59 @@ internal sealed class EngagedCity
         if (Sim.Tech.CurrentAge != age) AgeEntries.Add((Day, Sim.Tech.CurrentAge, Sim.Population.Population));
         if (Sim.Population.Population >= m_Config.SmallTownGracePopulation) MinHappiness = Mathf.Min(MinHappiness, Sim.Population.AverageHappiness);
         MinMoney = Mathf.Min(MinMoney, Sim.Economy.Money);
+    }
+
+    // --- Traffic (M16d) ---
+    // Each day the busiest jammed road cells (up to RoadUpgradesPerDay, busiest first, ties row-major) go to the
+    // cheapest unlocked street / avenue tier that carries 1.25 x their load, paid for, keeping the cash cushion.
+    // Never builds highways (the human's lever, like funding). Reads the flow of the last tick.
+    public const int RoadUpgradesPerDay = 6;
+    public int RoadsUpgraded { get; private set; }
+
+    private void UpgradeJammedRoads()
+    {
+        TrafficSystem traffic = Sim.Traffic;
+        if (traffic.JammedRoads == 0) return;
+
+        var jammed = new List<(float ratio, Vector2Int cell)>();
+        for (int y = 0; y < Grid.Height; y++)
+        {
+            for (int x = 0; x < Grid.Width; x++)
+            {
+                var cell = new Vector2Int(x, y);
+                if (Grid.IsRoad(cell) && traffic.Congestion(cell) > 1f) jammed.Add((traffic.Congestion(cell), cell));
+            }
+        }
+        jammed.Sort((a, b) =>
+        {
+            int c = b.ratio.CompareTo(a.ratio);
+            if (c != 0) return c;
+            c = a.cell.y.CompareTo(b.cell.y);
+            return c != 0 ? c : a.cell.x.CompareTo(b.cell.x);
+        });
+
+        RoadTiers tiers = Sim.RoadTiers;
+        int done = 0;
+        foreach ((float ratio, Vector2Int cell) in jammed)
+        {
+            if (done >= RoadUpgradesPerDay) break;
+            byte current = Grid.GetRoadTier(cell);
+            float load = traffic.Load(cell);
+            byte target = 0;
+            for (byte t = (byte)(current + 1); t < RoadTiers.Highway; t++)
+            {
+                if (!tiers.IsUnlocked(t)) continue;
+                if (target == 0) target = t;                      // fall back to the first better tier
+                if (tiers.Capacity(t) >= 1.25f * load) { target = t; break; }
+            }
+            if (target == 0) continue;
+            float cost = tiers.UpgradeCost(current, target);
+            if (Sim.Economy.Money - cost < Cushion) break;
+            Sim.Economy.Spend(cost);
+            Grid.SetRoadTier(cell, target);
+            RoadsUpgraded++;
+            done++;
+        }
     }
 
     // --- Budget (M15e) ---
@@ -885,6 +944,7 @@ internal sealed class EngagedCity
         }
         HappinessBreakdown h = Sim.Population.Happiness;
         sb.Append($"\n  civic: crime {h.Crime:F3} fire {h.Fire:F3} health {h.Health:F3}, retired {Retired}, income {Sim.Economy.IncomePerDay:F0} - expense {Sim.Economy.ExpensePerDay:F0} (upkeep {m_Modifiers.UpkeepPerDay:F0})");
+        sb.Append($"\n  traffic: trips {Sim.Traffic.Trips:F0}, worst road {Sim.Traffic.WorstCongestion:F2}, jammed {Sim.Traffic.JammedRoads}, term {h.Traffic:F3}, roads upgraded {RoadsUpgraded}");
         sb.Append("\n  built: ");
         foreach (var pair in m_Placed) sb.Append($"{pair.Key}×{pair.Value} ");
         sb.Append("\n  ").Append(Diagnostics());
