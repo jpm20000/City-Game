@@ -681,6 +681,15 @@ and the four civic lines; loans by age; 12 tech-unlocked ordinances; the Taxes p
 daily ledger; save v4. Defaults are identity (no baseline change). Steps 15a funding (pure) · 15b loans + save v4 ·
 15c ordinances · 15d UI · 15e balance / play-through / docs. All five steps are done.
 
+### M16 — Traffic — planned (2026-10-04)
+
+Full plan: [Docs/milestones/M16.md](milestones/M16.md). A statistical homes → jobs commute (one Dial pass over the
+road graph per tick) loads every road cell; congestion costs happiness (a Traffic term from each home's commute) and
+land value (roads beside a cell, so the level-3 gate). Five road tiers (dirt, cobble, paved, avenue, highway) stored
+as a byte per road in `GridData` and unlocked by techs (new tech Macadam); highways give no frontage; upgrades by
+dragging a better tier; Traffic view; save v5. Traffic runs in the age-less sim too (decision). Steps 16a road tiers
++ save v5 · 16b traffic (pure) · 16c UI · 16d balance / perf / play-through / docs.
+
 ### Where M13–M19 plug in (integration notes)
 Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code that exists today; decide the details in each milestone's plan.
 
@@ -701,7 +710,7 @@ Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code t
 interest and repayment, a few ordinances per age (unlocked by tech). Expands the TaxPanel into a
 budget panel.
 
-**M16 — Traffic.** Abstract load per road cell from the homes↔jobs flow (statistical, no
+**M16 — Traffic** (plan in `Docs/milestones/M16.md`). Abstract load per road cell from the homes↔jobs flow (statistical, no
 agents). Congestion reduces road access quality and happiness. Road tiers by age (dirt →
 cobble → paved → avenue → highway), unlocked by tech, with capacity and cost. Traffic view.
 
@@ -729,7 +738,7 @@ Industrial age; the age-less sim needs piped water by decision; save v3 stores p
 fire, health and education lines with one building per age, crime / fire risk / sickness as ramped happiness terms, crime in
 land value, research from schooled residents, outdated tiers leave the toolbar; the age-less sim pays the civic needs by
 decision, Industrial start re-recorded at 220 pop / 0.631; no save change; Services views, panel lines, toasts; `AgeBalanceTests`
-84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). **M15 done** (steps 15a–15e: funding per budget line, 50-150%, scaling upkeep and, with diminishing returns, reach, supply and strength; loans by age; 12 tech-unlocked ordinances; a Budget panel with the day's ledger; save v4; the default settings change nothing, Industrial start still 220 pop / 0.631; `AgeBalanceTests` 84 / 61 / 73 days with and without the budget player; 229 EditMode tests green plus the UI-only play-through). Next: M16 (traffic) — expand its outline into `Docs/milestones/M16.md` first.
+84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). **M15 done** (steps 15a–15e: funding per budget line, 50-150%, scaling upkeep and, with diminishing returns, reach, supply and strength; loans by age; 12 tech-unlocked ordinances; a Budget panel with the day's ledger; save v4; the default settings change nothing, Industrial start still 220 pop / 0.631; `AgeBalanceTests` 84 / 61 / 73 days with and without the budget player; 229 EditMode tests green plus the UI-only play-through). Next: M16 (traffic) — planned in `Docs/milestones/M16.md` (2026-10-04); start with step 16a.
 
 ---
 
