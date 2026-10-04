@@ -65,6 +65,10 @@ public sealed class PerfBenchmark : MonoBehaviour
         yield return Measure("zoomed out to the whole map, idle", null);
         yield return Screenshot();
 
+        camera.orthographicSize = startZoom;
+        yield return RunDisasters(gameManager);
+
+        camera.orthographicSize = k_MapSize * 0.45f;
         Light sun = FindAnyObjectByType<Light>();
         if (sun != null && sun.shadows != LightShadows.None)
         {
@@ -115,6 +119,44 @@ public sealed class PerfBenchmark : MonoBehaviour
             Vector2Int cell = new Vector2Int(5, 2 + i % 3);
             grid.SetRoad(cell, !grid.IsRoad(cell));
         });
+    }
+
+    // M17: a few dozen fires burning and homes infected (flame / marker cubes and the hazard tilemap on screen, paused so
+    // they stay), then the daily Disasters.Step timed with fires being re-lit so the spread paths run.
+    private IEnumerator RunDisasters(GameManager gameManager)
+    {
+        SimulationSystem sim = gameManager.Simulation;
+        DisasterSystem d = sim.Disasters;
+        GridData grid = gameManager.Grid;
+        if (sim.Tech == null) yield break;
+        d.Enabled = true;
+        d.Random.Seed(7);
+        int fires = 0, sick = 0;
+        for (int i = 0; i < grid.Width * grid.Height; i += 7)
+        {
+            var cell = new Vector2Int(i % grid.Width, i / grid.Width);
+            if (fires < 30 && i % 301 < 7 && d.Fire.Ignite(cell)) fires++;
+            else if (sick < 60 && grid.GetZone(cell) == ZoneType.Residential && d.Epidemic.Infect(cell)) sick++;
+        }
+        m_Report.AppendLine($"-- disasters: {d.Fire.BurningCount} cells burning, {d.Epidemic.InfectedCount} homes infected");
+        yield return Measure("fires + plague on screen, idle", null);
+
+        float start = Time.realtimeSinceStartup;
+        int steps = 100;
+        for (int i = 0; i < steps; i++)
+        {
+            if (d.Fire.BurningCount < 10)
+            {
+                for (int k = 0, lit = 0; k < grid.Width * grid.Height && lit < 12; k += 211)
+                {
+                    if (d.Fire.Ignite(new Vector2Int(k % grid.Width, k / grid.Width))) lit++;
+                }
+            }
+            d.Step();
+        }
+        float stepMs = (Time.realtimeSinceStartup - start) * 1000f / steps;
+        m_Report.AppendLine($"Disasters.Step with fires burning: {stepMs:F3} ms");
+        yield return Measure("after the fires, idle", null);
     }
 
     // Proof of what was on screen while measuring.

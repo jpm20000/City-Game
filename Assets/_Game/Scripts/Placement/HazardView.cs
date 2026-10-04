@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 
 // Draws the ground state of the M17 hazards on a Tilemap of its own (a child of the Grid, created at runtime beside
-// Roads so it shares their material): rubble where a fire destroyed a building, a green wash under infected homes and an
+// Roads so it shares their material): rubble where a fire destroyed a building, a sickly yellow wash under infected homes and an
 // orange glow under burning blocks. The state is read from DisasterSystem's byte layers and diffed against a painted
 // cache every frame (a 96x96 map is ~10k byte compares), so only changed cells touch the Tilemap.
 public sealed class HazardView : MonoBehaviour
@@ -75,7 +75,7 @@ public sealed class HazardView : MonoBehaviour
         m_FlatSprite = Sprite.Create(m_FlatTexture, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
 
         m_RubbleTile = MakeTile(m_RubbleSprite, Color.white);
-        m_PlagueTile = MakeTile(m_FlatSprite, new Color(0.45f, 0.82f, 0.22f, 0.50f));
+        m_PlagueTile = MakeTile(m_FlatSprite, new Color(0.85f, 0.80f, 0.10f, 0.65f));
         m_FireTile = MakeTile(m_FlatSprite, new Color(1f, 0.45f, 0.08f, 0.55f));
     }
 
