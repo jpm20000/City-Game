@@ -44,6 +44,8 @@ public static class KitPalette
         new("glassteal", .35f, .62f, .72f, .35f, .55f, .65f), new("glassdark", .20f, .30f, .38f, .30f, .45f, .55f),
         new("win_warm", .18f, .22f, .28f, 1.00f, .72f, .35f), new("win_cool", .28f, .40f, .50f, .85f, .95f, 1.00f),
         new("dark", .10f, .10f, .12f), new("clock", .95f, .93f, .85f, .50f, .48f, .40f),
+        // vehicle lights (M18f, appended: earlier indices never move)
+        new("headlight", .95f, .95f, .80f, 1.00f, .96f, .75f), new("taillight", .65f, .08f, .08f, .90f, .10f, .10f),
     };
 
     private static readonly Dictionary<string, int> s_Index = BuildIndex();

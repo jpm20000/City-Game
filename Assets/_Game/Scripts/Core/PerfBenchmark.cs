@@ -67,6 +67,7 @@ public sealed class PerfBenchmark : MonoBehaviour
 
         camera.orthographicSize = startZoom;
         yield return RunDisasters(gameManager);
+        yield return RunVehicles(gameManager, camera, startZoom);
 
         camera.orthographicSize = k_MapSize * 0.45f;
         Light sun = FindAnyObjectByType<Light>();
@@ -157,6 +158,32 @@ public sealed class PerfBenchmark : MonoBehaviour
         float stepMs = (Time.realtimeSinceStartup - start) * 1000f / steps;
         m_Report.AppendLine($"Disasters.Step with fires burning: {stepMs:F3} ms");
         yield return Measure("after the fires, idle", null);
+    }
+
+    // M18f: the cosmetic traffic. Every scenario above already ran with vehicles (they spawn while paused too), so this
+    // measures the same view with them driving, then with the whole VehicleView switched off, for the difference.
+    private IEnumerator RunVehicles(GameManager gameManager, Camera camera, float startZoom)
+    {
+        VehicleView vehicles = gameManager.Vehicles;
+        if (vehicles == null) yield break;
+        gameManager.Clock.SetSpeed(GameSpeed.x1);
+        for (int i = 0; i < 90; i++) yield return null;
+        m_Report.AppendLine($"-- vehicles: {vehicles.ActiveCount} driving at default zoom");
+        yield return Measure("vehicles driving, default zoom", null);
+        yield return Screenshot();
+
+        camera.orthographicSize = k_MapSize * 0.45f;
+        for (int i = 0; i < 60; i++) yield return null;
+        m_Report.AppendLine($"-- vehicles: {vehicles.ActiveCount} driving, whole map in view");
+        yield return Measure("vehicles driving, zoomed out", null);
+
+        vehicles.ReleaseAll();
+        vehicles.gameObject.SetActive(false);
+        yield return Measure("vehicles off, zoomed out", null);
+        camera.orthographicSize = startZoom;
+        yield return Measure("vehicles off, default zoom", null);
+        vehicles.gameObject.SetActive(true);
+        gameManager.Clock.SetSpeed(GameSpeed.Paused);
     }
 
     // Proof of what was on screen while measuring.

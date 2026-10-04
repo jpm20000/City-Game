@@ -18,6 +18,8 @@ public sealed class GameManager : MonoBehaviour
     [SerializeField] private Material m_KitMaterial;
     [Tooltip("Sound effects, ambience and music (M18e). Empty = a silent game.")]
     [SerializeField] private AudioCatalog m_AudioCatalog;
+    [Tooltip("Cosmetic carts, trams and cars on busy roads (M18f). Empty = no vehicles.")]
+    [SerializeField] private VehicleSet m_VehicleSet;
 
     private CityModifiers m_Modifiers;
     private readonly List<BuildingInstance> m_SourceBuildings = new();
@@ -34,6 +36,7 @@ public sealed class GameManager : MonoBehaviour
     public TimeManager Clock => m_Time;
     public TileArtSet TileArt => m_TileArt;
     public DayNightCycle DayNight { get; private set; }
+    public VehicleView Vehicles { get; private set; }
     public SimulationSystem Simulation { get; private set; }
     public EconomySystem Economy => Simulation?.Economy;
     public PopulationSystem Population => Simulation?.Population;
@@ -339,6 +342,11 @@ public sealed class GameManager : MonoBehaviour
         DayNight = gameObject.AddComponent<DayNightCycle>();
         DayNight.Init(m_Time, FindAnyObjectByType<InfoOverlay>(), m_KitMaterial);
         if (m_AudioCatalog != null) gameObject.AddComponent<AudioController>().Init(m_AudioCatalog, this);
+        if (m_VehicleSet != null)
+        {
+            Vehicles = new GameObject("Vehicles").AddComponent<VehicleView>();
+            Vehicles.Init(this, m_VehicleSet, FindAnyObjectByType<InfoOverlay>());
+        }
     }
 
     // The ground follows the city's current age (M18c): 4 art variants per age, picked per cell by hash.

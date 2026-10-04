@@ -66,11 +66,58 @@ public static class BuildingKitGenerator
             EditorUtility.SetDirty(set);
         }
 
+        int vehicles = BuildVehicles(material);
+
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        string summary = $"Building kit: {prefabs} prefabs, {triangles} triangles.";
+        string summary = $"Building kit: {prefabs} prefabs, {triangles} triangles, {vehicles} vehicles.";
         if (problems.Count == 0) Debug.Log(summary + " Art contract OK.");
         else Debug.LogWarning(summary + $" {problems.Count} contract problem(s):\n" + string.Join("\n", problems));
+    }
+
+    // The cosmetic vehicles (M18f): one mesh + prefab per vehicle (no collider, default layer: not selectable) and the
+    // VehicleSet asset the runtime reads, one list per age.
+    private static int BuildVehicles(Material material)
+    {
+        EnsureFolder(PrefabFolder + "/Vehicles");
+        EnsureFolder("Assets/_Game/Scriptables/Art");
+        const string setPath = "Assets/_Game/Scriptables/Art/VehicleSet.asset";
+        var set = AssetDatabase.LoadAssetAtPath<VehicleSet>(setPath);
+        if (set == null)
+        {
+            set = ScriptableObject.CreateInstance<VehicleSet>();
+            AssetDatabase.CreateAsset(set, setPath);
+        }
+
+        var made = new Dictionary<string, GameObject>();
+        var so = new SerializedObject(set);
+        SerializedProperty ages = so.FindProperty("m_Ages");
+        ages.arraySize = KitVehicles.ByAge.Length;
+        for (int age = 0; age < KitVehicles.ByAge.Length; age++)
+        {
+            string[] names = KitVehicles.ByAge[age];
+            SerializedProperty list = ages.GetArrayElementAtIndex(age).FindPropertyRelative("Prefabs");
+            list.arraySize = names.Length;
+            for (int i = 0; i < names.Length; i++)
+            {
+                if (!made.TryGetValue(names[i], out GameObject prefab))
+                {
+                    var builder = new KitMeshBuilder(KitPalette.Uv);
+                    KitVehicles.Build(names[i], builder);
+                    Mesh mesh = SaveMesh(builder, KitFolder + "/Meshes/Vehicle_" + names[i] + ".asset");
+                    var root = new GameObject("Vehicle_" + names[i]);
+                    root.AddComponent<MeshFilter>().sharedMesh = mesh;
+                    root.AddComponent<MeshRenderer>().sharedMaterial = material;
+                    prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabFolder + "/Vehicles/Vehicle_" + names[i] + ".prefab");
+                    Object.DestroyImmediate(root);
+                    made[names[i]] = prefab;
+                }
+                list.GetArrayElementAtIndex(i).objectReferenceValue = prefab;
+            }
+        }
+        so.ApplyModifiedPropertiesWithoutUndo();
+        EditorUtility.SetDirty(set);
+        return made.Count;
     }
 
     private static ScriptableObject LoadSet(string age)
