@@ -781,6 +781,15 @@ decision, Industrial start re-recorded at 220 pop / 0.631; no save change; Servi
 
 ---
 
+### Version 1.1 — M20–M26 (plan, 2026-10-05)
+
+The first update after 1.0.0, from player feedback; roadmap, order and shared decisions in
+[`milestones/v1.1.md`](milestones/v1.1.md). The IMPORTANT items (rotatable camera, building toolbar groups, visible
+New City switches) are **M20 — Camera & toolbar**, planned in [`milestones/M20.md`](milestones/M20.md) (next). Then
+M21 progression & feedback (research costs, paved before avenues, repair icons), M22 road layout (2-wide avenues,
+one-way highways, save v8), M23 density & Modern skyline (save v9), M24 goods (save v10), M25 custom assets and
+M26 release 1.1.
+
 ## 13. Systems reference (as built, M0–M19)
 
 What each system is, where it lives and the numbers it was tuned to. Moved here from `AGENTS.md` (2026-10-03) so that file stays a short list of conventions; update the matching section in the same commit as any change (see the `milestone-workflow` skill). Where this section and the earlier sections of this document disagree, this section describes the code as built.
