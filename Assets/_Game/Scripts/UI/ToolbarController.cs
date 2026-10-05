@@ -32,10 +32,8 @@ public sealed class ToolbarController : MonoBehaviour
     [Header("Buildings")]
     [SerializeField] private ToolButton m_ButtonTemplate;
     [SerializeField] private Transform m_BuildingsContainer;
-    [Tooltip("Width of a building button while at most FullWidthBuildings are shown (the template's width).")]
+    [Tooltip("Width of a building button inside a group flyout, and of a group button.")]
     [SerializeField] private float m_BuildingButtonWidth = 104f;
-    [SerializeField] private float m_MinBuildingButtonWidth = 80f;
-    [SerializeField] private int m_FullWidthBuildings = 5;
     [Tooltip("(M13) Space kept free at each screen edge before the toolbar scales down to fit.")]
     [SerializeField] private float m_ScreenMargin = 8f;
 
@@ -44,6 +42,21 @@ public sealed class ToolbarController : MonoBehaviour
     [SerializeField] private TMP_Text m_TooltipText;
 
     private readonly Dictionary<BuildingDefinition, ToolButton> m_BuildingButtons = new();
+    private readonly Dictionary<BuildingDefinition, Group> m_GroupOf = new();
+    private readonly List<Group> m_Groups = new();
+    private readonly HashSet<BuildingDefinition> m_Seen = new();   // unlocked at the last refresh (for the new dot)
+    private bool m_SeenInit;
+
+    // M20b: one toolbar button per building group; its flyout holds the unlocked buildings of the group.
+    private sealed class Group
+    {
+        public ToolbarGroup Id;
+        public ToolButton Button;
+        public ToolbarFlyout Flyout;
+        public GameObject Dot;
+        public BuildingDefinition Last;      // the last building picked from the group (the button re-picks it)
+        public readonly List<BuildingDefinition> Members = new();
+    }
     private ToolButton m_ServicesViewButton;   // M14: made at runtime from the Age view button
     private ToolButton m_AvenueButton;         // M16: made at runtime from the Road button
     private ToolButton m_HighwayButton;
@@ -102,12 +115,13 @@ public sealed class ToolbarController : MonoBehaviour
             "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
         CreateBuildingButtons();
 
+        EscapeRouter.Register(this, EscapeRouter.Tool + 5, ToolbarFlyout.CloseOpen);
         m_Placement.ModeChanged += RefreshActive;
         if (m_InfoOverlay != null) m_InfoOverlay.ViewChanged += RefreshActive;
         GameEvents.MoneyChanged += RefreshAffordable;
         GameEvents.TechCompleted += OnTechCompleted;
         GameEvents.AgeChanged += OnAgeChanged;
-        GameEvents.CityLoaded += RefreshUnlocked;
+        GameEvents.CityLoaded += OnCityLoaded;
         HideTooltip(null);
         RefreshUnlocked();
         RefreshActive();
@@ -116,12 +130,21 @@ public sealed class ToolbarController : MonoBehaviour
 
     private void OnDestroy()
     {
+        EscapeRouter.Unregister(this);
         if (m_Placement != null) m_Placement.ModeChanged -= RefreshActive;
         if (m_InfoOverlay != null) m_InfoOverlay.ViewChanged -= RefreshActive;
         GameEvents.MoneyChanged -= RefreshAffordable;
         GameEvents.TechCompleted -= OnTechCompleted;
         GameEvents.AgeChanged -= OnAgeChanged;
-        GameEvents.CityLoaded -= RefreshUnlocked;
+        GameEvents.CityLoaded -= OnCityLoaded;
+    }
+
+    // A new or loaded city starts with its unlocks already seen: no new dots.
+    private void OnCityLoaded()
+    {
+        m_SeenInit = false;
+        foreach (Group group in m_Groups) group.Dot.SetActive(false);
+        RefreshUnlocked();
     }
 
     private void OnTechCompleted(string techId) => RefreshUnlocked();
@@ -145,42 +168,40 @@ public sealed class ToolbarController : MonoBehaviour
         }
         if (m_PipeButton != null) m_PipeButton.gameObject.SetActive(m_GameManager.PipesUnlocked);
         bool any = false;
-        int visible = 0;
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {
             bool unlocked = m_GameManager.CanBuild(pair.Key);
             pair.Value.gameObject.SetActive(unlocked);
             any |= unlocked;
-            if (unlocked) visible++;
+            // A building unlocked since the last refresh flags its group with a dot until the flyout is opened.
+            if (unlocked && m_Seen.Add(pair.Key) && m_SeenInit && m_GroupOf.TryGetValue(pair.Key, out Group fresh)) fresh.Dot.SetActive(!fresh.Flyout.IsOpen);
+            if (!unlocked) m_Seen.Remove(pair.Key);
         }
-        FitBuildingButtons(visible);
+        m_SeenInit = true;
+        foreach (Group group in m_Groups)
+        {
+            bool shown = false;
+            foreach (BuildingDefinition member in group.Members) shown |= m_BuildingButtons[member].gameObject.activeSelf;
+            group.Button.gameObject.SetActive(shown);
+            if (!shown) group.Flyout.Hide();
+        }
         // The whole BUILDINGS section (header included) hides while nothing can be built.
         if (m_BuildingsContainer != null && m_BuildingsContainer.parent != null) m_BuildingsContainer.parent.gameObject.SetActive(any);
-    }
-
-    // Building buttons narrow as more unlock (M13: seven in the Industrial age) so the toolbar still
-    // fits 1920 px; their labels shrink to fit.
-    private void FitBuildingButtons(int visible)
-    {
-        float width = visible <= m_FullWidthBuildings ? m_BuildingButtonWidth
-            : Mathf.Max(m_MinBuildingButtonWidth, m_BuildingButtonWidth - (visible - m_FullWidthBuildings) * 12f);
-        foreach (ToolButton button in m_BuildingButtons.Values)
-        {
-            var layout = button.GetComponent<LayoutElement>();
-            if (layout != null) layout.preferredWidth = width;
-        }
     }
 
     private void CreateBuildingButtons()
     {
         if (m_ButtonTemplate == null || m_BuildingsContainer == null || m_GameManager.Buildings == null) return;
 
+        float height = ((RectTransform)m_ButtonTemplate.transform).sizeDelta.y;
+        if (height < 20f) height = 56f;
         foreach (BuildingDefinition def in m_GameManager.Buildings.Entries)
         {
             if (def == null) continue;
             if (def.Category != BuildingCategory.Service && def.Category != BuildingCategory.Utility) continue;
 
-            ToolButton button = Instantiate(m_ButtonTemplate, m_BuildingsContainer);
+            Group group = GroupFor(def.ToolbarGroupOf);
+            ToolButton button = Instantiate(m_ButtonTemplate, group.Flyout.Content);
             button.name = $"Build_{def.Id}";
             if (button.Label != null)
             {
@@ -188,11 +209,112 @@ public sealed class ToolbarController : MonoBehaviour
                 button.Label.fontSizeMax = button.Label.fontSize;
                 button.Label.fontSizeMin = 11f;
             }
+            var layout = button.GetComponent<LayoutElement>();
+            if (layout == null) layout = button.gameObject.AddComponent<LayoutElement>();
+            layout.preferredWidth = m_BuildingButtonWidth;
+            layout.preferredHeight = height;
             BuildingDefinition captured = def;
-            Bind(button, def.DisplayName, $"${def.Cost:N0}", Color.clear, BuildingTooltip(def),
-                () => ToggleBuilding(captured));
+            Group owner = group;
+            Bind(button, def.DisplayName, $"${def.Cost:N0}", Color.clear, BuildingTooltip(def), () =>
+            {
+                ToggleBuilding(captured);
+                owner.Flyout.Hide();
+            });
             m_BuildingButtons[def] = button;
+            m_GroupOf[def] = group;
+            group.Members.Add(def);
         }
+    }
+
+    private static string GroupName(ToolbarGroup id)
+    {
+        switch (id)
+        {
+            case ToolbarGroup.Utilities: return "Utilities";
+            case ToolbarGroup.Services: return "Services";
+            case ToolbarGroup.Health: return "Health";
+            case ToolbarGroup.Education: return "Education";
+            default: return "Parks";
+        }
+    }
+
+    private static string GroupTooltip(ToolbarGroup id)
+    {
+        switch (id)
+        {
+            case ToolbarGroup.Utilities: return "Water and power buildings.";
+            case ToolbarGroup.Services: return "Police and fire buildings.";
+            case ToolbarGroup.Health: return "Clinics and hospitals.";
+            case ToolbarGroup.Education: return "Schools and research buildings.";
+            default: return "Parks and fountains.";
+        }
+    }
+
+    // The group button for a building group, made on first use. Clicking it opens the flyout; once a building has been
+    // picked, clicking it picks that building again and the small arrow opens the flyout.
+    private Group GroupFor(ToolbarGroup id)
+    {
+        foreach (Group existing in m_Groups) if (existing.Id == id) return existing;
+
+        var group = new Group { Id = id };
+        group.Button = Instantiate(m_ButtonTemplate, m_BuildingsContainer);
+        group.Button.name = $"Group_{id}";
+        var layout = group.Button.GetComponent<LayoutElement>();
+        if (layout != null) layout.preferredWidth = m_BuildingButtonWidth;
+        group.Flyout = ToolbarFlyout.Create((RectTransform)group.Button.transform, $"{id}Flyout");
+        Group captured = group;
+        Bind(group.Button, GroupName(id), string.Empty, Color.clear,
+            $"{GroupName(id)}\n{GroupTooltip(id)} Click to choose a building.", () => OnGroupClicked(captured));
+
+        Button arrow = UiKit.MakeButton(group.Button.transform, "^", () => captured.Flyout.Toggle(), 22f, new Color(0f, 0f, 0f, 0.35f));
+        arrow.name = "FlyoutArrow";
+        arrow.GetComponent<LayoutElement>().ignoreLayout = true;
+        var arrowRect = (RectTransform)arrow.transform;
+        arrowRect.anchorMin = arrowRect.anchorMax = arrowRect.pivot = new Vector2(1f, 1f);
+        arrowRect.anchoredPosition = new Vector2(-2f, -2f);
+        arrowRect.sizeDelta = new Vector2(22f, 20f);
+        arrow.gameObject.SetActive(false);
+
+        var dot = new GameObject("NewDot", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        dot.transform.SetParent(group.Button.transform, false);
+        dot.GetComponent<LayoutElement>().ignoreLayout = true;
+        dot.GetComponent<Image>().color = UiKit.TitleColor;
+        dot.GetComponent<Image>().raycastTarget = false;
+        var dotRect = (RectTransform)dot.transform;
+        dotRect.anchorMin = dotRect.anchorMax = dotRect.pivot = new Vector2(0f, 1f);
+        dotRect.anchoredPosition = new Vector2(3f, -3f);
+        dotRect.sizeDelta = new Vector2(10f, 10f);
+        dot.SetActive(false);
+        group.Dot = dot;
+        group.Flyout.Opened += () => { dot.SetActive(false); HideTooltip(null); };
+        group.Flyout.Closed += () => HideTooltip(null);
+
+        m_Groups.Add(group);
+        int order = 0;
+        foreach (Group other in m_Groups) if (other.Id < id) order++;
+        group.Button.transform.SetSiblingIndex(order);
+        return group;
+    }
+
+    private void OnGroupClicked(Group group)
+    {
+        if (group.Last != null && m_GameManager.CanBuild(group.Last))
+        {
+            group.Flyout.Hide();
+            ToggleBuilding(group.Last);
+        }
+        else
+        {
+            group.Flyout.Toggle();
+        }
+    }
+
+    private void SetGroupLast(Group group, BuildingDefinition def)
+    {
+        group.Last = def;
+        group.Button.Setup(GroupName(group.Id), def.DisplayName, Color.clear, group.Button.Tooltip);
+        group.Button.transform.Find("FlyoutArrow").gameObject.SetActive(true);
+        RefreshActive();
     }
 
     private static string BuildingTooltip(BuildingDefinition def)
@@ -373,6 +495,7 @@ public sealed class ToolbarController : MonoBehaviour
         else
         {
             m_Placement.SelectBuilding(def);
+            if (m_GroupOf.TryGetValue(def, out Group group)) SetGroupLast(group, def);
         }
     }
 
@@ -411,6 +534,12 @@ public sealed class ToolbarController : MonoBehaviour
         {
             pair.Value.SetActive(mode == PlacementController.Mode.Building && m_Placement.SelectedBuilding == pair.Key);
         }
+        foreach (Group group in m_Groups)
+        {
+            bool placing = mode == PlacementController.Mode.Building && m_Placement.SelectedBuilding != null
+                && m_GroupOf.TryGetValue(m_Placement.SelectedBuilding, out Group owner) && owner == group;
+            group.Button.SetActive(placing);
+        }
     }
 
     private void RefreshAffordable(float money)
@@ -437,6 +566,7 @@ public sealed class ToolbarController : MonoBehaviour
     private void ShowTooltip(ToolButton button)
     {
         if (m_TooltipRoot == null || string.IsNullOrEmpty(button.Tooltip)) return;
+        foreach (Group group in m_Groups) if (group.Button == button && group.Flyout.IsOpen) return;
         m_TooltipText.text = KeyBindings.Fill(button.Tooltip);
         float delay = GameSettings.TooltipDelay;
         if (delay <= 0f)

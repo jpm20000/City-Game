@@ -180,10 +180,13 @@ public static class TutorialDriver
             Log($"zones {diag} connected roads {conn}");
             yield return WaitFor(() => Current() != "homes", 3f);
             Check(Current() == "well", "homes zoned -> " + Current());
-            Check(Pointing() == "Build_well", "pointing at the Well: " + Pointing());
+            Check(Pointing() == "Group_Utilities", "pointing at the Utilities group: " + Pointing());
+            yield return ClickUi(Btn("Group_Utilities"));
+            yield return WaitFor(() => Pointing() == "Build_well", 3f);
+            Check(Pointing() == "Build_well", "pointing at the Well in the flyout: " + Pointing());
 
             // 3. A well.
-            yield return ClickUi(Btn("Build_well"));
+            yield return ClickUi(Btn("Build_well"));   // picking it closes the flyout
             yield return ClickAt(CellPos(new Vector2Int(5, 27)));
             yield return Frames(20);
             yield return WaitFor(() => Current() != "well", 3f);

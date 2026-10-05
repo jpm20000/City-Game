@@ -209,9 +209,9 @@ public sealed class TutorialCard
             "Road" => new[] { "Road" },
             "Residential" => new[] { "Residential" },
             "Commercial" => new[] { s.CommercialCells < 4 ? "Commercial" : "Industrial" },
-            "Well" => new[] { "Build_well" },
-            "Park" => new[] { "Build_park" },
-            "Monastery" => new[] { "Build_monastery" },
+            "Well" => new[] { "Build_well", "Group_Utilities" },   // the group button until its flyout is open
+            "Park" => new[] { "Build_park", "Group_Parks" },
+            "Monastery" => new[] { "Build_monastery", "Group_Education" },
             "Budget" => new[] { "BudgetButton" },
             "Research" => new[] { "ResearchButton" },
             "Views" => new[] { "WaterView", "CoverageView", "PowerView", "PollutionView" },

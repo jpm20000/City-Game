@@ -190,6 +190,34 @@ public sealed class ContentTests
         Assert.AreEqual(5f, research["academy"]);
     }
 
+    // M20b: every buildable Service / Utility building files itself into a toolbar group from its data, and every
+    // group has members.
+    [Test]
+    public void ToolbarGroups_EveryPlaceableBuildingHasAGroup()
+    {
+        var database = AssetDatabase.LoadAssetAtPath<ScriptableObject>(BuildingDatabasePath);
+        SerializedProperty entries = new SerializedObject(database).FindProperty("m_Entries");
+        var groups = new Dictionary<string, ToolbarGroup>();
+        for (int i = 0; i < entries.arraySize; i++)
+        {
+            var so = new SerializedObject(entries.GetArrayElementAtIndex(i).objectReferenceValue);
+            int category = so.FindProperty("m_Category").enumValueIndex;   // 2 = Service, 3 = Utility
+            if (category != 2 && category != 3) continue;
+            ToolbarGroup group = ToolbarGroups.Resolve((ToolbarGroup)so.FindProperty("m_ToolbarGroup").enumValueIndex, category == 3,
+                (ServiceKind)so.FindProperty("m_CivicKind").enumValueIndex, so.FindProperty("m_ResearchPerDay").floatValue,
+                so.FindProperty("m_HappinessEffect").floatValue);
+            Assert.AreNotEqual(ToolbarGroup.Auto, group);
+            groups[so.FindProperty("m_Id").stringValue] = group;
+        }
+        foreach (ToolbarGroup group in ToolbarGroups.All) Assert.IsTrue(groups.ContainsValue(group), $"no building in {group}");
+        Assert.AreEqual(ToolbarGroup.Utilities, groups["well"]);
+        Assert.AreEqual(ToolbarGroup.Utilities, groups["power_plant"]);
+        Assert.AreEqual(ToolbarGroup.Parks, groups["park"]);
+        Assert.AreEqual(ToolbarGroup.Utilities, groups["fountain"], "the fountain waters blocks, so it files with the water buildings");
+        Assert.AreEqual(ToolbarGroup.Education, groups["monastery"]);
+        Assert.AreEqual(ToolbarGroup.Education, groups["research_lab"]);
+    }
+
     // M14: each civic line has exactly the planned building per age (an age is its RequiredTech's age),
     // every civic building has a reach, a strength in (0, 1] and a reachable tech, and strengths rise
     // with age within a line. Education buildings also produce research.

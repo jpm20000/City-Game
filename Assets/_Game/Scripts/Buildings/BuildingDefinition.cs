@@ -40,6 +40,8 @@ public sealed class BuildingDefinition : ScriptableObject
     [SerializeField] private int m_CivicRadius;
     [Tooltip("How well it covers a cell in reach, 0..1 (M14); newer tiers are stronger.")]
     [SerializeField] private float m_CivicStrength;
+    [Tooltip("(M20) Toolbar group; Auto derives it from the category, civic line and effects (ToolbarGroups.Resolve).")]
+    [SerializeField] private ToolbarGroup m_ToolbarGroup;
 
     public string Id => m_Id;
     public string DisplayName => m_DisplayName;
@@ -66,4 +68,5 @@ public sealed class BuildingDefinition : ScriptableObject
     public ServiceKind CivicKind => m_CivicKind;
     public int CivicRadius => m_CivicRadius;
     public float CivicStrength => m_CivicStrength;
+    public ToolbarGroup ToolbarGroupOf => ToolbarGroups.Resolve(m_ToolbarGroup, m_Category == BuildingCategory.Utility, m_CivicKind, m_ResearchPerDay, m_HappinessEffect);
 }

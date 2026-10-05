@@ -28,7 +28,7 @@ public static class TutorialContent
         new TutorialObjective
         {
             Id = "well", Title = "Dig a well",
-            Body = "Medieval homes need water to grow past the first level. Place a Well within a few cells of your houses.",
+            Body = "Medieval homes need water to grow past the first level. Open Utilities in the toolbar and place a Well within a few cells of your houses.",
             Highlight = "Well", Measure = s => Of(s.PlacedCount(WellId), 1),
         },
         new TutorialObjective
@@ -58,7 +58,7 @@ public static class TutorialContent
         new TutorialObjective
         {
             Id = "green", Title = "A village green",
-            Body = "Research Commons, then place a Park. Parks make nearby homes happier.",
+            Body = "Research Commons, then open Parks in the toolbar and place a Park. Parks make nearby homes happier.",
             Unit = "steps", Highlight = "Research",
             Measure = s => Of((s.Has(CommonsTech) ? 1 : 0) + (s.PlacedCount(ParkId) > 0 ? 1 : 0), 2),
         },
@@ -77,7 +77,7 @@ public static class TutorialContent
         new TutorialObjective
         {
             Id = "learning", Title = "Seat of learning",
-            Body = "Research Masonry and then Monasticism, and place a Monastery. It adds research points and happiness.",
+            Body = "Research Masonry and then Monasticism, and place a Monastery from Education in the toolbar. It adds research points and happiness.",
             Highlight = "Research", Measure = s => Of(s.PlacedCount(MonasteryId), 1),
         },
         new TutorialObjective
