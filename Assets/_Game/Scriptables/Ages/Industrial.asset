@@ -25,7 +25,9 @@ MonoBehaviour:
   m_LoanAmount: 25000
   m_PlagueRisk: 0
   m_TechsToAdvance: 4
-  m_RequiredTechs: []
+  m_RequiredTechs: 
+  - {fileID: 11400000, guid: 921727713547586792a514b9a4066d18, type: 2}
+  - {fileID: 11400000, guid: 44c4e4a4c29d5b7eb998aa20eea6867a, type: 2}
   m_PopulationToEnter: 350
   m_AdvanceCost: 2400
   m_StartingTechs: 

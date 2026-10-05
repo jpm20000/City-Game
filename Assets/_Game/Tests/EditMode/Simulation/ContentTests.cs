@@ -63,6 +63,17 @@ public sealed class ContentTests
         Assert.Contains(paved, avenue.Prerequisites);
     }
 
+    // M21f: the Industrial age needs power and water, so its entry requires both techs (researched in the Renaissance).
+    [Test]
+    public void IndustrialEntry_RequiresElectricityAndWaterworks()
+    {
+        AgeDefinition industrial = m_Ages[m_Ages.Legacy];
+        Assert.Contains(m_Techs.GetById("electricity"), industrial.RequiredTechs);
+        Assert.Contains(m_Techs.GetById("waterworks"), industrial.RequiredTechs);
+        Assert.AreEqual(m_Ages.Legacy - 1, m_Techs.GetById("electricity").Age);
+        Assert.AreEqual(m_Ages.Legacy - 1, m_Techs.GetById("waterworks").Age);
+    }
+
     // M21a: the advance costs rise with every age (the Medieval age has no entry cost).
     [Test]
     public void ResearchCosts_AdvanceCostsRiseWithEveryAge()

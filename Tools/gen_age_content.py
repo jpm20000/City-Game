@@ -77,8 +77,8 @@ TECHS = [
     ("CivicPlanning", "civic_planning", "Civic Planning", 1, 260, ["architecture"], [happy(0.03)], "Squares, straight streets and order. Happiness +3%. Unlocks the Constabulary."),
     ("Watermills", "watermills", "Watermills", 1, 180, ["smithing"], [upkeep(0.9)], "Water does the heavy work. Upkeep -10%. Unlocks the Fire Engine House (hand pumps)."),
     # Industrial
-    ("Electricity", "electricity", "Electricity", 2, 150, [], [], "Unlocks the Power Plant. From this age on, buildings need power to grow past level 1."),
-    ("Waterworks", "waterworks", "Waterworks", 2, 100, [], [], "Unlocks the Water Tower. From this age on, water is piped along the roads and buildings need it to grow past level 1."),
+    ("Electricity", "electricity", "Electricity", 1, 150, [], [], "Unlocks the Power Plant. Required to enter the Industrial age, where buildings need power to grow past level 1."),
+    ("Waterworks", "waterworks", "Waterworks", 1, 100, [], [], "Unlocks the Water Tower. Required to enter the Industrial age, where water is piped along the roads and buildings need it to grow past level 1."),
     ("SteamPower", "steam_power", "Steam Power", 2, 400, ["watermills"], [demand(I, 1.2)], "Engines that never tire. Industrial demand +20%. Unlocks the Fire Station (steam fire engines)."),
     ("Factories", "factories", "Factories", 2, 500, ["steam_power"], [], "Mass production under one roof."),
     ("Railways", "railways", "Railways", 2, 500, ["steam_power"], [traffic(0.85)], "Iron roads connect the city to the world. Goods and commuters go by rail: commute trips -15%."),
@@ -109,7 +109,7 @@ TECHS = [
 AGES = [
     ("Medieval", "medieval", "Medieval Age", 750, 2, 0.5, False, 0, [], 0, 0, [], 20000, ["", "", "Crafts"], 0.3, 1, 1, 0.6, 10000, 1.0),
     ("Renaissance", "renaissance", "Renaissance", 1450, 3, 0.75, False, 5, [], 120, 250, [], 30000, ["", "", "Workshops"], 0.5, 2, 1, 0.45, 15000, 0.6),
-    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, [], 350, 1200, ["electricity", "waterworks", "macadam"], 50000, ["", "", ""], 1.0, 3, 2, 0.35, 25000, 0),
+    ("Industrial", "industrial", "Industrial Age", 1760, 3, 1.0, True, 4, ["electricity", "waterworks"], 350, 1200, ["electricity", "waterworks", "macadam"], 50000, ["", "", ""], 1.0, 3, 2, 0.35, 25000, 0),
     ("Modern", "modern", "Modern Age", 1945, 3, 1.25, True, 5, [], 650, 3000, [], 80000, ["", "", ""], 0.6, 3, 2, 0.2, 40000, 0),
 ]
 

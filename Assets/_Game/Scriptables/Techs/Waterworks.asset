@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: waterworks
   m_DisplayName: Waterworks
-  m_Description: 'Unlocks the Water Tower. From this age on, water is piped along the roads and buildings need it to grow past level 1.'
-  m_Age: 2
+  m_Description: 'Unlocks the Water Tower. Required to enter the Industrial age, where water is piped along the roads and buildings need it to grow past level 1.'
+  m_Age: 1
   m_Cost: 1200
   m_Prerequisites: []
   m_Effects: []

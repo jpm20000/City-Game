@@ -3,9 +3,9 @@ using UnityEditor;
 using UnityEngine;
 
 // M11g: the shipped content played by EngagedCity (see there for the player model). Targets
-// (GamePlan §12): with engaged play 120-260 in-game days in the Medieval age and 100-220 in each later one (M21e: every
-// tech costs 12x its 1.0 price), no age where the city stalls, and an economy that pays for itself. Measured, from a
-// Medieval start: Medieval 199 days, Renaissance 165, Industrial 158, Modern reached on day 522 (1.0: 86 / 62 / 63, day 211).
+// (GamePlan §12): with engaged play 120-260 in-game days in the Medieval age and 100-320 in each later one (M21e: every
+// tech costs 12x its 1.0 price, and Electricity and Waterworks are Renaissance techs the Industrial age requires), no age where the city stalls, and an economy that pays for itself. Measured, from a
+// Medieval start: Medieval 199 days, Renaissance 168, Industrial 192, Modern reached on day 559 (1.0: 86 / 62 / 63, day 211).
 public sealed class AgeBalanceTests
 {
     private BalanceConfig m_Config;
@@ -28,18 +28,18 @@ public sealed class AgeBalanceTests
     public void FromMedieval_EachAgeTakes45To90Days_AndReachesModern(bool useBudget)
     {
         var city = new EngagedCity(m_Config, 0) { UseBudget = useBudget };
-        for (int day = 0; day < 800 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
+        for (int day = 0; day < 1000 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
         TestContext.WriteLine(city.Report());
         TestContext.WriteLine(city.BudgetReport());
 
-        Assert.AreEqual(3, city.Sim.Tech.CurrentAge, "reaches the Modern age within 800 days");
+        Assert.AreEqual(3, city.Sim.Tech.CurrentAge, "reaches the Modern age within 1000 days");
         for (int i = 1; i < city.AgeEntries.Count; i++)
         {
             int span = city.AgeEntries[i].day - city.AgeEntries[i - 1].day;
-            Assert.That(span, i == 1 ? Is.InRange(120, 260) : Is.InRange(100, 220), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
+            Assert.That(span, i == 1 ? Is.InRange(120, 260) : Is.InRange(100, 320), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
         }
         // 0.40, not 0.55 (M21e): techs cost 12x, so the city outgrows its services while the next tech is being researched
-        // (Renaissance: crime / fire / health / traffic; entering Industrial: power and water before Electricity / Waterworks).
+        // (Renaissance: crime / fire / health / traffic; measured low 0.41).
         Assert.GreaterOrEqual(city.MinHappiness, 0.40f);
         Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
     }
@@ -55,20 +55,20 @@ public sealed class AgeBalanceTests
     public void FromMedieval_WithDisasters_EachAgeTakes45To90Days_AndReachesModern(ulong seed, bool useBudget)
     {
         var city = new EngagedCity(m_Config, 0, 64, true, seed) { UseBudget = useBudget };
-        for (int day = 0; day < 800 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
+        for (int day = 0; day < 1000 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
         TestContext.WriteLine(city.Report());
 
-        Assert.AreEqual(3, city.Sim.Tech.CurrentAge, "reaches the Modern age within 800 days");
+        Assert.AreEqual(3, city.Sim.Tech.CurrentAge, "reaches the Modern age within 1000 days");
         for (int i = 1; i < city.AgeEntries.Count; i++)
         {
             int span = city.AgeEntries[i].day - city.AgeEntries[i - 1].day;
-            Assert.That(span, i == 1 ? Is.InRange(120, 260) : Is.InRange(100, 220), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
+            Assert.That(span, i == 1 ? Is.InRange(120, 260) : Is.InRange(100, 320), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
         }
         // 0.52, not 0.55: events and hazards add trajectory noise (seed 2 without the budget player dipped to 0.545 on a
         // pollution / power-capacity stall, not on a hazard; see Docs/milestones/v1.0/M17.md 17f; M21a: seed 3 with the
         // budget player dips to 0.528 now that research runs slower and the Industrial stretch is longer).
-        // M21e: 0.30 (seed 3 with the budget player reaches 0.31); see the first test for why it is low with 12x tech costs.
-        Assert.GreaterOrEqual(city.MinHappiness, 0.30f);
+        // M21e: 0.38 (the six seeds reach 0.41-0.44); see the first test for why it is low with 12x tech costs.
+        Assert.GreaterOrEqual(city.MinHappiness, 0.38f);
         Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
     }
 
@@ -118,7 +118,7 @@ public sealed class AgeBalanceTests
     {
         var asset = AssetDatabase.LoadAssetAtPath<BalanceConfig>("Assets/_Game/Scriptables/Balance/BalanceConfig.asset");
         var city = new EngagedCity(asset, 0);
-        for (int day = 0; day < 800 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
+        for (int day = 0; day < 1000 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
         city.RunDays(30);
         TestContext.WriteLine(city.Report());
     }
