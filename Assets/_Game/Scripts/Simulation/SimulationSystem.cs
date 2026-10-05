@@ -22,6 +22,8 @@ public sealed class SimulationSystem
     public DisasterSystem Disasters { get; }
     // Funding per budget line (M15); a change re-feeds the funded sources to the spatial systems.
     public BudgetSystem Budget { get; }
+    // The city-wide goods pool (M24); off (supply 1, no flows) until the age in BalanceConfig.GoodsMinAge, and without ages.
+    public GoodsSystem Goods { get; }
     public PopulationSystem Population { get; }
     public DemandSystem Demand { get; }
     public GrowthSystem Growth { get; }
@@ -89,6 +91,7 @@ public sealed class SimulationSystem
         roads.SetFrontage(RoadTiers.HasContent ? tier => RoadTiers.Frontage(tier) : null);
         Economy = new EconomySystem(config);
         Budget = new BudgetSystem(config, () => TechModifiers.LoanInterestMultiplier);
+        Goods = new GoodsSystem(config);
         Population = new PopulationSystem(config, Capacity);
         Demand = new DemandSystem(config);
         Power = new PowerSystem(grid, config, Capacity);
@@ -109,6 +112,26 @@ public sealed class SimulationSystem
         };
         Budget.Changed += ApplySources;
     }
+
+    // Goods are in play from the configured age (never without ages: the age-less sim is the regression baseline).
+    public bool GoodsActive => Tech != null && Tech.CurrentAge >= m_Config.GoodsMinAge;
+
+    // Goods made today: each filled industrial job, times the researched techs' multiplier.
+    public float GoodsProduction()
+    {
+        int jobs = Population.Jobs;
+        float filledIndustrial = jobs > 0 ? (float)Population.IndustrialJobs * Population.Employed / jobs : 0f;
+        return filledIndustrial * m_Config.GoodsPerIndustrialJob * TechModifiers.GoodsMultiplier;
+    }
+
+    // Goods wanted today: shops by their jobs, homes by their residents.
+    public float GoodsDemand()
+    {
+        return Population.CommercialJobs * m_Config.GoodsPerCommercialJob + Population.Population * m_Config.GoodsPerResident;
+    }
+
+    // How supplied the city is right now (1 when goods are off): what the next day would deliver from the current stock.
+    public float GoodsSupply() => Goods.Evaluate(GoodsProduction(), GoodsDemand(), GoodsActive).Supply;
 
     // The Power term only counts in ages whose upgrades need power; the Water term in ages needing water.
     public ServiceStats MeasureServices()
@@ -193,16 +216,18 @@ public sealed class SimulationSystem
     // demand) so the UI is correct before the next tick. Grid, Modifiers and Sources must already be restored.
     public void Restore(float money, float incomePerDay, float expensePerDay,
         float taxResidential, float taxCommercial, float taxIndustrial,
-        int population, float happiness)
+        int population, float happiness, float goodsStock = 0f)
     {
         Economy.Restore(money, incomePerDay, expensePerDay, taxResidential, taxCommercial, taxIndustrial);
         if (Disasters.Breakdowns.Prune(m_Sources) > 0 || Disasters.Breakdowns.AnyBroken) ApplySources();   // saved breakdowns
         Population.RecountCapacity(m_Grid, Modifiers);
         Population.Restore(population, happiness);
+        Goods.Restore(goodsStock, GoodsProduction(), GoodsDemand(), GoodsActive);
         UpdateTraffic();
         m_LastServices = MeasureServices();
         Population.RefreshHappinessBreakdown(taxResidential, taxCommercial, taxIndustrial, m_LastServices,
-            TechModifiers.HappinessBonus, TechModifiers.OrdinanceHappiness, PlagueTerm(), TechModifiers.EventHappiness);
+            TechModifiers.HappinessBonus, TechModifiers.OrdinanceHappiness, PlagueTerm(), TechModifiers.EventHappiness,
+            Goods.Last.Shortage);
         Demand.Compute(Population, taxResidential, taxCommercial, taxIndustrial, TechModifiers);
     }
 
@@ -222,9 +247,11 @@ public sealed class SimulationSystem
         float multiplier = TechModifiers.UpkeepMultiplier;
         float loans = Budget.DailyLoanPayments;
         float ordinances = Tech != null ? Tech.OrdinanceCostPerDay(Population.Population) : 0f;
-        float expense = (modifiers.UpkeepPerDay + fundingDelta + roads + pipes) * multiplier + loans + ordinances;
+        float imports = Goods.ImportCost(Goods.Last);
+        float exports = Goods.ExportIncome(Goods.Last);
+        float expense = (modifiers.UpkeepPerDay + fundingDelta + roads + pipes) * multiplier + loans + ordinances + imports;
         return new BudgetBreakdown(residential, commercial, industrial, byLine, modifiers.UpkeepPerDay - sourceUpkeep,
-            roads, pipes, multiplier, loans, ordinances, expense);
+            roads, pipes, multiplier, loans, ordinances, expense, imports, exports);
     }
 
     // The principal a loan taken now would carry: the age's LoanAmount, else the config default.
@@ -265,8 +292,11 @@ public sealed class SimulationSystem
 
         Population.RecountCapacity(m_Grid, modifiers);
         m_LastServices = MeasureServices();
+        // Yesterday's supply (from the stock the city holds now) drives today's happiness; Restore sees the same state.
+        float goodsShortage = 1f - GoodsSupply();
         Population.Step(Economy.TaxResidential, Economy.TaxCommercial, Economy.TaxIndustrial, m_LastServices,
-            tech.HappinessBonus, tech.OrdinanceHappiness, PlagueTerm(), tech.EventHappiness);
+            tech.HappinessBonus, tech.OrdinanceHappiness, PlagueTerm(), tech.EventHappiness, goodsShortage);
+        Goods.Step(GoodsProduction(), GoodsDemand(), GoodsActive);
 
         BudgetBreakdown ledger = Ledger();
         Economy.ApplyDay(ledger.Income, ledger.Expense);

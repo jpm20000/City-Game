@@ -113,6 +113,30 @@ public sealed class BalanceConfig : ScriptableObject
     [Tooltip("(tuned, M23) Extra pollution multiplier of a High-density factory, on top of its larger capacity.")]
     [SerializeField] private float m_HighDensityPollution = 1.25f;
 
+    [Header("Goods (M24)")]
+    [Tooltip("(tuned, M24) Age index from which goods are in play (Industrial = 2). 99 = off: 24a-24c ship dark, 24d turns it on with the baseline re-record.")]
+    [SerializeField] private int m_GoodsMinAge = 99;
+    [Tooltip("(tuned, M24) Goods made per day by each filled industrial job.")]
+    [SerializeField] private float m_GoodsPerIndustrialJob = 0.5f;
+    [Tooltip("(tuned, M24) Goods a shop sells per day for each commercial job.")]
+    [SerializeField] private float m_GoodsPerCommercialJob = 0.35f;
+    [Tooltip("(tuned, M24) Goods each resident buys per day.")]
+    [SerializeField] private float m_GoodsPerResident = 0.05f;
+    [Tooltip("(tuned, M24) The stock holds this many days of demand; production above it is exported.")]
+    [SerializeField] private float m_GoodsStockDays = 10f;
+    [Tooltip("(tuned, M24) Price of one imported unit.")]
+    [SerializeField] private float m_GoodsImportPrice = 3f;
+    [Tooltip("(tuned, M24) Imports can cover at most this share of a day's demand.")]
+    [SerializeField] private float m_GoodsMaxImportShare = 0.5f;
+    [Tooltip("(tuned, M24) Price of one exported unit.")]
+    [SerializeField] private float m_GoodsExportPrice = 1.5f;
+    [Tooltip("(tuned, M24) Share of commercial income and research that survives a total goods shortage.")]
+    [SerializeField] private float m_GoodsShopFloor = 0.4f;
+    [Tooltip("(tuned, M24) Happiness lost at homes in a total shortage (ramped in with city size).")]
+    [SerializeField] private float m_GoodsPenalty = 0.08f;
+    [Tooltip("(tuned, M24) Level 3 homes and shops are blocked while supply is below this share of demand.")]
+    [SerializeField] private float m_GoodsLevel3Supply = 0.7f;
+
     [Header("Population")]
     [SerializeField] private float m_WorkerRatio = 0.6f;
     [Tooltip("(tuned) Fraction of vacant homes filled per day. The doc scales this by residential demand, which deadlocks growth.")]
@@ -380,6 +404,18 @@ public sealed class BalanceConfig : ScriptableObject
     public int ResearchQueueMax => m_ResearchQueueMax;
     public float ResearchBankDays => m_ResearchBankDays;
     public float TutorialResearchBoost => m_TutorialResearchBoost;
+
+    public int GoodsMinAge => m_GoodsMinAge;
+    public float GoodsPerIndustrialJob => m_GoodsPerIndustrialJob;
+    public float GoodsPerCommercialJob => m_GoodsPerCommercialJob;
+    public float GoodsPerResident => m_GoodsPerResident;
+    public float GoodsStockDays => m_GoodsStockDays;
+    public float GoodsImportPrice => m_GoodsImportPrice;
+    public float GoodsMaxImportShare => m_GoodsMaxImportShare;
+    public float GoodsExportPrice => m_GoodsExportPrice;
+    public float GoodsShopFloor => m_GoodsShopFloor;
+    public float GoodsPenalty => m_GoodsPenalty;
+    public float GoodsLevel3Supply => m_GoodsLevel3Supply;
 
     public float LowDensityLandValue => m_LowDensityLandValue;
     public float HighDensityLandValuePenalty => m_HighDensityLandValuePenalty;

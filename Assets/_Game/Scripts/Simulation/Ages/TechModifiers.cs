@@ -21,6 +21,7 @@ public sealed class TechModifiers
     public float PollutionMultiplier { get; private set; } = 1f;
     public float LandValueBonus { get; private set; }
     public float LoanInterestMultiplier { get; private set; } = 1f;
+    public float GoodsMultiplier { get; private set; } = 1f;        // goods made per industrial job x this (M24)
     public float TrafficMultiplier { get; private set; } = 1f;      // commute trips x this (M16)
     public IReadOnlyCollection<string> UnlockedBuildings => m_Unlocked;
 
@@ -105,6 +106,9 @@ public sealed class TechModifiers
                 break;
             case TechEffectType.TrafficMultiplier:
                 TrafficMultiplier *= effect.Value;
+                break;
+            case TechEffectType.GoodsMultiplier:
+                GoodsMultiplier *= effect.Value;
                 break;
             case TechEffectType.HazardMultiplier:
                 if (Enum.TryParse(effect.Target, true, out HazardKind hazard) && (int)hazard < m_Hazard.Length)

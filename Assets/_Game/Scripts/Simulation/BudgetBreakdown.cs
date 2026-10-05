@@ -12,11 +12,16 @@ public readonly struct BudgetBreakdown
     public readonly float TechUpkeepMultiplier; // researched techs' upkeep multiplier (applies to all of the above)
     public readonly float Loans;                // daily loan payments (not scaled by the upkeep multiplier)
     public readonly float Ordinances;           // enacted ordinances' daily cost (not scaled either)
+    public readonly float Imports;              // goods bought abroad (M24; not scaled by the upkeep multiplier; part of Expense)
+    public readonly float Exports;              // goods sold abroad (M24; part of Income)
     public readonly float Expense;
 
     public BudgetBreakdown(float incomeResidential, float incomeCommercial, float incomeIndustrial, float[] upkeepByLine,
-        float otherUpkeep, float roads, float pipes, float techUpkeepMultiplier, float loans, float ordinances, float expense)
+        float otherUpkeep, float roads, float pipes, float techUpkeepMultiplier, float loans, float ordinances, float expense,
+        float imports = 0f, float exports = 0f)
     {
+        Imports = imports;
+        Exports = exports;
         IncomeResidential = incomeResidential;
         IncomeCommercial = incomeCommercial;
         IncomeIndustrial = incomeIndustrial;
@@ -30,6 +35,6 @@ public readonly struct BudgetBreakdown
         Expense = expense;
     }
 
-    public float Income => IncomeResidential + IncomeCommercial + IncomeIndustrial;
+    public float Income => IncomeResidential + IncomeCommercial + IncomeIndustrial + Exports;
     public float Net => Income - Expense;
 }

@@ -13,6 +13,7 @@ public enum TechEffectType
     LoanInterestMultiplier, // loan interest x Value (M15)
     TrafficMultiplier,      // commute trips x Value (M16)
     HazardMultiplier,       // Target = FireSpread / PlagueSpread / Breakdown: that hazard's spread or rate x Value (M17)
+    GoodsMultiplier,        // goods made per industrial job x Value (M24; append-only: stored by value)
 }
 
 // One effect of a researched tech. Folded into TechModifiers.
