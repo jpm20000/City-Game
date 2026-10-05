@@ -116,6 +116,48 @@ public abstract class UtilityNetwork
         return m_Remaining[m_CellNetwork[Index(cell)]] >= extra;
     }
 
+    // M23: an undeveloped cell draws nothing, so it is never "served"; a block about to start (High density needs
+    // utilities from its first level) is fed through the carrying cell it touches (itself, then +x, -x, +y, -y).
+    public bool IsCarryingNear(Vector2Int cell)
+    {
+        return m_Grid.InBounds(cell) && NearNetwork(cell, 0) >= 0;
+    }
+
+    public bool HasHeadroomNear(Vector2Int cell, int extra)
+    {
+        return m_Grid.InBounds(cell) && NearNetwork(cell, extra) >= 0;
+    }
+
+    public bool TryReserveNear(Vector2Int cell, int extra)
+    {
+        if (!m_Grid.InBounds(cell)) return false;
+        int network = NearNetwork(cell, extra);
+        if (network < 0) return false;
+        m_Remaining[network] -= extra;
+        m_Load += extra;
+        return true;
+    }
+
+    private int NearNetwork(Vector2Int cell, int extra)
+    {
+        EnsureFresh();
+        for (int k = 0; k < 5; k++)
+        {
+            Vector2Int c = k switch
+            {
+                0 => cell,
+                1 => new Vector2Int(cell.x + 1, cell.y),
+                2 => new Vector2Int(cell.x - 1, cell.y),
+                3 => new Vector2Int(cell.x, cell.y + 1),
+                _ => new Vector2Int(cell.x, cell.y - 1),
+            };
+            if (!m_Grid.InBounds(c)) continue;
+            int network = m_RoadNetwork[Index(c)];
+            if (network >= 0 && m_Remaining[network] >= extra) return network;
+        }
+        return -1;
+    }
+
     // Growth reserves an upgrade's extra draw so several upgrades in one tick can't overdraw a network.
     public bool TryReserve(Vector2Int cell, int extra)
     {

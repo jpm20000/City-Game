@@ -11,10 +11,12 @@ public readonly struct LandValueBreakdown
     public readonly float Pollution;
     public readonly float Crime;        // (M14)
     public readonly float Traffic;      // jammed roads beside the cell (M16), negative
+    public readonly float Density;      // Low density gains, High loses (M23)
 
     public LandValueBreakdown(float baseValue, float services, float heritage, float technology, float pollution,
-        float crime = 0f, float traffic = 0f)
+        float crime = 0f, float traffic = 0f, float density = 0f)
     {
+        Density = density;
         Traffic = traffic;
         Crime = crime;
         Base = baseValue;
@@ -24,7 +26,7 @@ public readonly struct LandValueBreakdown
         Pollution = pollution;
     }
 
-    public float Total => Mathf.Clamp01(Base + Services + Heritage + Technology + Pollution + Crime + Traffic);
+    public float Total => Mathf.Clamp01(Base + Services + Heritage + Technology + Pollution + Crime + Traffic + Density);
 }
 
 // Land value per cell (M12), 0..1: LandValueBase + services in range (capped) + kept historic
@@ -97,7 +99,9 @@ public sealed class LandValueSystem
         float pollution = -m_Pollution.GetPollution(cell) * m_Config.LandValuePerPollution;
         float crime = m_Civic != null ? -m_Civic.GetCrime(cell) * m_Config.LandValuePerCrime : 0f;
         float traffic = m_Traffic != null ? -TrafficSystem.LandValueLossAt(m_Config, m_Traffic.LocalCongestion(cell)) : 0f;
-        return new LandValueBreakdown(m_Config.LandValueBase, services, heritage, tech, pollution, crime, traffic);
+        Density zoned = m_Grid.GetDensity(cell);
+        float density = zoned == Density.Low ? m_Config.LowDensityLandValue : zoned == Density.High ? -m_Config.HighDensityLandValuePenalty : 0f;
+        return new LandValueBreakdown(m_Config.LandValueBase, services, heritage, tech, pollution, crime, traffic, density);
     }
 
     private void EnsureFresh()

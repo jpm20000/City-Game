@@ -93,6 +93,24 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_GrowthDemandThreshold = 0.15f;
     [SerializeField] private int[] m_LevelCapacity = { 4, 8, 16 };
 
+    [Header("Density (M23)")]
+    [Tooltip("(tuned, M23) Capacity of a Low-density cell relative to Medium (Medium = 1, the identity).")]
+    [SerializeField] private float m_LowDensityScale = 0.5f;
+    [Tooltip("(tuned, M23) Capacity of a High-density home or shop relative to Medium.")]
+    [SerializeField] private float m_HighDensityScale = 2f;
+    [Tooltip("(tuned, M23) Capacity of a High-density factory relative to Medium.")]
+    [SerializeField] private float m_HighDensityScaleIndustrial = 1.6f;
+    [Tooltip("(tuned, M23) Age index from which High density can be zoned for shops (Renaissance).")]
+    [SerializeField] private int m_HighDensityMinAgeCommercial = 1;
+    [Tooltip("(tuned, M23) Age index from which High density can be zoned for homes and factories (Industrial).")]
+    [SerializeField] private int m_HighDensityMinAgeOther = 2;
+    [Tooltip("(tuned, M23) Land value a Low-density cell gains (quiet streets, gardens).")]
+    [SerializeField] private float m_LowDensityLandValue = 0.05f;
+    [Tooltip("(tuned, M23) Land value a High-density cell loses (crowding).")]
+    [SerializeField] private float m_HighDensityLandValuePenalty = 0.03f;
+    [Tooltip("(tuned, M23) Extra pollution multiplier of a High-density factory, on top of its larger capacity.")]
+    [SerializeField] private float m_HighDensityPollution = 1.25f;
+
     [Header("Population")]
     [SerializeField] private float m_WorkerRatio = 0.6f;
     [Tooltip("(tuned) Fraction of vacant homes filled per day. The doc scales this by residential demand, which deadlocks growth.")]
@@ -360,6 +378,27 @@ public sealed class BalanceConfig : ScriptableObject
     public int ResearchQueueMax => m_ResearchQueueMax;
     public float ResearchBankDays => m_ResearchBankDays;
     public float TutorialResearchBoost => m_TutorialResearchBoost;
+
+    public float LowDensityLandValue => m_LowDensityLandValue;
+    public float HighDensityLandValuePenalty => m_HighDensityLandValuePenalty;
+    public float HighDensityPollution => m_HighDensityPollution;
+
+    // Capacity multiplier of a density for a zone (M23); Medium is exactly 1 for every zone.
+    public float DensityScale(ZoneType zone, Density density)
+    {
+        switch (density)
+        {
+            case Density.Low: return m_LowDensityScale;
+            case Density.High: return zone == ZoneType.Industrial ? m_HighDensityScaleIndustrial : m_HighDensityScale;
+            default: return 1f;
+        }
+    }
+
+    // First age index in which the zone can be painted High (M23).
+    public int HighDensityMinAge(ZoneType zone)
+    {
+        return zone == ZoneType.Commercial ? m_HighDensityMinAgeCommercial : m_HighDensityMinAgeOther;
+    }
 
     // Residents (or jobs) for a grown cell at the given level; 0 = undeveloped.
     public int CapacityForLevel(int level)

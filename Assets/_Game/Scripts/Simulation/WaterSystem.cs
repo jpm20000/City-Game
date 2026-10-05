@@ -55,19 +55,34 @@ public sealed class WaterSystem
         }
     }
 
+    // Whether an undeveloped cell has water within reach (M23, a High-density block about to start): a well in
+    // Coverage ages, a fed road or pipe beside it in Piped ages.
+    public bool HasWaterNear(Vector2Int cell)
+    {
+        switch (Mode)
+        {
+            case WaterRule.Coverage: return Coverage.GetCoverage(cell) > 0;
+            case WaterRule.Piped: return Network.IsCarryingNear(cell);
+            default: return true;
+        }
+    }
+
     // Whether the cell can grow from one capacity to another: watered and, when piped, with headroom
-    // on its network for the extra draw.
+    // on its network for the extra draw. From capacity 0 (a block about to start) the cell is fed through the
+    // road or pipe it touches.
     public bool HasHeadroom(Vector2Int cell, int fromCapacity, int toCapacity)
     {
-        if (Mode != WaterRule.Piped) return HasWater(cell);
-        return Network.HasHeadroom(cell, Network.ExtraDraw(fromCapacity, toCapacity));
+        if (Mode != WaterRule.Piped) return fromCapacity <= 0 ? HasWaterNear(cell) : HasWater(cell);
+        int extra = Network.ExtraDraw(fromCapacity, toCapacity);
+        return fromCapacity <= 0 ? Network.HasHeadroomNear(cell, extra) : Network.HasHeadroom(cell, extra);
     }
 
     // Reserves the extra draw on the cell's network (piped), so several upgrades in one tick can't overdraw it.
     public bool TryReserve(Vector2Int cell, int fromCapacity, int toCapacity)
     {
-        if (Mode != WaterRule.Piped) return HasWater(cell);
-        return Network.TryReserve(cell, Network.ExtraDraw(fromCapacity, toCapacity));
+        if (Mode != WaterRule.Piped) return fromCapacity <= 0 ? HasWaterNear(cell) : HasWater(cell);
+        int extra = Network.ExtraDraw(fromCapacity, toCapacity);
+        return fromCapacity <= 0 ? Network.TryReserveNear(cell, extra) : Network.TryReserve(cell, extra);
     }
 
     // Everything the HUD and toasts need, in one pass.

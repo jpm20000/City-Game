@@ -478,7 +478,7 @@ public sealed class SelectionPanel : MonoBehaviour
         DescribeCellHazards(cell);
         if (level < maxLevel)
         {
-            Line($"Next level: {unit.ToLowerInvariant()} {sim.Capacity.Capacity(level + 1, builtAge)}");
+            Line($"Next level: {unit.ToLowerInvariant()} {sim.Capacity.CapacityAt(grid, cell, level + 1, builtAge)}");
             Line(BlockerText(cell, zone, "Upgrade"));
         }
         else if (sim.Growth.IsOutdated(cell) || level < balance.MaxLevel)
@@ -569,6 +569,8 @@ public sealed class SelectionPanel : MonoBehaviour
         if (value.Pollution < 0f) parts.Append($", pollution −{-value.Pollution:P0}");
         if (value.Crime < 0f) parts.Append($", crime −{-value.Crime:P0}");
         if (value.Traffic < 0f) parts.Append($", traffic −{-value.Traffic:P0}");
+        if (value.Density > 0f) parts.Append($", low density +{value.Density:P0}");
+        if (value.Density < 0f) parts.Append($", high density −{-value.Density:P0}");
         return parts.ToString();
     }
 

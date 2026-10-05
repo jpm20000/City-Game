@@ -133,7 +133,7 @@ public sealed class GrowthSystem
             if (IsOutdated(cell))
             {
                 if (!m_Roads.HasRoadAccess(cell)) return GrowthBlocker.NoRoadAccess;
-                GrowthBlocker utilities = UtilityBlocker(cell, Capacity(cell), m_Capacity.Capacity(level, CurrentAge), rules);
+                GrowthBlocker utilities = UtilityBlocker(cell, Capacity(cell), CapacityAt(cell, level, CurrentAge), rules);
                 return utilities != GrowthBlocker.None ? utilities : GrowthBlocker.Outdated;
             }
             if (m_Grid.IsHistoric(cell)) return GrowthBlocker.KeptHistoric;
@@ -143,7 +143,13 @@ public sealed class GrowthSystem
         if (m_LandValue != null && !m_LandValue.AllowsLevel(cell, level + 1)) return GrowthBlocker.LowLandValue;
         if (level > 0)
         {
-            GrowthBlocker utilities = UtilityBlocker(cell, Capacity(cell), m_Capacity.Capacity(level + 1, m_Grid.GetBuiltAge(cell)), rules);
+            GrowthBlocker utilities = UtilityBlocker(cell, Capacity(cell), CapacityAt(cell, level + 1, m_Grid.GetBuiltAge(cell)), rules);
+            if (utilities != GrowthBlocker.None) return utilities;
+        }
+        else if (m_Grid.GetDensity(cell) == Density.High)
+        {
+            // M23: a High-density block needs power and water from its first level, where Medium and Low only need them to upgrade.
+            GrowthBlocker utilities = StartBlocker(cell, CapacityAt(cell, 1, CurrentAge), rules);
             if (utilities != GrowthBlocker.None) return utilities;
         }
         if (demand.Get(zone) <= m_Config.GrowthDemandThreshold) return GrowthBlocker.LowDemand;
@@ -162,7 +168,11 @@ public sealed class GrowthSystem
                 {
                     if (level >= MaxLevelFor(cell)) continue;
                     if (m_LandValue != null && !m_LandValue.AllowsLevel(cell, level + 1)) continue;
-                    if (!TryReserveUtilities(cell, Capacity(cell), m_Capacity.Capacity(level + 1, m_Grid.GetBuiltAge(cell)), rules)) continue;
+                    if (!TryReserveUtilities(cell, Capacity(cell), CapacityAt(cell, level + 1, m_Grid.GetBuiltAge(cell)), rules)) continue;
+                }
+                else if (m_Grid.GetDensity(cell) == Density.High)
+                {
+                    if (!TryReserveUtilities(cell, 0, CapacityAt(cell, 1, CurrentAge), rules)) continue;
                 }
 
                 m_Changed.Add(cell);
@@ -186,7 +196,7 @@ public sealed class GrowthSystem
                 if (!IsOutdated(cell) || m_ChangedSet.Contains(cell)) continue;
                 if (m_Grid.GetZone(cell) == ZoneType.None || m_Grid.IsRoad(cell) || m_Grid.IsOccupied(cell)) continue;
                 if (!m_Roads.HasRoadAccess(cell)) continue;
-                if (!TryReserveUtilities(cell, Capacity(cell), m_Capacity.Capacity(m_Grid.GetBuildingLevel(cell), age), rules)) continue;
+                if (!TryReserveUtilities(cell, Capacity(cell), CapacityAt(cell, m_Grid.GetBuildingLevel(cell), age), rules)) continue;
 
                 m_Redeveloped.Add(cell);
                 budget--;
@@ -195,6 +205,8 @@ public sealed class GrowthSystem
     }
 
     private int Capacity(Vector2Int cell) => m_Capacity.CapacityOf(m_Grid, cell);
+
+    private int CapacityAt(Vector2Int cell, int level, int builtAge) => m_Capacity.CapacityAt(m_Grid, cell, level, builtAge);
 
     private bool NeedsWater => m_Water != null && m_Water.Mode != WaterRule.None;
 
@@ -214,6 +226,23 @@ public sealed class GrowthSystem
         return GrowthBlocker.None;
     }
 
+    // Like UtilityBlocker for a block about to start (M23, High density): an undeveloped cell is fed through the
+    // road or pipe beside it.
+    private GrowthBlocker StartBlocker(Vector2Int cell, int to, AgeRules rules)
+    {
+        if (rules.UpgradesNeedPower)
+        {
+            if (!m_Power.IsCarryingNear(cell)) return GrowthBlocker.NoPower;
+            if (!m_Power.HasHeadroomNear(cell, to)) return GrowthBlocker.PowerAtCapacity;
+        }
+        if (NeedsWater)
+        {
+            if (!m_Water.HasWaterNear(cell)) return GrowthBlocker.NoWater;
+            if (!m_Water.HasHeadroom(cell, 0, to)) return GrowthBlocker.WaterAtCapacity;
+        }
+        return GrowthBlocker.None;
+    }
+
     // Reserves the extra power and water draw of growing from one capacity to another: both or
     // neither, so a cell short of water never holds power it can't use.
     private bool TryReserveUtilities(Vector2Int cell, int from, int to, AgeRules rules)
@@ -221,9 +250,10 @@ public sealed class GrowthSystem
         bool power = rules.UpgradesNeedPower;
         bool water = NeedsWater;
         int extraPower = Mathf.Max(0, to - from);
-        if (power && !m_Power.HasHeadroom(cell, extraPower)) return false;
+        bool starting = from <= 0;      // M23: a High-density block starting from nothing
+        if (power && !(starting ? m_Power.HasHeadroomNear(cell, extraPower) : m_Power.HasHeadroom(cell, extraPower))) return false;
         if (water && !m_Water.HasHeadroom(cell, from, to)) return false;
-        if (power) m_Power.TryReserve(cell, extraPower);
+        if (power) { if (starting) m_Power.TryReserveNear(cell, extraPower); else m_Power.TryReserve(cell, extraPower); }
         if (water) m_Water.TryReserve(cell, from, to);
         return true;
     }
