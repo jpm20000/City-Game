@@ -218,6 +218,34 @@ public static class RoadLayoutDriver
             ScreenCapture.CaptureScreenshot(shotPath.Replace(".png", "_highway.png"));
             yield return Seconds(1.5f);
 
+            // --- two avenues across each other make an open junction ---
+            placement.ClearMode();
+            yield return ClickUi(Btn("Road_avenue"));
+            yield return Frames(3);
+            yield return Drag(V(13, 12), V(14, 12), V(15, 12), V(16, 12), V(17, 12), V(18, 12), V(19, 12));      // horizontal: lanes y 12 and 11
+            Check(grid.GetRoadPair(V(15, 12)) == RoadLayout.South, "the horizontal avenue is a pair");
+            yield return Drag(V(16, 8), V(16, 9), V(16, 10), V(16, 11), V(16, 12), V(16, 13));   // vertical across it
+            bool junctionOpen = true;
+            foreach (Vector2Int c in new[] { V(16, 11), V(17, 11), V(16, 12), V(17, 12) }) junctionOpen &= grid.GetRoadTier(c) == RoadTiers.Avenue && grid.GetRoadPair(c) == RoadLayout.None;
+            Check(junctionOpen, "the four crossing cells are an open junction");
+            Check(grid.GetRoadPair(V(16, 10)) == RoadLayout.East && grid.GetRoadPair(V(16, 13)) == RoadLayout.East, "the vertical avenue is paired either side of it");
+            Check(grid.GetRoadPair(V(14, 12)) == RoadLayout.South && grid.GetRoadPair(V(18, 11)) == RoadLayout.North, "and so is the horizontal one");
+            yield return Frames(6);
+            ScreenCapture.CaptureScreenshot(shotPath.Replace(".png", "_junction.png"));
+            yield return Seconds(1.5f);
+
+            // --- two one-way highways side by side, opposite ways, are separate carriageways ---
+            yield return ClickUi(Btn("Road_highway"));
+            yield return Frames(3);
+            yield return Drag(V(13, 22), V(14, 22), V(15, 22), V(16, 22));
+            yield return Drag(V(16, 23), V(15, 23), V(14, 23), V(13, 23));
+            Check(grid.GetRoadDirection(V(14, 22)) == RoadLayout.East && grid.GetRoadDirection(V(14, 23)) == RoadLayout.West, "two highways run in opposite directions");
+            yield return Frames(6);
+            ScreenCapture.CaptureScreenshot(shotPath.Replace(".png", "_parallel.png"));
+            yield return Seconds(1.5f);
+            placement.ClearMode();
+            yield return Frames(3);
+
             // --- save, change, load: the layout comes back ---
             Check(saves.Save(), "the city saves");
             byte[] directions = grid.ExportRoadDirections();

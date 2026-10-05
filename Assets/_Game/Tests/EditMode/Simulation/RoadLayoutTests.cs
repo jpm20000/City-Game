@@ -547,4 +547,72 @@ public sealed class RoadLayoutTests
         for (int x = 2; x <= 6; x++) Assert.AreEqual(RoadLayout.West, grid.GetRoadDirection(V(x, 5)));
         Assert.AreEqual(0, RoadLayout.CollectStretch(grid, V(9, 9)).Count, "not a one-way road");
     }
+
+    // --- fixes after the first play-test: the median is a wall, avenues cross in a junction ---
+
+    private static void LayPair(GridData grid, Vector2Int cell, byte side)
+    {
+        grid.SetRoadTier(cell, RoadTiers.Avenue);
+        grid.SetRoadTier(cell + RoadLayout.Offset(side), RoadTiers.Avenue);
+        grid.SetRoadPair(cell, side);
+    }
+
+    [Test]
+    public void Median_BlocksTheStepBetweenTheTwoLanes_ButNotAlongThem()
+    {
+        var grid = new GridData(12, 12);
+        for (int x = 2; x <= 6; x++) LayPair(grid, V(x, 5), RoadLayout.North);
+        Assert.IsFalse(RoadLayout.CanStep(grid, V(4, 5), V(4, 6)), "no cutting across the median");
+        Assert.IsFalse(RoadLayout.CanStep(grid, V(4, 6), V(4, 5)));
+        Assert.IsTrue(RoadLayout.CanStep(grid, V(4, 5), V(5, 5)), "along a lane is fine");
+        Assert.IsTrue(RoadLayout.CanStep(grid, V(4, 6), V(3, 6)));
+    }
+
+    [Test]
+    public void Median_TrafficStaysInItsLane()
+    {
+        var grid = new GridData(20, 20);
+        for (int x = 0; x <= 19; x++) LayPair(grid, V(x, 10), RoadLayout.North);
+        Grown(grid, 10, 9, ZoneType.Residential);       // beside the lower lane
+        Grown(grid, 14, 12, ZoneType.Commercial);       // beside the upper lane
+        TrafficSystem traffic = Traffic(grid);
+        traffic.Update(1f, 1f, 1f);
+
+        Assert.AreEqual(0f, traffic.Load(V(14, 11)), 1e-4f, "the job on the far side of the median is not reachable across it");
+        Assert.AreEqual(4f, traffic.Trips, 1e-4f, "so the home commutes out of town along its own lane");
+        Assert.AreEqual(4f, traffic.Load(V(19, 10)), 1e-4f);
+    }
+
+    [Test]
+    public void Crossing_TwoAvenuesAtRightAnglesMakeAnOpenJunction()
+    {
+        var grid = new GridData(16, 16);
+        for (int x = 2; x <= 12; x++) LayPair(grid, V(x, 7), RoadLayout.North);     // horizontal: lanes y 7 / 8
+        // a vertical pair (second lane to the east) across it at x 6 / 7
+        Assert.AreEqual(RoadLayout.LaneProblem.None, RoadLayout.CheckPair(grid, V(6, 7), RoadLayout.East, RoadTiers.Avenue),
+            "the first crossing row is accepted, not 'taken'");
+        Assert.IsTrue(RoadLayout.IsCrossing(grid, V(6, 7), RoadLayout.East));
+        RoadLayout.MakeJunction(grid, V(6, 7), RoadLayout.East);
+
+        foreach (Vector2Int c in new[] { V(6, 7), V(7, 7), V(6, 8), V(7, 8) })
+        {
+            Assert.AreEqual(RoadTiers.Avenue, grid.GetRoadTier(c));
+            Assert.AreEqual(0, grid.GetRoadPair(c), $"{c} is an open junction cell");
+        }
+        Assert.AreEqual(RoadLayout.North, grid.GetRoadPair(V(5, 7)), "the lanes either side keep their median");
+        Assert.AreEqual(RoadLayout.South, grid.GetRoadPair(V(8, 8)));
+        Assert.IsTrue(RoadLayout.CanStep(grid, V(6, 7), V(6, 8)), "cars cross inside the junction");
+        Assert.IsFalse(RoadLayout.IsCrossing(grid, V(6, 8), RoadLayout.East), "the junction is no longer a pair to cross");
+    }
+
+    [Test]
+    public void Crossing_NeedsBothLanesOnPairsAtRightAngles()
+    {
+        var grid = new GridData(16, 16);
+        for (int x = 2; x <= 12; x++) LayPair(grid, V(x, 7), RoadLayout.North);
+        Assert.IsFalse(RoadLayout.IsCrossing(grid, V(6, 7), RoadLayout.North), "parallel to the existing pair");
+        Assert.AreEqual(RoadLayout.LaneProblem.Taken, RoadLayout.CheckPair(grid, V(6, 7), RoadLayout.South, RoadTiers.Avenue));
+        Assert.AreEqual(RoadLayout.LaneProblem.Taken, RoadLayout.CheckPair(grid, V(12, 7), RoadLayout.East, RoadTiers.Avenue),
+            "one lane on the avenue, the other off it");
+    }
 }

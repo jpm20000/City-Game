@@ -23,7 +23,8 @@ public sealed class TrafficSystem
     private int m_Height;
     private byte[] m_Tier;               // snapshot of the road tiers for this Update
     private byte[] m_Dir;                // snapshot of the highway direction codes (M22)
-    private bool m_OneWay;               // any one-way cell in this Update (else the direction checks are skipped)
+    private byte[] m_Pair;               // snapshot of the avenue pair codes (a median blocks the step between two lanes)
+    private bool m_OneWay;               // any one-way or paired cell in this Update (else the layout checks are skipped)
     private int[] m_Dist;
     private int[] m_Parent;
     private float[] m_Load;
@@ -65,6 +66,7 @@ public sealed class TrafficSystem
         int n = m_Width * m_Height;
         m_Tier = new byte[n];
         m_Dir = new byte[n];
+        m_Pair = new byte[n];
         m_Dist = new int[n];
         m_Parent = new int[n];
         m_Load = new float[n];
@@ -145,7 +147,8 @@ public sealed class TrafficSystem
         int n = m_Width * m_Height;
         m_Grid.CopyRoadTiersTo(m_Tier);
         m_Grid.CopyRoadDirectionsTo(m_Dir);
-        m_OneWay = m_Grid.AnyOneWay();
+        m_Grid.CopyRoadPairsTo(m_Pair);
+        m_OneWay = m_Grid.AnyOneWay() || m_Grid.AnyPaired();
         Array.Clear(m_Load, 0, n);
         Array.Clear(m_Congestion, 0, n);
         Array.Clear(m_Worst, 0, n);
@@ -261,7 +264,7 @@ public sealed class TrafficSystem
                     byte tier = m_Tier[nb];
                     if (tier == 0) continue;
                     // The pass runs from the sinks, so relaxing c -> nb is the trip nb -> c (M22: one-way cells).
-                    if (m_OneWay && !RoadLayout.CanStep(new Vector2Int(nx, ny), m_Dir[nb], new Vector2Int(cx, cy), m_Dir[c])) continue;
+                    if (m_OneWay && !RoadLayout.CanStep(new Vector2Int(nx, ny), m_Dir[nb], m_Pair[nb], new Vector2Int(cx, cy), m_Dir[c])) continue;
                     int nd = d + m_TierTravel[tier];
                     if (nd >= m_Dist[nb]) continue;
                     m_Dist[nb] = nd;

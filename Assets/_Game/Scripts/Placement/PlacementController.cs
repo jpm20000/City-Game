@@ -30,7 +30,7 @@ public sealed class PlacementController : MonoBehaviour
     private bool m_PipeFundsWarned; // one "not enough money" per drag (pipes and roads)
     private byte m_RoadTier;        // the Road tool's tier: 0 = the best unlocked street tier (M16)
     private byte m_AvenueHeading = RoadLayout.East;   // the heading the Avenue pair follows (the last drag's; default +x) (M22)
-    private bool m_AvenueFlip;      // R: the second lane goes on the left of the heading instead of the right
+    private byte m_AvenueSide = RoadLayout.South;     // R: the side the second lane goes on (turns a quarter per press)
     private Vector2Int? m_DragLast; // the last cell this road drag laid (the heading comes from the step to the next one)
     private Vector2Int? m_PendingLane;  // the drag's first Avenue cell, laid once the second cell shows the heading
     private bool m_HighwayTwoWay;   // R: the Highway tool lays two-way cells instead of one-way ones (M22)
@@ -44,7 +44,7 @@ public sealed class PlacementController : MonoBehaviour
 
     // The Road tool's tier choice: 0 = the street tool (best unlocked street tier), else a tier (Avenue, Highway).
     public byte RoadToolTier => m_RoadTier;
-    public bool AvenueFlipped => m_AvenueFlip;
+    public byte AvenueSideChoice => m_AvenueSide;
     public bool HighwayTwoWay => m_HighwayTwoWay;
 
     // The tier the Road tool lays or upgrades to right now.
@@ -219,7 +219,9 @@ public sealed class PlacementController : MonoBehaviour
     {
         if (m_Mode == Mode.Road && m_RoadTier == RoadTiers.Avenue && m_InputReader.RotatePressed)
         {
-            m_AvenueFlip = !m_AvenueFlip;       // the second lane to the other side (M22)
+            // R turns the pair a quarter: the second lane moves to the next side and the idle heading follows (M22).
+            m_AvenueSide = RoadLayout.RightOf(m_AvenueSide);
+            m_AvenueHeading = RoadLayout.LeftOf(m_AvenueSide);
             return;
         }
         if (m_Mode == Mode.Road && m_RoadTier == RoadTiers.Highway && m_InputReader.RotatePressed)
@@ -347,7 +349,9 @@ public sealed class PlacementController : MonoBehaviour
     }
 
     // The avenue pair for a cell: the other lane's side from the heading and the R flip (M22).
-    private byte AvenueSide(byte heading) => m_AvenueFlip ? RoadLayout.LeftOf(heading) : RoadLayout.RightOf(heading);
+    // The chosen side while it is square to the heading; a drag along the chosen side's axis puts the lane on its right.
+    private byte AvenueSide(byte heading) =>
+        RoadLayout.IsVertical(m_AvenueSide) != RoadLayout.IsVertical(heading) ? m_AvenueSide : RoadLayout.RightOf(heading);
 
     // Avenue drag: the heading comes from the step between two painted cells, so the first cell waits for the second
     // (or for the button to be released, FlushPendingLane); every later cell lays itself and its other lane.
@@ -401,6 +405,13 @@ public sealed class PlacementController : MonoBehaviour
         if (RoadLayout.CheckPair(m_GridData, cell, side, RoadTiers.Avenue) != RoadLayout.LaneProblem.None) return;
         Vector2Int partner = cell + RoadLayout.Offset(side);
         if (m_GridData.GetRoadPair(cell) == side) return;       // already this pair
+        if (RoadLayout.IsCrossing(m_GridData, cell, side))
+        {
+            RoadLayout.MakeJunction(m_GridData, cell, side);    // across an avenue: an open junction, nothing to pay
+            AudioController.Play(SfxId.RoadLay, m_GridSystem.CellToWorld(cell));
+            return;
+        }
+        bool pairIt = m_GridData.GetRoadTier(cell) != RoadTiers.Avenue && m_GridData.GetRoadTier(partner) != RoadTiers.Avenue;
         int cost = PairCost(cell, side);
         if (!m_GameManager.Economy.Spend(cost))
         {
@@ -411,7 +422,7 @@ public sealed class PlacementController : MonoBehaviour
         bool upgraded = m_GridData.IsRoad(cell) || m_GridData.IsRoad(partner);
         PlaceRoad(cell, RoadTiers.Avenue);
         PlaceRoad(partner, RoadTiers.Avenue);
-        m_GridData.SetRoadPair(cell, side);
+        if (pairIt) m_GridData.SetRoadPair(cell, side);         // avenue cells already there (a junction, an old single lane) keep theirs
         GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
         AudioController.Play(upgraded ? SfxId.RoadUpgrade : SfxId.RoadLay, m_GridSystem.CellToWorld(cell));
     }
@@ -869,15 +880,16 @@ public sealed class PlacementController : MonoBehaviour
         byte side = AvenueSide(m_AvenueHeading);
         switch (RoadLayout.CheckPair(m_GridData, cell, side, RoadTiers.Avenue))
         {
-            case RoadLayout.LaneProblem.OffMap: SetHint("Needs two tiles: off the map  [R] flip side", false); return;
-            case RoadLayout.LaneProblem.Blocked: SetHint("Needs the lane beside it free: blocked  [R] flip side", false); return;
-            case RoadLayout.LaneProblem.Taken: SetHint("The lane beside it belongs to another avenue  [R] flip side", false); return;
+            case RoadLayout.LaneProblem.OffMap: SetHint("Needs two tiles: off the map  [R] rotate", false); return;
+            case RoadLayout.LaneProblem.Blocked: SetHint("Needs the lane beside it free: blocked  [R] rotate", false); return;
+            case RoadLayout.LaneProblem.Taken: SetHint("The lane beside it belongs to another avenue  [R] rotate", false); return;
             case RoadLayout.LaneProblem.Higher: SetHint("A highway is in the way", false); return;
         }
         if (m_GridData.GetRoadPair(cell) == side) { SetHint("Already an Avenue", false); return; }
+        if (RoadLayout.IsCrossing(m_GridData, cell, side)) { SetHint("Junction with the avenue (free)  [R] rotate", true); return; }
         int cost = PairCost(cell, side);
         if (!economy.CanAfford(cost)) SetHint($"Need ${cost:N0}", false);
-        else SetHint($"{tiers.DisplayName(RoadTiers.Avenue)} (2 tiles wide) ${cost:N0}  [R] flip side", true);
+        else SetHint($"{tiers.DisplayName(RoadTiers.Avenue)} (2 tiles wide) ${cost:N0}  [R] rotate", true);
     }
 
     // Why a footprint can't be placed (mirrors GridData.CanPlace), or null if it can.

@@ -57,6 +57,9 @@ public sealed class RoadTilemapView : GridTilemapView
     private readonly Sprite[,] m_LaneSprites = new Sprite[4, 16];
     private readonly Tile[,] m_LaneTiles = new Tile[4, 16];
     private readonly Tile[,] m_LaneDisconnectedTiles = new Tile[4, 16];
+    private Tile m_JunctionTile, m_JunctionDisconnectedTile;     // an unpaired avenue cell with all four neighbours: open asphalt
+    private Texture2D m_JunctionTexture;
+    private Sprite m_JunctionSprite;
     private const int k_MedianWidth = 11;       // px of median along the inner edge of a paired lane
 
     private Style StyleOf(int tier)
@@ -113,9 +116,20 @@ public sealed class RoadTilemapView : GridTilemapView
                 m_LaneDisconnectedTiles[side - 1, mask] = CreateTile(sprite, m_DisconnectedTint);
             }
         }
+        CreateJunctionTile();
     }
 
     private const int RoadTiersAvenue = 4;
+
+    private void CreateJunctionTile()
+    {
+        Style avenue = StyleOf(RoadTiersAvenue);
+        var open = new Style(avenue.Asphalt, avenue.Curb, avenue.Line, avenue.CurbWidth, new int[0]);
+        m_JunctionTexture = DrawRoad(RoadTiersAvenue, 15, open);
+        m_JunctionSprite = Sprite.Create(m_JunctionTexture, new Rect(0, 0, k_Size, k_Size), new Vector2(0.5f, 0.5f), k_Size);
+        m_JunctionTile = CreateTile(m_JunctionSprite, Color.white);
+        m_JunctionDisconnectedTile = CreateTile(m_JunctionSprite, m_DisconnectedTint);
+    }
 
     protected override void OnDestroy()
     {
@@ -130,6 +144,10 @@ public sealed class RoadTilemapView : GridTilemapView
                 Destroy(m_Textures[tier, i]);
             }
         }
+        Destroy(m_JunctionTile);
+        Destroy(m_JunctionDisconnectedTile);
+        Destroy(m_JunctionSprite);
+        Destroy(m_JunctionTexture);
         for (int side = 0; side < 4; side++)
         {
             for (int i = 0; i < 16; i++)
@@ -160,6 +178,7 @@ public sealed class RoadTilemapView : GridTilemapView
             int laneMask = mask & ~(1 << (pair - 1));
             return connected ? m_LaneTiles[pair - 1, laneMask] : m_LaneDisconnectedTiles[pair - 1, laneMask];
         }
+        if (tier == RoadTiersAvenue && mask == 15) return connected ? m_JunctionTile : m_JunctionDisconnectedTile;
         return connected ? m_ConnectedTiles[tier - 1, mask] : m_DisconnectedTiles[tier - 1, mask];
     }
 
@@ -168,7 +187,21 @@ public sealed class RoadTilemapView : GridTilemapView
     private bool Connects(Vector2Int cell, Vector2Int direction)
     {
         Vector2Int neighbor = cell + direction;
-        if (Grid.InBounds(neighbor)) return Grid.IsRoad(neighbor);
+        if (Grid.InBounds(neighbor))
+        {
+            if (!Grid.IsRoad(neighbor)) return false;
+            // Side by side one-way highways are separate carriageways: no joint between them, whichever way they run (M22).
+            if (Grid.GetRoadTier(cell) == GridData.HighwayTier && Grid.GetRoadTier(neighbor) == GridData.HighwayTier)
+            {
+                byte step = RoadLayout.FromStep(direction);
+                byte own = Grid.GetRoadDirection(cell), other = Grid.GetRoadDirection(neighbor);
+                bool linked = (own != RoadLayout.None && cell + RoadLayout.Offset(own) == neighbor)
+                    || (other != RoadLayout.None && neighbor + RoadLayout.Offset(other) == cell);     // a bend still joins
+                if (!linked && ((own != RoadLayout.None && RoadLayout.IsVertical(own) != RoadLayout.IsVertical(step))
+                    || (other != RoadLayout.None && RoadLayout.IsVertical(other) != RoadLayout.IsVertical(step)))) return false;
+            }
+            return true;
+        }
 
         Vector2Int side = new Vector2Int(direction.y, direction.x);
         return !IsRoadInBounds(cell + side) && !IsRoadInBounds(cell - side);

@@ -267,6 +267,21 @@ public sealed class GridData
         Buffer.BlockCopy(m_RoadDirections, 0, dest, 0, m_RoadDirections.Length);
     }
 
+    // The same for the avenue pair codes (M22).
+    public void CopyRoadPairsTo(byte[] dest)
+    {
+        Buffer.BlockCopy(m_RoadPairs, 0, dest, 0, m_RoadPairs.Length);
+    }
+
+    public bool AnyPaired()
+    {
+        for (int i = 0; i < m_RoadPairs.Length; i++)
+        {
+            if (m_RoadPairs[i] != 0) return true;
+        }
+        return false;
+    }
+
     // True when any road cell is one-way (lets traffic skip the direction checks in an all-two-way city).
     public bool AnyOneWay()
     {

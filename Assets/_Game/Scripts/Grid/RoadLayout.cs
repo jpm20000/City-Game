@@ -54,10 +54,37 @@ public static class RoadLayout
         return true;
     }
 
+    // The same, and a paired avenue's median is a wall: no step from a lane to its partner lane.
+    public static bool CanStep(Vector2Int from, byte dirFrom, byte pairFrom, Vector2Int to, byte dirTo)
+    {
+        if (pairFrom != None && from + Offset(pairFrom) == to) return false;
+        return CanStep(from, dirFrom, to, dirTo);
+    }
+
     public static bool CanStep(GridData grid, Vector2Int from, Vector2Int to)
     {
         if (!grid.InBounds(from) || !grid.InBounds(to) || !grid.IsRoad(from) || !grid.IsRoad(to)) return false;
-        return CanStep(from, grid.GetRoadDirection(from), to, grid.GetRoadDirection(to));
+        return CanStep(from, grid.GetRoadDirection(from), grid.GetRoadPair(from), to, grid.GetRoadDirection(to));
+    }
+
+    // A new pair at `cell` / its neighbour on `side` that lies across an existing pair at a right angle (both cells are
+    // already avenue lanes paired with a cell on the same perpendicular side): the four cells become an open junction.
+    public static bool IsCrossing(GridData grid, Vector2Int cell, byte side)
+    {
+        Vector2Int partner = cell + Offset(side);
+        if (!grid.InBounds(cell) || !grid.InBounds(partner)) return false;
+        if (grid.GetRoadTier(cell) != GridData.AvenueTier || grid.GetRoadTier(partner) != GridData.AvenueTier) return false;
+        byte existing = grid.GetRoadPair(cell);
+        if (existing == None || existing != grid.GetRoadPair(partner)) return false;
+        return IsVertical(existing) != IsVertical(side);
+    }
+
+    // Opens the junction: every lane of both crossing pairs becomes an unpaired avenue cell.
+    public static void MakeJunction(GridData grid, Vector2Int cell, byte side)
+    {
+        Vector2Int partner = cell + Offset(side);
+        grid.SetRoadPair(cell, None);
+        grid.SetRoadPair(partner, None);
     }
 
     public enum LaneProblem { None, OffMap, Blocked, Taken, Higher }
@@ -81,6 +108,7 @@ public static class RoadLayout
         problem = CheckLane(grid, partner, tier);
         if (problem != LaneProblem.None) return problem;
         if (grid.GetRoadPair(cell) == side) return LaneProblem.None;
+        if (IsCrossing(grid, cell, side)) return LaneProblem.None;
         return grid.GetRoadPair(cell) != None || grid.GetRoadPair(partner) != None ? LaneProblem.Taken : LaneProblem.None;
     }
 
