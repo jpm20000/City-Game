@@ -28,7 +28,7 @@ public sealed class ToolbarFlyout : MonoBehaviour
         flyout.m_Panel = (RectTransform)go.transform;
         flyout.m_Panel.anchorMin = flyout.m_Panel.anchorMax = new Vector2(0.5f, 1f);
         flyout.m_Panel.pivot = new Vector2(0.5f, 0f);
-        flyout.m_Panel.anchoredPosition = new Vector2(0f, 8f);
+        flyout.m_Panel.anchoredPosition = new Vector2(0f, 30f);   // clears the section header above the button row
         go.GetComponent<Image>().color = UiKit.PanelColor;
         go.GetComponent<LayoutElement>().ignoreLayout = true;
         var canvas = go.GetComponent<Canvas>();
