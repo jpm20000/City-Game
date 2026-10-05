@@ -78,41 +78,28 @@ public sealed class NewCityDialog : MonoBehaviour
     private void BuildDisastersToggle(bool hasAges)
     {
         if (m_AgeHint == null || !hasAges) return;
-        m_DisastersToggle = BuildToggle("DisastersToggle", "Disasters & events (fires, plague, breakdowns, choices)", 1, m_Disasters, value => m_Disasters = value);
+        m_DisastersToggle = BuildToggle("DisastersToggle", "Disasters & events (fires, plague, breakdowns, choices)", 1, m_Disasters, value => { if (!m_Tutorial) m_Disasters = value; });
         // M19f: the guided tutorial city (Medieval, 48 x 48, no disasters) replaces the choices above.
-        m_TutorialToggle = BuildToggle("TutorialToggle", "Guided tutorial (Medieval, 48 × 48, no disasters)", 2, m_Tutorial, value => m_Tutorial = value);
+        m_TutorialToggle = BuildToggle("TutorialToggle", "Guided tutorial (Medieval, 48 × 48, no disasters)", 2, m_Tutorial, OnTutorialChanged);
     }
 
     private Toggle BuildToggle(string name, string text, int offset, bool isOn, UnityEngine.Events.UnityAction<bool> onChanged)
     {
-        GameObject go = DefaultControls.CreateToggle(new DefaultControls.Resources());
-        go.name = name;
-        Transform parent = m_AgeHint.transform.parent;
-        go.transform.SetParent(parent, false);
-        go.transform.SetSiblingIndex(m_AgeHint.transform.GetSiblingIndex() + offset);
-        // A clear Image on the row makes all of it clickable (the stock toggle only reacts on its small box).
-        var hit = go.AddComponent<Image>();
-        hit.color = new Color(0f, 0f, 0f, 0f);
-        var element = go.AddComponent<LayoutElement>();
-        element.minHeight = 28f;
-        element.preferredHeight = 28f;
-        var legacyLabel = go.GetComponentInChildren<Text>();
-        TMP_Text label = new GameObject("Label", typeof(RectTransform), typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
-        label.transform.SetParent(go.transform, false);
-        label.text = text;
-        label.fontSize = m_AgeHint.fontSize;
-        label.color = m_AgeHint.color;
-        label.raycastTarget = false;
-        var labelRect = (RectTransform)label.transform;
-        labelRect.anchorMin = Vector2.zero;
-        labelRect.anchorMax = Vector2.one;
-        labelRect.offsetMin = new Vector2(30f, 0f);
-        labelRect.offsetMax = Vector2.zero;
-        if (legacyLabel != null) Destroy(legacyLabel.gameObject);
-        var toggle = go.GetComponent<Toggle>();
-        toggle.isOn = isOn;
-        toggle.onValueChanged.AddListener(onChanged);
+        // M20a: UiKit.MakeToggle draws a visible box, tick and "- On" / "- Off" (the stock toggle was white on white).
+        Toggle toggle = UiKit.MakeToggle(m_AgeHint.transform.parent, name, text, isOn, m_AgeHint.fontSize, onChanged);
+        toggle.transform.SetSiblingIndex(m_AgeHint.transform.GetSiblingIndex() + offset);
         return toggle;
+    }
+
+    // The guided tutorial forces disasters off, so while it is on the Disasters switch shows Off and is greyed; turning
+    // the tutorial off restores the earlier choice.
+    private void OnTutorialChanged(bool on)
+    {
+        m_Tutorial = on;
+        if (m_DisastersToggle == null) return;
+        m_DisastersToggle.SetIsOnWithoutNotify(on ? false : m_Disasters);
+        m_DisastersToggle.onValueChanged.Invoke(m_DisastersToggle.isOn);
+        UiKit.SetToggleEnabled(m_DisastersToggle, !on);
     }
 
     public void Open()
@@ -122,10 +109,14 @@ public sealed class NewCityDialog : MonoBehaviour
         // Start from the current map's size when it's one of the options.
         int current = m_GameManager != null ? m_GameManager.MapSize.x : 0;
         Select(System.Array.IndexOf(m_Sizes, current) >= 0 ? current : m_DefaultSize);
-        m_Disasters = GameSettings.DisastersByDefault;
-        if (m_DisastersToggle != null) m_DisastersToggle.isOn = m_Disasters;
         m_Tutorial = false;
+        m_Disasters = GameSettings.DisastersByDefault;
         if (m_TutorialToggle != null) m_TutorialToggle.isOn = false;
+        if (m_DisastersToggle != null)
+        {
+            m_DisastersToggle.isOn = m_Disasters;
+            UiKit.SetToggleEnabled(m_DisastersToggle, true);
+        }
         TechSystem tech = m_GameManager != null && m_GameManager.Simulation != null ? m_GameManager.Simulation.Tech : null;
         if (tech != null) SelectAge(tech.CurrentAge);
         m_Panel.SetActive(true);

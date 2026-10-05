@@ -172,6 +172,71 @@ public static class UiKit
         return slider;
     }
 
+    // A checkbox row whose state is plainly visible (M20a): a dark box with an outline, an accent tick when on, and the
+    // label suffixed "- On" / "- Off". The stock DefaultControls toggle draws white on white without sprites. The whole
+    // row is clickable. SetToggleEnabled greys a row to half alpha and makes it unclickable.
+    public static Toggle MakeToggle(Transform parent, string name, string text, bool isOn, float fontSize, UnityEngine.Events.UnityAction<bool> onChanged)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Toggle), typeof(LayoutElement), typeof(CanvasGroup));
+        go.transform.SetParent(parent, false);
+        go.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0f);
+        var element = go.GetComponent<LayoutElement>();
+        element.minHeight = 28f;
+        element.preferredHeight = 28f;
+
+        var box = new GameObject("Box", typeof(RectTransform), typeof(Image), typeof(Outline));
+        box.transform.SetParent(go.transform, false);
+        var boxRect = (RectTransform)box.transform;
+        boxRect.anchorMin = boxRect.anchorMax = new Vector2(0f, 0.5f);
+        boxRect.pivot = new Vector2(0f, 0.5f);
+        boxRect.anchoredPosition = new Vector2(2f, 0f);
+        boxRect.sizeDelta = new Vector2(20f, 20f);
+        box.GetComponent<Image>().color = new Color(0.06f, 0.07f, 0.10f, 1f);
+        var outline = box.GetComponent<Outline>();
+        outline.effectColor = MutedColor;
+        outline.effectDistance = new Vector2(1.5f, -1.5f);
+
+        var tick = new GameObject("Tick", typeof(RectTransform), typeof(Image));
+        tick.transform.SetParent(box.transform, false);
+        var tickRect = (RectTransform)tick.transform;
+        tickRect.anchorMin = Vector2.zero;
+        tickRect.anchorMax = Vector2.one;
+        tickRect.offsetMin = new Vector2(4f, 4f);
+        tickRect.offsetMax = new Vector2(-4f, -4f);
+        tick.GetComponent<Image>().color = AccentColor;
+        tick.GetComponent<Image>().raycastTarget = false;
+
+        TMP_Text label = Text(go.transform, text, fontSize, BodyColor);
+        Object.Destroy(label.GetComponent<LayoutElement>());
+        var labelRect = (RectTransform)label.transform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(30f, 0f);
+        labelRect.offsetMax = Vector2.zero;
+        label.verticalAlignment = VerticalAlignmentOptions.Middle;
+
+        var toggle = go.GetComponent<Toggle>();
+        toggle.targetGraphic = go.GetComponent<Image>();
+        toggle.graphic = tick.GetComponent<Image>();
+        toggle.transition = Selectable.Transition.None;
+        void Paint(bool on)
+        {
+            label.text = $"{text} <color=#{ColorUtility.ToHtmlStringRGB(on ? AccentColor : MutedColor)}>— {(on ? "On" : "Off")}</color>";
+        }
+        toggle.SetIsOnWithoutNotify(isOn);
+        Paint(isOn);
+        toggle.onValueChanged.AddListener(on => { Paint(on); AudioController.Play(SfxId.Click); });
+        if (onChanged != null) toggle.onValueChanged.AddListener(onChanged);
+        return toggle;
+    }
+
+    // Greys a MakeToggle row (50% alpha, not clickable).
+    public static void SetToggleEnabled(Toggle toggle, bool enabled)
+    {
+        toggle.interactable = enabled;
+        toggle.GetComponent<CanvasGroup>().alpha = enabled ? 1f : 0.5f;
+    }
+
     // An on / off switch drawn as a button: "label: on" (blue) or "label: off". Refresh repaints it from get().
     public sealed class SwitchButton
     {
