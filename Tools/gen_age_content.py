@@ -42,7 +42,8 @@ def array(lines, indent="  "):
 
 # Effect types: 0 UnlockBuilding, 1 ResearchMultiplier, 2 DemandMultiplier, 3 HappinessBonus, 4 UpkeepMultiplier,
 # 5 PollutionMultiplier, 6 LandValueBonus (M12), 7 CivicNeedMultiplier (M15), 8 LoanInterestMultiplier (M15),
-# 9 TrafficMultiplier (M16), 10 HazardMultiplier (M17; target FireSpread / PlagueSpread / Breakdown)
+# 9 TrafficMultiplier (M16), 10 HazardMultiplier (M17; target FireSpread / PlagueSpread / Breakdown),
+# 11 GoodsMultiplier (M24; goods made per industrial job)
 R, C, I = "Residential", "Commercial", "Industrial"
 def demand(zone, v): return (2, zone, v)
 def research(v): return (1, "", v)
@@ -54,6 +55,7 @@ def civic_need(kind, v): return (7, kind, v)
 def loan_interest(v): return (8, "", v)
 def traffic(v): return (9, "", v)
 def hazard(kind, v): return (10, kind, v)
+def goods(v): return (11, "", v)
 
 # (asset name, id, display, age, cost, prerequisites, effects, description)
 TECHS = [
@@ -80,8 +82,8 @@ TECHS = [
     ("Electricity", "electricity", "Electricity", 1, 150, [], [], "Unlocks the Power Plant. Required to enter the Industrial age, where buildings need power to grow past level 1."),
     ("Waterworks", "waterworks", "Waterworks", 1, 100, [], [], "Unlocks the Water Tower. Required to enter the Industrial age, where water is piped along the roads and buildings need it to grow past level 1."),
     ("SteamPower", "steam_power", "Steam Power", 2, 400, ["watermills"], [demand(I, 1.2)], "Engines that never tire. Industrial demand +20%. Unlocks the Fire Station (steam fire engines)."),
-    ("Factories", "factories", "Factories", 2, 500, ["steam_power"], [], "Mass production under one roof."),
-    ("Railways", "railways", "Railways", 2, 500, ["steam_power"], [traffic(0.85)], "Iron roads connect the city to the world. Goods and commuters go by rail: commute trips -15%."),
+    ("Factories", "factories", "Factories", 2, 500, ["steam_power"], [goods(1.25)], "Mass production under one roof. Factories make 25% more goods."),
+    ("Railways", "railways", "Railways", 2, 500, ["steam_power"], [traffic(0.85), goods(1.2)], "Iron roads connect the city to the world. Goods and commuters go by rail: commute trips -15%, factories make 20% more goods."),
     ("PublicSanitation", "public_sanitation", "Public Sanitation", 2, 450, ["civic_planning"], [happy(0.03)], "Sewers and clean water. Happiness +3%. Unlocks the Pumping Station and the Hospital."),
     ("Telegraph", "telegraph", "Telegraph", 2, 450, ["electricity", "printing_press"], [research(1.2)], "News at the speed of light. Research +20%. Unlocks the Police Station (call boxes)."),
     ("Universities", "universities", "Universities", 2, 500, ["telegraph", "academies"], [], "Research universities. Unlocks the University, which produces research and educates the homes around it."),

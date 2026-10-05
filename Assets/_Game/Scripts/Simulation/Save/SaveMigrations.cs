@@ -57,6 +57,11 @@ public static class SaveMigrations
             V8ToV9(data);
             data.Version = 9;
         }
+        if (data.Version == 9)
+        {
+            V9ToV10(data);
+            data.Version = 10;
+        }
 
         data.Buildings ??= new();
         data.Loans ??= new();
@@ -180,6 +185,12 @@ public static class SaveMigrations
     private static void V8ToV9(SaveData data)
     {
         data.Densities = new byte[Math.Max(0, data.Width * data.Height)];
+    }
+
+    // v10 adds the goods stock (M24): old cities start with none (goods are off before their age anyway).
+    private static void V9ToV10(SaveData data)
+    {
+        data.GoodsStock = 0f;
     }
 
     // A city saved without ages played by today's rules: it becomes an Industrial city with every

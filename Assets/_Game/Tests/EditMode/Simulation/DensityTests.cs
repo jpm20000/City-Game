@@ -148,7 +148,7 @@ public sealed class DensityTests
         grid.SetDensity(high, Density.High);
 
         SaveData saved = SaveSystem.Capture(grid, sim);
-        Assert.AreEqual(9, saved.Version);
+        Assert.AreEqual(SaveData.CurrentVersion, saved.Version);
         Assert.IsTrue(SaveSystem.TryFromJson(SaveSystem.ToJson(saved), out SaveData loaded, out string error), error);
 
         var restored = new GridData(24, 24);

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 9;
+    public const int CurrentVersion = 10;
     public const int NoAge = -1;
     public const int NoTutorial = -1;
 
@@ -81,6 +81,9 @@ public sealed class SaveData
 
     // v9 (M23): the Density of each zoned cell, row-major (0 = Medium, 1 = Low, 2 = High).
     public byte[] Densities;
+
+    // v10 (M24): the unsold goods stock.
+    public float GoodsStock;
 
     public List<BuildingRecord> Buildings = new();
 }

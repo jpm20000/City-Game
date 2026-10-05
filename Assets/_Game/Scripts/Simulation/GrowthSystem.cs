@@ -24,9 +24,11 @@ public sealed class GrowthSystem
     private readonly LandValueSystem m_LandValue;
     private readonly WaterSystem m_Water;
     private readonly Func<Vector2Int, bool> m_Rubble;   // M17; null = nothing ever burns
+    private readonly Func<bool> m_GoodsShort;           // M24; null = no goods gate
     private readonly List<Vector2Int> m_Changed = new();
     private readonly HashSet<Vector2Int> m_ChangedSet = new();
     private readonly List<Vector2Int> m_Redeveloped = new();
+    private bool m_GoodsHeld;                           // goods short at the start of this Apply (M24)
 
     public GrowthSystem(GridData grid, RoadNetwork roads, PowerSystem power, BalanceConfig config)
         : this(grid, roads, power, config, null, null)
@@ -37,8 +39,9 @@ public sealed class GrowthSystem
     // water null = no water gate; rubble null = no rubble (M17: a burnt cell is closed until it clears).
     public GrowthSystem(GridData grid, RoadNetwork roads, PowerSystem power, BalanceConfig config,
         CapacityModel capacity, TechSystem tech, LandValueSystem landValue = null, WaterSystem water = null,
-        Func<Vector2Int, bool> rubble = null)
+        Func<Vector2Int, bool> rubble = null, Func<bool> goodsShort = null)
     {
+        m_GoodsShort = goodsShort;
         m_Rubble = rubble;
         m_Water = water;
         m_LandValue = landValue;
@@ -80,6 +83,18 @@ public sealed class GrowthSystem
         return level > 0 && level < MaxLevelFor(cell) && !m_LandValue.AllowsLevel(cell, level + 1);
     }
 
+    // A home or shop at level 2 that could go up to level 3 but the city is short of goods (M24).
+    public bool IsHeldByGoods(Vector2Int cell)
+    {
+        return m_GoodsShort != null && m_GoodsShort() && NeedsGoodsToReachLevel3(cell, m_Grid.GetBuildingLevel(cell));
+    }
+
+    private bool NeedsGoodsToReachLevel3(Vector2Int cell, int level)
+    {
+        ZoneType zone = m_Grid.GetZone(cell);
+        return level == 2 && level < MaxLevelFor(cell) && (zone == ZoneType.Residential || zone == ZoneType.Commercial);
+    }
+
     // Returns the cells whose level rose this tick (redeveloped cells are in Redeveloped).
     public IReadOnlyList<Vector2Int> Apply(DemandSnapshot demand)
     {
@@ -87,6 +102,7 @@ public sealed class GrowthSystem
         m_ChangedSet.Clear();
         m_Redeveloped.Clear();
         AgeRules rules = Rules;
+        m_GoodsHeld = m_GoodsShort != null && m_GoodsShort();
 
         foreach (ZoneType zone in s_Zones)
         {
@@ -141,6 +157,7 @@ public sealed class GrowthSystem
         }
         if (!m_Roads.HasRoadAccess(cell)) return GrowthBlocker.NoRoadAccess;
         if (m_LandValue != null && !m_LandValue.AllowsLevel(cell, level + 1)) return GrowthBlocker.LowLandValue;
+        if (IsHeldByGoods(cell)) return GrowthBlocker.NoGoods;
         if (level > 0)
         {
             GrowthBlocker utilities = UtilityBlocker(cell, Capacity(cell), CapacityAt(cell, level + 1, m_Grid.GetBuiltAge(cell)), rules);
@@ -168,6 +185,7 @@ public sealed class GrowthSystem
                 {
                     if (level >= MaxLevelFor(cell)) continue;
                     if (m_LandValue != null && !m_LandValue.AllowsLevel(cell, level + 1)) continue;
+                    if (m_GoodsHeld && NeedsGoodsToReachLevel3(cell, level)) continue;
                     if (!TryReserveUtilities(cell, Capacity(cell), CapacityAt(cell, level + 1, m_Grid.GetBuiltAge(cell)), rules)) continue;
                 }
                 else if (m_Grid.GetDensity(cell) == Density.High)

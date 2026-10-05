@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: CityBuilder.Simulation::TechDefinition
   m_Id: railways
   m_DisplayName: Railways
-  m_Description: 'Iron roads connect the city to the world. Goods and commuters go by rail: commute trips -15%.'
+  m_Description: 'Iron roads connect the city to the world. Goods and commuters go by rail: commute trips -15%, factories make 20% more goods.'
   m_Age: 2
   m_Cost: 6000
   m_Prerequisites: 
@@ -23,3 +23,6 @@ MonoBehaviour:
   - Type: 9
     Target: 
     Value: 0.85
+  - Type: 11
+    Target: 
+    Value: 1.2

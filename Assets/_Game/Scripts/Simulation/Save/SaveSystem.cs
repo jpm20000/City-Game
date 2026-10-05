@@ -40,6 +40,7 @@ public static class SaveSystem
             RoadPairs = grid.ExportRoadPairs(),
             Densities = grid.ExportDensities(),
             Funding = sim.Budget.ExportFunding(),
+            GoodsStock = sim.Goods.Stock,
         };
         sim.Disasters.Export(data);
         foreach (Loan loan in sim.Budget.Loans) data.Loans.Add(new LoanRecord(loan.Amount, loan.DailyPayment, loan.DaysLeft));
@@ -145,7 +146,7 @@ public static class SaveSystem
         sim.Restore(
             data.Money, data.IncomePerDay, data.ExpensePerDay,
             data.TaxResidential, data.TaxCommercial, data.TaxIndustrial,
-            data.Population, data.Happiness);
+            data.Population, data.Happiness, data.GoodsStock);
         return dropped;
     }
 
@@ -236,6 +237,13 @@ public static class SaveSystem
                 data = null;
                 return false;
             }
+        }
+
+        if (float.IsNaN(data.GoodsStock) || float.IsInfinity(data.GoodsStock) || data.GoodsStock < 0f)
+        {
+            error = "Save file has an invalid goods stock.";
+            data = null;
+            return false;
         }
 
         error = null;

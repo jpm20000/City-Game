@@ -104,7 +104,8 @@ public sealed class SimulationSystem
         Disasters = new DisasterSystem(grid, config, ages != null, Civic, Water, () => TechModifiers, () => Tech != null ? Tech.CurrentAge : 0,
             Population, Capacity, Budget, () => m_Sources, () => Tech != null ? Tech.CurrentAgeDefinition.PlagueRisk : 0f, techs, Tech, Economy);
         Disasters.Breakdowns.Changed += ApplySources;
-        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water, Disasters.IsRubble);
+        Growth = new GrowthSystem(grid, roads, Power, config, Capacity, Tech, LandValue, Water, Disasters.IsRubble,
+            () => GoodsSupply() < config.GoodsLevel3Supply);
         grid.OnResized += () =>
         {
             Coverage.Resize(grid.Width, grid.Height);
@@ -132,6 +133,15 @@ public sealed class SimulationSystem
 
     // How supplied the city is right now (1 when goods are off): what the next day would deliver from the current stock.
     public float GoodsSupply() => Goods.Evaluate(GoodsProduction(), GoodsDemand(), GoodsActive).Supply;
+
+    // Shops earn (and research) this share of their full income: 1 with goods covered or off, down to GoodsShopFloor in a
+    // total shortage. Uses the day the last tick ran.
+    public float GoodsShopFactor()
+    {
+        float supply = Goods.Last.Supply;
+        if (supply >= 1f) return 1f;
+        return m_Config.GoodsShopFloor + (1f - m_Config.GoodsShopFloor) * supply;
+    }
 
     // The Power term only counts in ages whose upgrades need power; the Water term in ages needing water.
     public ServiceStats MeasureServices()
@@ -206,7 +216,7 @@ public sealed class SimulationSystem
         if (Tech == null) return default;
         int jobs = Population.Jobs;
         float filledCommercial = jobs > 0 ? (float)Population.CommercialJobs * Population.Employed / jobs : 0f;
-        return new ResearchBreakdown(filledCommercial * m_Config.ResearchPerCommercialJob,
+        return new ResearchBreakdown(filledCommercial * m_Config.ResearchPerCommercialJob * GoodsShopFactor(),
             Modifiers.ResearchPerDay + Budget.ResearchDelta(m_Sources),
             Population.Population * m_LastServices.EducatedShare * m_Config.ResearchPerEducatedResident,
             Tech.Modifiers.ResearchMultiplier * ResearchBoost);
@@ -237,7 +247,7 @@ public sealed class SimulationSystem
     {
         CityModifiers modifiers = Modifiers;
         float residential = Population.Employed * m_Config.IncomePerWorker * Economy.TaxResidential;
-        float commercial = Population.CommercialJobs * m_Config.IncomePerCommercialJob * Economy.TaxCommercial;
+        float commercial = Population.CommercialJobs * m_Config.IncomePerCommercialJob * Economy.TaxCommercial * GoodsShopFactor();
         float industrial = Population.IndustrialJobs * m_Config.IncomePerIndustrialJob * Economy.TaxIndustrial;
 
         var byLine = new float[BudgetSystem.Lines];

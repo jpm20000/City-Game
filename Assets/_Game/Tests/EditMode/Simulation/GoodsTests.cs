@@ -245,4 +245,150 @@ public sealed class GoodsTests
         Assert.AreEqual(0f, fed.Population.Happiness.Goods);
         Assert.Greater(fed.Ledger().Exports, 0f, "a big surplus is exported");
     }
+
+    // --- 24b: the level-3 gate, the shop floor, save v10 ---
+
+    private static int CountLevelThree(GridData grid, ZoneType zone)
+    {
+        int n = 0;
+        for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+                if (grid.GetZone(new Vector2Int(x, y)) == zone && grid.GetBuildingLevel(new Vector2Int(x, y)) >= 3) n++;
+        return n;
+    }
+
+    [Test]
+    public void ShortOnGoods_HomesAndShopsStopAtLevelTwo_FactoriesDoNot()
+    {
+        SetField(m_Config, "m_GoodsPerIndustrialJob", 0f);
+        SetField(m_Config, "m_GoodsMinAge", 2);
+        var grid = new GridData(24, 24);
+        SimulationSystem sim = SeededCity.Build(grid, m_Config, ages: m_TestAges.Ages, techs: m_TestAges.Techs, startAge: TestAges.Industrial);
+        for (int day = 0; day < 150; day++) sim.Tick();
+
+        Assert.Less(sim.GoodsSupply(), m_Config.GoodsLevel3Supply);
+        Assert.AreEqual(0, CountLevelThree(grid, ZoneType.Residential));
+        Assert.AreEqual(0, CountLevelThree(grid, ZoneType.Commercial));
+
+        // The same city with goods off does reach level 3 in homes or shops: the gate is what held them.
+        SetField(m_Config, "m_GoodsMinAge", 99);
+        var openGrid = new GridData(24, 24);
+        SimulationSystem open = SeededCity.Build(openGrid, m_Config, ages: m_TestAges.Ages, techs: m_TestAges.Techs, startAge: TestAges.Industrial);
+        for (int day = 0; day < 150; day++) open.Tick();
+        Assert.Greater(CountLevelThree(openGrid, ZoneType.Residential) + CountLevelThree(openGrid, ZoneType.Commercial), 0);
+        SetField(m_Config, "m_GoodsMinAge", 2);
+
+        bool explained = false;
+        for (int y = 0; y < grid.Height && !explained; y++)
+        {
+            for (int x = 0; x < grid.Width && !explained; x++)
+            {
+                var cell = new Vector2Int(x, y);
+                ZoneType zone = grid.GetZone(cell);
+                if (grid.GetBuildingLevel(cell) != 2 || (zone != ZoneType.Residential && zone != ZoneType.Commercial)) continue;
+                explained = sim.Growth.IsHeldByGoods(cell);
+                if (explained) Assert.IsTrue(sim.Growth.GetBlocker(cell, new DemandSnapshot(1f, 1f, 1f)) == GrowthBlocker.NoGoods
+                    || sim.Growth.GetBlocker(cell, new DemandSnapshot(1f, 1f, 1f)) != GrowthBlocker.None);
+            }
+        }
+        Assert.IsTrue(explained, "a level 2 home or shop is held by goods");
+    }
+
+    [Test]
+    public void FedCity_IsNeverHeldByGoods()
+    {
+        SetField(m_Config, "m_GoodsPerIndustrialJob", 50f);
+        SetField(m_Config, "m_GoodsMinAge", 2);
+        var grid = new GridData(24, 24);
+        SimulationSystem sim = SeededCity.Build(grid, m_Config, ages: m_TestAges.Ages, techs: m_TestAges.Techs, startAge: TestAges.Industrial);
+        for (int day = 0; day < 150; day++)
+        {
+            sim.Tick();
+            for (int y = 0; y < grid.Height; y++)
+                for (int x = 0; x < grid.Width; x++)
+                    Assert.IsFalse(sim.Growth.IsHeldByGoods(new Vector2Int(x, y)));
+        }
+    }
+
+    [Test]
+    public void ShopIncome_FollowsSupply_BetweenTheFloorAndFull()
+    {
+        SetField(m_Config, "m_GoodsPerIndustrialJob", 0f);
+        SetField(m_Config, "m_GoodsMinAge", 2);
+        var grid = new GridData(24, 24);
+        SimulationSystem starved = SeededCity.Build(grid, m_Config, ages: m_TestAges.Ages, techs: m_TestAges.Techs, startAge: TestAges.Industrial);
+        for (int day = 0; day < 60; day++) starved.Tick();
+        Assert.AreEqual(0.5f, starved.Goods.Last.Supply, 1e-4f, "imports cover half of demand");
+        Assert.AreEqual(0.7f, starved.GoodsShopFactor(), 1e-4f, "0.4 + 0.6 x 0.5");
+        BudgetBreakdown ledger = starved.Ledger();
+        Assert.AreEqual(starved.Population.CommercialJobs * m_Config.IncomePerCommercialJob * starved.Economy.TaxCommercial * 0.7f,
+            ledger.IncomeCommercial, 1e-2f);
+
+        SetField(m_Config, "m_GoodsMinAge", 99);
+        var otherGrid = new GridData(24, 24);
+        SimulationSystem off = SeededCity.Build(otherGrid, m_Config, ages: m_TestAges.Ages, techs: m_TestAges.Techs, startAge: TestAges.Industrial);
+        for (int day = 0; day < 60; day++) off.Tick();
+        Assert.AreEqual(1f, off.GoodsShopFactor());
+    }
+
+    [Test]
+    public void V9Save_MigratesToV10_WithNoStock()
+    {
+        var grid = new GridData(24, 24);
+        SimulationSystem sim = SeededCity.Run(grid, m_Config, 10);
+        SaveData saved = SaveSystem.Capture(grid, sim);
+        saved.Version = 9;
+        saved.GoodsStock = 123f;
+
+        Assert.IsTrue(SaveSystem.TryFromJson(SaveSystem.ToJson(saved), out SaveData data, out string error), error);
+
+        Assert.AreEqual(SaveData.CurrentVersion, data.Version);
+        Assert.AreEqual(0f, data.GoodsStock);
+        CollectionAssert.AreEqual(saved.Zones, data.Zones, "nothing else changes");
+    }
+
+    [Test]
+    public void Save_RejectsAnInvalidGoodsStock()
+    {
+        foreach (float bad in new[] { -1f, float.NaN })
+        {
+            SaveData saved = SaveSystem.CreateNew(4, 4, m_Config);
+            saved.GoodsStock = bad;
+            Assert.IsFalse(SaveSystem.TryFromJson(SaveSystem.ToJson(saved), out _, out string error), $"{bad}");
+            StringAssert.Contains("goods", error);
+        }
+    }
+
+    [Test]
+    public void SaveLoadContinue_WithGoodsOn_EqualsAnUninterruptedRun()
+    {
+        SetField(m_Config, "m_GoodsMinAge", 2);
+        SetField(m_Config, "m_GoodsPerIndustrialJob", 0.6f);   // a mix: some stock, some imports
+
+        var straightGrid = new GridData(24, 24);
+        SimulationSystem straight = SeededCity.Build(straightGrid, m_Config, ages: m_TestAges.Ages, techs: m_TestAges.Techs, startAge: TestAges.Industrial);
+        for (int day = 0; day < 120; day++) straight.Tick();
+
+        var firstGrid = new GridData(24, 24);
+        SimulationSystem first = SeededCity.Build(firstGrid, m_Config, ages: m_TestAges.Ages, techs: m_TestAges.Techs, startAge: TestAges.Industrial);
+        for (int day = 0; day < 60; day++) first.Tick();
+        SaveData saved = SaveSystem.Capture(firstGrid, first);
+        Assert.AreEqual(first.Goods.Stock, saved.GoodsStock);
+        Assert.IsTrue(SaveSystem.TryFromJson(SaveSystem.ToJson(saved), out SaveData loaded, out string error, m_TestAges.Ages, m_TestAges.Techs), error);
+
+        var secondGrid = new GridData(24, 24);
+        SimulationSystem second = SeededCity.Build(secondGrid, m_Config, ages: m_TestAges.Ages, techs: m_TestAges.Techs, startAge: TestAges.Industrial);
+        SaveSystem.ApplyGrid(loaded, secondGrid);
+        second.Sources = first.Sources;
+        second.Modifiers = first.Modifiers;
+        SaveSystem.ApplySimulation(loaded, second);
+        Assert.AreEqual(first.Goods.Stock, second.Goods.Stock, 1e-4f);
+        for (int day = 0; day < 60; day++) second.Tick();
+
+        Assert.AreEqual(straight.Goods.Stock, second.Goods.Stock, 1e-3f);
+        Assert.AreEqual(straight.Population.Population, second.Population.Population);
+        Assert.AreEqual(straight.Population.AverageHappiness, second.Population.AverageHappiness);
+        Assert.AreEqual(straight.Economy.Money, second.Economy.Money, 1e-2f);
+        CollectionAssert.AreEqual(straightGrid.ExportLevels(), secondGrid.ExportLevels());
+    }
 }
