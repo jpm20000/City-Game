@@ -39,7 +39,41 @@ public sealed class AgeVisualSet : ScriptableObject
     [SerializeField] private Style[] m_Commercial = { Style.Plain, Style.Plain, Style.Plain };
     [SerializeField] private Style[] m_Industrial = { Style.Plain, Style.Plain, Style.Plain };
 
+    [Header("Low / High density (M23)")]
+    [Tooltip("Levels 1..3 for Low and High blocks. A slot with no prefab falls back to the Medium style, drawn lower (Low) or taller (High) by GrowthVisuals.")]
+    [SerializeField] private Style[] m_ResidentialLow = { Style.Plain, Style.Plain, Style.Plain };
+    [SerializeField] private Style[] m_CommercialLow = { Style.Plain, Style.Plain, Style.Plain };
+    [SerializeField] private Style[] m_IndustrialLow = { Style.Plain, Style.Plain, Style.Plain };
+    [SerializeField] private Style[] m_ResidentialHigh = { Style.Plain, Style.Plain, Style.Plain };
+    [SerializeField] private Style[] m_CommercialHigh = { Style.Plain, Style.Plain, Style.Plain };
+    [SerializeField] private Style[] m_IndustrialHigh = { Style.Plain, Style.Plain, Style.Plain };
+
     public string AgeId => m_AgeId;
+
+    // The style for a density (M23). Own = the set has prefabs for this density; otherwise it is the Medium style and
+    // the caller stretches it (GrowthVisuals.HeightFor).
+    public Style Get(ZoneType zone, int level, Density density, out bool own)
+    {
+        own = false;
+        if (density != Density.Medium)
+        {
+            Style[] table = zone switch
+            {
+                ZoneType.Commercial => density == Density.Low ? m_CommercialLow : m_CommercialHigh,
+                ZoneType.Industrial => density == Density.Low ? m_IndustrialLow : m_IndustrialHigh,
+                _ => density == Density.Low ? m_ResidentialLow : m_ResidentialHigh,
+            };
+            int i = level - 1;
+            if (table != null && i >= 0 && i < table.Length && table[i].Prefabs != null && table[i].Prefabs.Length > 0)
+            {
+                own = true;
+                Style style = table[i];
+                if (style.HeightScale <= 0f) style.HeightScale = 1f;
+                return style;
+            }
+        }
+        return Get(zone, level);
+    }
 
     // Missing entries fall back to the plain style (today's look).
     public Style Get(ZoneType zone, int level)

@@ -133,6 +133,49 @@ public sealed class ArtContractTests
         Assert.IsEmpty(errors, string.Join("; ", errors));
     }
 
+    // Medium, Low and High style tables (M23).
+    private static readonly string[] AllTables =
+    {
+        "m_Residential", "m_Commercial", "m_Industrial",
+        "m_ResidentialLow", "m_CommercialLow", "m_IndustrialLow",
+        "m_ResidentialHigh", "m_CommercialHigh", "m_IndustrialHigh",
+    };
+
+    // M23d: the Modern age has its own Low and High homes and shops (three variants each, on the Kit material); the
+    // other ages and industry fall back to the Medium look drawn lower / taller.
+    [Test]
+    public void Modern_HasOwnLowAndHighArt_OtherSlotsFallBack()
+    {
+        var kit = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Art/Kit/Kit.mat");
+        int own = 0;
+        foreach (string guid in AssetDatabase.FindAssets("t:AgeVisualSet"))
+        {
+            var set = AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid));
+            var so = new SerializedObject(set);
+            bool modern = so.FindProperty("m_AgeId").stringValue == "modern";
+            foreach (string table in AllTables)
+            {
+                if (!table.EndsWith("Low") && !table.EndsWith("High")) continue;
+                bool expected = modern && !table.StartsWith("m_Industrial");
+                SerializedProperty levels = so.FindProperty(table);
+                for (int level = 0; level < 3; level++)
+                {
+                    SerializedProperty prefabs = levels.GetArrayElementAtIndex(level).FindPropertyRelative("Prefabs");
+                    string where = $"{set.name} {table} L{level + 1}";
+                    Assert.AreEqual(expected ? 3 : 0, prefabs.arraySize, where);
+                    for (int p = 0; p < prefabs.arraySize; p++)
+                    {
+                        own++;
+                        var prefab = prefabs.GetArrayElementAtIndex(p).objectReferenceValue as GameObject;
+                        Assert.IsNotNull(prefab, where);
+                        Assert.AreEqual(kit, prefab.GetComponentInChildren<Renderer>().sharedMaterial, where);
+                    }
+                }
+            }
+        }
+        Assert.AreEqual(36, own, "Modern: R and C x Low and High x 3 levels x 3 variants");
+    }
+
     [Test]
     public void EveryPrefabInEveryVisualSet_MeetsTheContract()
     {
@@ -144,7 +187,7 @@ public sealed class ArtContractTests
         {
             var set = AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid));
             var so = new SerializedObject(set);
-            foreach (string zone in new[] { "m_Residential", "m_Commercial", "m_Industrial" })
+            foreach (string zone in AllTables)
             {
                 SerializedProperty levels = so.FindProperty(zone);
                 for (int level = 0; level < levels.arraySize; level++)

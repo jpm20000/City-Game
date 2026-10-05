@@ -16,6 +16,14 @@ public static class ArtContract
     public const float GroundTolerance = 0.03f;     // the lowest point may sit this far off y = 0
     public const int MaxMaterials = 2;
 
+    // Every style table of an AgeVisualSet: Medium, then Low and High (M23).
+    public static readonly string[] Tables =
+    {
+        "m_Residential", "m_Commercial", "m_Industrial",
+        "m_ResidentialLow", "m_CommercialLow", "m_IndustrialLow",
+        "m_ResidentialHigh", "m_CommercialHigh", "m_IndustrialHigh",
+    };
+
     // Allowed body height (cells, top of the bounds) per level 1..3. Wider than the placeholder
     // profiles (0.4-2.2 x the age's height scale and the +-15% jitter) so any age's art fits.
     private static readonly float[] s_MinHeight = { 0.15f, 0.40f, 0.60f };
@@ -106,7 +114,7 @@ public static class ArtContract
         {
             var set = AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid));
             var so = new SerializedObject(set);
-            foreach (string zone in new[] { "m_Residential", "m_Commercial", "m_Industrial" })
+            foreach (string zone in Tables)
             {
                 SerializedProperty levels = so.FindProperty(zone);
                 for (int level = 0; level < levels.arraySize; level++)

@@ -41,6 +41,10 @@ public sealed class GrowthVisuals : MonoBehaviour
 
     private static readonly Profile[] s_Residential = { new(0.70f, 0.40f), new(0.64f, 0.95f), new(0.52f, 1.80f) };
     private static readonly Profile[] s_Commercial = { new(0.80f, 0.50f), new(0.72f, 1.15f), new(0.60f, 2.20f) };
+    // M23: Low and High blocks without art of their own are the Medium look drawn lower / taller.
+    private const float k_LowHeight = 0.6f;
+    private const float k_HighHeight = 1.5f;
+
     private static readonly Profile[] s_Industrial = { new(0.82f, 0.42f), new(0.86f, 0.62f), new(0.90f, 0.85f) };
 
     // One pooled cube: the body keeps its collider (selection raycasts); roofs have none.
@@ -71,6 +75,8 @@ public sealed class GrowthVisuals : MonoBehaviour
         public int Age = -1;        // built age the visual was made for
         public AgeVisualSet.Style Style;
         public float Jitter;        // per-cell height multiplier
+        public Density Density;     // the density the visual was made for (M23)
+        public float DensityHeight = 1f;    // stretch of the Medium look when the age has no own Low / High art
         public uint Hash;           // per-cell variant / orientation picks
         public float PopTime = -1f; // seconds into the pop; < 0 = idle
     }
@@ -211,14 +217,17 @@ public sealed class GrowthVisuals : MonoBehaviour
 
         // Growth and redevelopment (a new built age) pop; a rezone recolour or a level drop is instant.
         int age = m_Grid.GetBuiltAge(cell);
-        bool grew = level > grown.Level || (grown.Level > 0 && age != grown.Age);
+        Density density = m_Grid.GetDensity(cell);
+        bool grew = level > grown.Level || (grown.Level > 0 && (age != grown.Age || density != grown.Density));
         if (level > grown.Level && grown.Level > 0 && AudioController.AllowGrowthSounds)
         {
             AudioController.Play(SfxId.LevelUp, new Vector3(cell.x + 0.5f, 0f, cell.y + 0.5f));
         }
         grown.Level = level;
         grown.Age = age;
-        grown.Style = StyleFor(grown.Zone, level, age);
+        grown.Density = density;
+        grown.Style = StyleFor(grown.Zone, level, age, density, out bool own);
+        grown.DensityHeight = own ? 1f : density == Density.Low ? k_LowHeight : density == Density.High ? k_HighHeight : 1f;
         EnsureVisual(grown);
 
         if (grew)
@@ -249,10 +258,11 @@ public sealed class GrowthVisuals : MonoBehaviour
         }
     }
 
-    private AgeVisualSet.Style StyleFor(ZoneType zone, int level, int age)
+    private AgeVisualSet.Style StyleFor(ZoneType zone, int level, int age, Density density, out bool own)
     {
+        own = false;
         AgeVisualSet set = age >= 0 && age < m_SetsByAge.Length ? m_SetsByAge[age] : null;
-        return set != null ? set.Get(zone, level) : s_Plain;
+        return set != null ? set.Get(zone, level, density, out own) : s_Plain;
     }
 
     // Swaps between placeholder blocks and a prefab variant when the style asks for the other.
@@ -342,14 +352,14 @@ public sealed class GrowthVisuals : MonoBehaviour
         {
             Transform t = grown.Prefab.Transform;
             t.SetPositionAndRotation(ground, Quaternion.Euler(0f, CellUtils.FacingRoad(m_Grid, cell, grown.Hash) * 90f, 0f));
-            t.localScale = Vector3.one * scale;
+            t.localScale = new Vector3(scale, scale * grown.DensityHeight, scale);
             return;
         }
 
         Profile profile = ProfileFor(grown.Zone, grown.Level);
         AgeVisualSet.Style style = grown.Style;
         float footprint = profile.Footprint * scale;
-        float height = profile.Height * style.HeightScale * grown.Jitter * scale;
+        float height = profile.Height * style.HeightScale * grown.Jitter * grown.DensityHeight * scale;
 
         Transform body = grown.Body.Transform;
         Transform roof = grown.Roof.Transform;

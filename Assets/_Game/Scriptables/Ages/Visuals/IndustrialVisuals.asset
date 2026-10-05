@@ -88,3 +88,99 @@ MonoBehaviour:
     Roof: 0
     RoofColor: {r: 0, g: 0, b: 0, a: 0}
     HeightScale: 1
+  m_ResidentialLow:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  m_CommercialLow:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  m_IndustrialLow:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  m_ResidentialHigh:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  m_CommercialHigh:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  m_IndustrialHigh:
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1
+  - Prefabs: []
+    Tint: {r: 0, g: 0, b: 0, a: 0}
+    Roof: 0
+    RoofColor: {r: 0, g: 0, b: 0, a: 0}
+    HeightScale: 1

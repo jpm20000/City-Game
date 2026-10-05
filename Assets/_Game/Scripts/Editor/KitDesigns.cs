@@ -178,14 +178,44 @@ public static class KitDesigns
         S(s => { s.W = .92f; s.D = .76f; s.Floors = 1; s.FloorH = .62f; s.Wall = new[] { "iron", "soot", "brickdark" }; s.RoofCol = new[] { "tin", "slate2", "roofgrey" }; s.Rise = .16f; s.AlongX = true; s.Win = "win_cool"; s.Cols = 5; s.SideCols = 3; s.Stacks = new[] { -.7f, .55f }; s.StackR = .06f; s.StackH = 1.75f; s.StackCol = "soot"; s.FlipV2 = false; }),
     };
 
+    // Low and High blocks (M23): residential and commercial, levels 1-3 (slot = zone * 3 + level - 1, zone 0 R, 1 C).
+    // Only the Modern age has its own; the other ages draw the Medium look lower / taller (GrowthVisuals).
+    public static KitSpec[] ForDensity(string age, Density density)
+    {
+        if (age != "modern") return null;
+        return density == Density.Low ? ModernLow() : density == Density.High ? ModernHigh() : null;
+    }
+
+    // Garden flats and low shops: pitched roofs, one or two storeys.
+    private static KitSpec[] ModernLow() => new[]
+    {
+        S(s => { s.W = .52f; s.D = .46f; s.Floors = 1; s.FloorH = .30f; s.Wall = new[] { "white", "cream", "concrete" }; s.Roof = KitRoof.Gable; s.RoofCol = new[] { "roofgrey", "shingle2", "slate" }; s.Rise = .16f; s.Win = "win_cool"; s.Cols = 2; s.Chimneys = 1; s.ChimneyH = .05f; s.Solar = false; }),
+        S(s => { s.W = .60f; s.D = .50f; s.Floors = 2; s.FloorH = .29f; s.Wall = new[] { "cream", "white", "brickyellow" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "terracotta2", "slate" }; s.Rise = .18f; s.Win = "win_cool"; s.Cols = 3; s.Balcony = true; s.Carport = true; }),
+        S(s => { s.W = .72f; s.D = .54f; s.Floors = 2; s.FloorH = .33f; s.Wall = new[] { "white", "concrete", "cream" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "slate", "roofgrey", "terracotta2" }; s.Rise = .20f; s.AlongX = true; s.Win = "win_cool"; s.Cols = 4; s.SideCols = 2; s.Balcony = true; s.Cornice = true; }),
+        S(s => { s.W = .66f; s.D = .52f; s.Floors = 1; s.FloorH = .34f; s.Wall = new[] { "cream", "white", "sand" }; s.Roof = KitRoof.Lean; s.RoofCol = new[] { "roofgrey", "slate", "roofgreen" }; s.Rise = .09f; s.Win = "glassteal"; s.Cols = 3; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awngreen", "awnwhite" }; }),
+        S(s => { s.W = .72f; s.D = .56f; s.Floors = 2; s.FloorH = .31f; s.Wall = new[] { "white", "cream", "concrete" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "slate", "roofgreen" }; s.Rise = .14f; s.Win = "glassteal"; s.Cols = 4; s.Sign = "signteal"; s.Awning = new[] { "awnblue", "awnteal", "awnwhite" }; }),
+        S(s => { s.W = .80f; s.D = .60f; s.Floors = 2; s.FloorH = .34f; s.Wall = new[] { "concrete", "white", "sand" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "slate", "concrete2" }; s.Rise = .12f; s.AlongX = true; s.Win = "glassteal"; s.Cols = 5; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awnblue", "awngreen" }; s.Cornice = true; }),
+    };
+
+    // Mid-rise and tall blocks: the Skyscraper (R3) is a slender stepped glass tower, the Office block (C3) a flat-topped glass box.
+    private static KitSpec[] ModernHigh() => new[]
+    {
+        S(s => { s.W = .62f; s.D = .54f; s.Floors = 3; s.FloorH = .32f; s.Wall = new[] { "concrete", "white", "concrete2" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "win_cool"; s.Cols = 4; s.SideCols = 2; s.Balcony = true; s.Cornice = true; }),
+        S(s => { s.W = .56f; s.D = .52f; s.Floors = 6; s.FloorH = .31f; s.Wall = new[] { "white", "concrete", "cream" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "win_cool"; s.Cols = 3; s.SideCols = 3; s.Balcony = true; }),
+        S(s => { s.W = .44f; s.D = .44f; s.Floors = 10; s.FloorH = .30f; s.Wall = new[] { "glassteal", "glassdark", "steel" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassdark"; s.Ribbon = true; s.Setback = true; s.Crown = true; }),
+        S(s => { s.W = .76f; s.D = .62f; s.Floors = 2; s.FloorH = .36f; s.Wall = new[] { "glassteal", "glassdark", "white" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassteal"; s.Ribbon = true; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awnblue", "awnwhite" }; }),
+        S(s => { s.W = .80f; s.D = .64f; s.Floors = 5; s.FloorH = .32f; s.Wall = new[] { "glassteal", "glassdark", "concrete" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassdark"; s.Ribbon = true; s.Cornice = true; }),
+        S(s => { s.W = .84f; s.D = .70f; s.Floors = 8; s.FloorH = .31f; s.Wall = new[] { "glassdark", "glassteal", "steel" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassteal"; s.Ribbon = true; s.Cornice = true; s.Solar = true; }),
+    };
+
     private static KitSpec[] Modern() => new[]
     {
         S(s => { s.W = .66f; s.D = .50f; s.Floors = 1; s.FloorH = .30f; s.Wall = new[] { "white", "concrete", "cream" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "roofgreen", "concrete2" }; s.Win = "win_cool"; s.Cols = 3; s.Carport = true; }),
         S(s => { s.W = .76f; s.D = .60f; s.Floors = 3; s.FloorH = .32f; s.Wall = new[] { "concrete", "white", "cream" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "roofgreen", "concrete2" }; s.Win = "win_cool"; s.Cols = 4; s.SideCols = 2; s.Balcony = true; }),
-        S(s => { s.W = .50f; s.D = .50f; s.Floors = 8; s.FloorH = .34f; s.Wall = new[] { "concrete", "white", "concrete2" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "win_cool"; s.Cols = 3; s.SideCols = 3; s.Setback = true; s.Crown = true; }),
+        S(s => { s.W = .74f; s.D = .56f; s.Floors = 6; s.FloorH = .33f; s.Wall = new[] { "brickred", "brickyellow", "brickdark" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "win_warm"; s.Cols = 5; s.SideCols = 3; s.Balcony = true; s.Cornice = true; s.TowerX = -.3f; s.TowerZ = -.3f; s.TowerSize = .26f; s.TowerH = .30f; }),
         S(s => { s.W = .76f; s.D = .60f; s.Floors = 1; s.FloorH = .36f; s.Wall = new[] { "glassteal", "glassdark", "white" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassteal"; s.Ribbon = true; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awnblue", "awnwhite" }; }),
         S(s => { s.W = .82f; s.D = .56f; s.Floors = 5; s.FloorH = .34f; s.Wall = new[] { "glassteal", "glassdark", "concrete" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassdark"; s.Ribbon = true; s.Cornice = true; s.FlipV2 = false; }),
-        S(s => { s.W = .56f; s.D = .56f; s.Floors = 9; s.FloorH = .335f; s.Wall = new[] { "glassteal", "glassdark", "steel" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassdark"; s.Ribbon = true; s.Setback = true; s.Crown = true; }),
+        S(s => { s.W = .84f; s.D = .66f; s.Floors = 7; s.FloorH = .31f; s.Wall = new[] { "concrete", "white", "cream" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassteal"; s.Cols = 6; s.SideCols = 3; s.Cornice = true; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awnred", "awnblue" }; }),
         S(s => { s.W = .90f; s.D = .78f; s.Floors = 1; s.FloorH = .42f; s.Wall = new[] { "tin", "steel", "concrete2" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "win_cool"; s.Cols = 4; s.SideCols = 3; s.Doors = 3; }),
         S(s => { s.W = .90f; s.D = .80f; s.Floors = 1; s.FloorH = .36f; s.Wall = new[] { "steel", "concrete", "tin" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "win_cool"; s.Cols = 3; s.SideCols = 3; s.Tanks = 3; }),
         S(s => { s.W = .90f; s.D = .80f; s.Floors = 1; s.FloorH = .64f; s.Wall = new[] { "white", "concrete", "steel" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "win_cool"; s.Cols = 4; s.SideCols = 3; s.Solar = true; s.Doors = 2; }),
