@@ -31,7 +31,7 @@ One file per milestone, like `../v1.0/` (M10–M19). Outlines become full plans 
 - [M20 — Camera & toolbar (IMPORTANT)](M20.md) — **done 2026-10-05**
 - [M21 — Progression & feedback](M21.md) — **done 2026-10-05**
 - [M22 — Road layout](M22.md) — **done 2026-10-05**, save v8
-- [M23 — Density & Modern skyline](M23.md) — plan written 2026-10-05, save v9, in progress
+- [M23 — Density & Modern skyline](M23.md) — **done 2026-10-05**, save v9
 - [M24 — Goods](M24.md) — outline, save v10
 - [M25 — Custom assets](M25.md) — outline
 - [M26 — Release 1.1](M26.md) — outline

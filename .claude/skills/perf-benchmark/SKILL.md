@@ -46,6 +46,8 @@ Editor frame times mislead: Hierarchy/editor overhead makes GameObject create/de
 
 \*\*\*\* `PerfBenchmark` has a disasters scenario since M17f (`RunDisasters`: ~30 cells burning and 60 homes infected on screen, then `Disasters.Step` timed 100 times with fires re-lit). The step scales with grown cells (~120 ns per grown block: the ignition risk sum over the map dominates), so it is 0.14 ms on a 630-pop city in the Editor and 1.44 ms on this 11.5k-block stress city; it runs once per game day, not per frame. A candidate if it ever matters: roll the ignition every few days at the summed chance.
 
+| M23e (96² stress city with Low / Medium / High per block; Modern Low/High kit prefabs, stretch fallback elsewhere) | 1.28 ms | 1.62 ms | 2.4-2.9 ms | 2.38 ms |
+
 Regressions to watch: per-instance materials or `MaterialPropertyBlock`s (they drop renderers out of the SRP Batcher / GPU Resident Drawer — this was 23 ms frames / 110 ms zoomed out before M10b), creating/destroying GameObjects per change instead of pooling, and per-tick full-map scans in new sim systems.
 
 Record new numbers in this table and in GamePlan §12's milestone notes.
