@@ -60,6 +60,26 @@ MonoBehaviour:
   m_MaxGrowthPerDay: 3
   m_GrowthDemandThreshold: 0.15
   m_LevelCapacity: 040000000800000010000000i
+  m_LowDensityScale: 0.5
+  m_HighDensityScale: 2
+  m_HighDensityScaleIndustrial: 1.6
+  m_HighDensityMinAgeCommercial: 1
+  m_HighDensityMinAgeOther: 2
+  m_MediumDensityMinAge: 1
+  m_LowDensityLandValue: 0.05
+  m_HighDensityLandValuePenalty: 0.03
+  m_HighDensityPollution: 1.25
+  m_GoodsMinAge: 2
+  m_GoodsPerIndustrialJob: 0.2
+  m_GoodsPerCommercialJob: 0.35
+  m_GoodsPerResident: 0.05
+  m_GoodsStockDays: 10
+  m_GoodsImportPrice: 3
+  m_GoodsMaxImportShare: 0.5
+  m_GoodsExportPrice: 1.5
+  m_GoodsShopFloor: 0.4
+  m_GoodsPenalty: 0.08
+  m_GoodsLevel3Supply: 0.7
   m_WorkerRatio: 0.6
   m_MoveInRate: 0.2
   m_MoveOutRate: 0.05

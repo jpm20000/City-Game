@@ -36,6 +36,26 @@ public sealed class GoodsTests
         Assert.AreEqual(2, m_Config.GoodsMinAge, "24d turned goods on from the Industrial age");
     }
 
+    // The game uses the asset, the tests the code defaults; they must agree (found in the 24e play-through: the asset still
+    // held the old 99, so the shipped game had goods off while every test had them on).
+    [Test]
+    public void BalanceAsset_HoldsTheCodeDefaults()
+    {
+        var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<BalanceConfig>("Assets/_Game/Scriptables/Balance/BalanceConfig.asset");
+        Assert.IsNotNull(asset);
+        Assert.AreEqual(m_Config.GoodsMinAge, asset.GoodsMinAge);
+        Assert.AreEqual(m_Config.GoodsPerIndustrialJob, asset.GoodsPerIndustrialJob);
+        Assert.AreEqual(m_Config.GoodsPerCommercialJob, asset.GoodsPerCommercialJob);
+        Assert.AreEqual(m_Config.GoodsPerResident, asset.GoodsPerResident);
+        Assert.AreEqual(m_Config.GoodsStockDays, asset.GoodsStockDays);
+        Assert.AreEqual(m_Config.GoodsImportPrice, asset.GoodsImportPrice);
+        Assert.AreEqual(m_Config.GoodsMaxImportShare, asset.GoodsMaxImportShare);
+        Assert.AreEqual(m_Config.GoodsExportPrice, asset.GoodsExportPrice);
+        Assert.AreEqual(m_Config.GoodsShopFloor, asset.GoodsShopFloor);
+        Assert.AreEqual(m_Config.GoodsPenalty, asset.GoodsPenalty);
+        Assert.AreEqual(m_Config.GoodsLevel3Supply, asset.GoodsLevel3Supply);
+    }
+
     [Test]
     public void Inactive_IsTheIdentity()
     {
