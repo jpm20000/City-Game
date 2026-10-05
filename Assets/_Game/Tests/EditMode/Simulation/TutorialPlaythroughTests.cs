@@ -20,6 +20,7 @@ public sealed class TutorialPlaythroughTests
     public void HarnessPlayer_FinishesTheTutorialWithin120Days()
     {
         var city = new EngagedCity(m_Config, 0, 48);
+        city.Sim.ResearchBoost = m_Config.TutorialResearchBoost;   // as SaveGameController does in the tutorial city (M21e)
         var roads = new RoadNetwork(city.Grid);
         var progress = new TutorialProgress();
         progress.Start();

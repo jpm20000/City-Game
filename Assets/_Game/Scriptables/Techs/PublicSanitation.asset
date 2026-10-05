@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Public Sanitation
   m_Description: 'Sewers and clean water. Happiness +3%. Unlocks the Pumping Station and the Hospital. Enables the Free Clinics ordinance.'
   m_Age: 2
-  m_Cost: 900
+  m_Cost: 5400
   m_Prerequisites: 
   - {fileID: 11400000, guid: c3e132b0f74858f5b0084acb49b975e7, type: 2}
   m_Effects:

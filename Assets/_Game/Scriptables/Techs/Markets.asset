@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Markets
   m_Description: 'A weekly market draws traders. Commercial demand +10%.'
   m_Age: 0
-  m_Cost: 50
+  m_Cost: 600
   m_Prerequisites: 
   - {fileID: 11400000, guid: 290e2e16d73852dcb7ba4ab002746634, type: 2}
   m_Effects:

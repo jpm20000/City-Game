@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Steam Power
   m_Description: 'Engines that never tire. Industrial demand +20%. Unlocks the Fire Station (steam fire engines).'
   m_Age: 2
-  m_Cost: 800
+  m_Cost: 4800
   m_Prerequisites: 
   - {fileID: 11400000, guid: 933f524250455e1d87888db1ddc15615, type: 2}
   m_Effects:

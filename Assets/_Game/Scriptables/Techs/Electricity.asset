@@ -16,6 +16,6 @@ MonoBehaviour:
   m_DisplayName: Electricity
   m_Description: 'Unlocks the Power Plant. From this age on, buildings need power to grow past level 1.'
   m_Age: 2
-  m_Cost: 300
+  m_Cost: 1800
   m_Prerequisites: []
   m_Effects: []

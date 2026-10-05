@@ -229,6 +229,8 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private int m_ResearchQueueMax = 5;
     [Tooltip("(M11) With nothing being researched, RP bank up to this many days of the current income.")]
     [SerializeField] private float m_ResearchBankDays = 30f;
+    [Tooltip("(M21e) Research income multiplier in the guided tutorial city, so its research steps stay quick while every tech costs 12x what it did in 1.0.")]
+    [SerializeField] private float m_TutorialResearchBoost = 12f;
 
     public float SecondsPerDay => m_SecondsPerDay;
     public int DaysPerMonth => m_DaysPerMonth;
@@ -357,6 +359,7 @@ public sealed class BalanceConfig : ScriptableObject
     public int RedevelopPerDay => m_RedevelopPerDay;
     public int ResearchQueueMax => m_ResearchQueueMax;
     public float ResearchBankDays => m_ResearchBankDays;
+    public float TutorialResearchBoost => m_TutorialResearchBoost;
 
     // Residents (or jobs) for a grown cell at the given level; 0 = undeveloped.
     public int CapacityForLevel(int level)

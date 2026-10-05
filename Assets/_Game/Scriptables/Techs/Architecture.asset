@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Architecture
   m_Description: 'Proportion, domes and planned facades. Land value +5% everywhere. Unlocks the Cobbled Street. Enables the Fire Code ordinance.'
   m_Age: 1
-  m_Cost: 300
+  m_Cost: 2400
   m_Prerequisites: 
   - {fileID: 11400000, guid: 89807dc22f0055238f9706007d6da8f5, type: 2}
   m_Effects:

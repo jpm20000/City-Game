@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Electric Trams
   m_Description: 'Cheap rides along the main streets. Commute trips -10%. Unlocks the Avenue (paved roads first). Enables the Workmen''s Fares ordinance.'
   m_Age: 2
-  m_Cost: 800
+  m_Cost: 4800
   m_Prerequisites: 
   - {fileID: 11400000, guid: 921727713547586792a514b9a4066d18, type: 2}
   - {fileID: 11400000, guid: 6d5020f44f12567faf209abbeee38df0, type: 2}

@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Guilds
   m_Description: 'Masters, journeymen and standards. Commercial and crafts demand +10%.'
   m_Age: 0
-  m_Cost: 90
+  m_Cost: 1080
   m_Prerequisites: 
   - {fileID: 11400000, guid: 89807dc22f0055238f9706007d6da8f5, type: 2}
   - {fileID: 11400000, guid: 4c61bc3c331157deb4637019a8d1f876, type: 2}

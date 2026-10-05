@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Suburbs
   m_Description: 'Homes with gardens at the edge of town. Residential demand +15%.'
   m_Age: 3
-  m_Cost: 1800
+  m_Cost: 10800
   m_Prerequisites: 
   - {fileID: 11400000, guid: d7adb7fa767a51d48437b1292562b9dd, type: 2}
   m_Effects:

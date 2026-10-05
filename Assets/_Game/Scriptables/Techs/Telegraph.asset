@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Telegraph
   m_Description: 'News at the speed of light. Research +20%. Unlocks the Police Station (call boxes).'
   m_Age: 2
-  m_Cost: 900
+  m_Cost: 5400
   m_Prerequisites: 
   - {fileID: 11400000, guid: 921727713547586792a514b9a4066d18, type: 2}
   - {fileID: 11400000, guid: f914d17a0f805758baeec027f4f02b5c, type: 2}

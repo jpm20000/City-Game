@@ -201,9 +201,11 @@ EVENTS = [
 TECHS = [(a, b, c, d, e, f, g, desc + (" Enables the %s ordinance." % ORDINANCE_OF_TECH[b] if b in ORDINANCE_OF_TECH else ""))
          for a, b, c, d, e, f, g, desc in TECHS]
 
-# M21a: later ages research more slowly. The tables above hold the base costs; these scales (by the age of the tech, and
-# by the age being advanced into) are applied when the assets are written.
-TECH_COST_SCALE = [1.0, 1.5, 2.0, 2.0]
+# M21a / M21e: research is slow. The tables above hold the 1.0 base costs; these scales (by the age of the tech, and by the
+# age being advanced into) are applied when the assets are written. Every tech costs 12x its 1.0 price (asked for 10-15x:
+# research completed too quickly); the advance costs went x2 into Industrial and x2.5 into Modern in M21a. The guided
+# tutorial city researches 12x faster (BalanceConfig.TutorialResearchBoost) so its steps stay quick.
+TECH_COST_SCALE = [12.0, 12.0, 12.0, 12.0]
 ADVANCE_COST_SCALE = [1.0, 1.0, 2.0, 2.5]
 def scaled(cost, scale): return int(round(cost * scale / 5.0)) * 5
 

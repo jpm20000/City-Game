@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Factories
   m_Description: 'Mass production under one roof. Enables the Smoke Abatement ordinance.'
   m_Age: 2
-  m_Cost: 1000
+  m_Cost: 6000
   m_Prerequisites: 
   - {fileID: 11400000, guid: 707aae0c02a05f06857b95f736325272, type: 2}
   m_Effects: []

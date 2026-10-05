@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Herbalism
   m_Description: 'Healing herbs and those who know them. Unlocks the Apothecary, which cares for the sick nearby. Enables the Herb Gardens ordinance.'
   m_Age: 0
-  m_Cost: 35
+  m_Cost: 420
   m_Prerequisites: 
   - {fileID: 11400000, guid: 290e2e16d73852dcb7ba4ab002746634, type: 2}
   m_Effects: []

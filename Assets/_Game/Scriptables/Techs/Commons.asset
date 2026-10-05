@@ -16,6 +16,6 @@ MonoBehaviour:
   m_DisplayName: Commons
   m_Description: 'Common land for all. Unlocks the Park, a village green that cheers nearby homes.'
   m_Age: 0
-  m_Cost: 30
+  m_Cost: 360
   m_Prerequisites: []
   m_Effects: []

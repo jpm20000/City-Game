@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Mass Media
   m_Description: 'Radio and television in every home. Enables the Neighbourhood Watch ordinance.'
   m_Age: 3
-  m_Cost: 1600
+  m_Cost: 9600
   m_Prerequisites: 
   - {fileID: 11400000, guid: 6b2ca2286bce547b8d2b7c79070cf616, type: 2}
   m_Effects: []

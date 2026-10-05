@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Automobiles
   m_Description: 'A car in every garage. Commercial demand +10%, but commute trips +20%. Unlocks the Highway. Enables the Car-free Sundays ordinance.'
   m_Age: 3
-  m_Cost: 1800
+  m_Cost: 10800
   m_Prerequisites: 
   - {fileID: 11400000, guid: ab93ff9185c25bf5a02357d8c6e515ff, type: 2}
   m_Effects:

@@ -16,6 +16,6 @@ MonoBehaviour:
   m_DisplayName: Masonry
   m_Description: 'Dressed stone for lasting walls. Leads to monasteries and, much later, architecture.'
   m_Age: 0
-  m_Cost: 40
+  m_Cost: 480
   m_Prerequisites: []
   m_Effects: []

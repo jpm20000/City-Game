@@ -16,6 +16,6 @@ MonoBehaviour:
   m_DisplayName: Waterworks
   m_Description: 'Unlocks the Water Tower. From this age on, water is piped along the roads and buildings need it to grow past level 1.'
   m_Age: 2
-  m_Cost: 200
+  m_Cost: 1200
   m_Prerequisites: []
   m_Effects: []

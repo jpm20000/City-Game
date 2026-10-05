@@ -175,6 +175,9 @@ public sealed class SimulationSystem
     // last tick), times the researched techs' multiplier. 0 without ages.
     public float ResearchIncome() => ResearchBreakdown().Total;
 
+    // (M21e) Scales the whole research income; 1 normally, the config's TutorialResearchBoost in the tutorial city.
+    public float ResearchBoost { get; set; } = 1f;
+
     public ResearchBreakdown ResearchBreakdown()
     {
         if (Tech == null) return default;
@@ -183,7 +186,7 @@ public sealed class SimulationSystem
         return new ResearchBreakdown(filledCommercial * m_Config.ResearchPerCommercialJob,
             Modifiers.ResearchPerDay + Budget.ResearchDelta(m_Sources),
             Population.Population * m_LastServices.EducatedShare * m_Config.ResearchPerEducatedResident,
-            Tech.Modifiers.ResearchMultiplier);
+            Tech.Modifiers.ResearchMultiplier * ResearchBoost);
     }
 
     // Load / new game: sets persisted state and recomputes derived stats (capacity, employment,

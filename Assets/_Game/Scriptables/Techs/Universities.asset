@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Universities
   m_Description: 'Research universities. Unlocks the University, which produces research and educates the homes around it.'
   m_Age: 2
-  m_Cost: 1000
+  m_Cost: 6000
   m_Prerequisites: 
   - {fileID: 11400000, guid: 6b2ca2286bce547b8d2b7c79070cf616, type: 2}
   - {fileID: 11400000, guid: 45393a9fb1425dd6bab2c48a01edfbfa, type: 2}

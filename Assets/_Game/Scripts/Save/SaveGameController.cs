@@ -24,7 +24,23 @@ public sealed class SaveGameController : MonoBehaviour
     public string CurrentName { get; private set; } = "";
     public string CityName { get; private set; } = "";
     // Tutorial progress carried through saves (-1 = no tutorial); the tutorial itself arrives in M19f.
-    public int Tutorial { get; set; } = SaveData.NoTutorial;
+    public int Tutorial
+    {
+        get => m_Tutorial;
+        set
+        {
+            m_Tutorial = value;
+            ApplyResearchBoost();
+        }
+    }
+    private int m_Tutorial = SaveData.NoTutorial;
+
+    // The tutorial city researches faster (M21e: techs cost 12x what they did, the tutorial's steps must stay quick).
+    private void ApplyResearchBoost()
+    {
+        SimulationSystem sim = m_GameManager != null ? m_GameManager.Simulation : null;
+        if (sim != null) sim.ResearchBoost = m_Tutorial != SaveData.NoTutorial ? m_GameManager.Balance.TutorialResearchBoost : 1f;
+    }
     // True when the city changed since it was last saved or loaded.
     // The main menu's showcase city is never dirty: leaving it asks nothing.
     public bool Dirty { get => m_Dirty && !ShowcaseActive; private set => m_Dirty = value; }
