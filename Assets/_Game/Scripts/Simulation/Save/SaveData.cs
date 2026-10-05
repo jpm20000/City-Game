@@ -7,7 +7,7 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
     public const int NoAge = -1;
     public const int NoTutorial = -1;
 
@@ -73,6 +73,11 @@ public sealed class SaveData
     // current objective; past the last = finished).
     public string CityName = "";
     public int Tutorial = NoTutorial;
+
+    // v8 (M22): road layout, row-major bytes of RoadLayout codes (0 = none): a Highway cell's one-way direction, and the
+    // side of a paired Avenue cell's partner lane.
+    public byte[] RoadDirections;
+    public byte[] RoadPairs;
 
     public List<BuildingRecord> Buildings = new();
 }

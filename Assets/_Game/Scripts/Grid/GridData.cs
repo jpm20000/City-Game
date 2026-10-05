@@ -14,6 +14,8 @@ public sealed class GridData
     private byte[] m_BuiltAge;      // age index a grown cell was (re)built in (M11)
     private bool[] m_Historic;      // "Keep historical building" (M11)
     private bool[] m_Pipes;         // water pipe under the cell (M13); never under a road (roads carry water anyway)
+    private byte[] m_RoadDirections;    // RoadLayout code: a Highway's one-way direction (0 = two-way); 0 elsewhere (M22)
+    private byte[] m_RoadPairs;         // RoadLayout code: the side of an Avenue cell's partner lane (0 = single lane); 0 elsewhere (M22)
 
     public event Action<Vector2Int> OnCellChanged;
 
@@ -47,6 +49,8 @@ public sealed class GridData
         m_BuiltAge = new byte[width * height];
         m_Historic = new bool[width * height];
         m_Pipes = new bool[width * height];
+        m_RoadDirections = new byte[width * height];
+        m_RoadPairs = new byte[width * height];
     }
 
     public bool InBounds(Vector2Int cell)
@@ -68,6 +72,7 @@ public sealed class GridData
     }
 
     public const int MaxRoadTier = 5;
+    public const byte AvenueTier = 4, HighwayTier = 5;      // the tiers that carry a layout byte (RoadTiers.Avenue / Highway)
 
     // The tier SetRoad(cell, true) lays: 3 = Paved, today's road (M16).
     public byte DefaultRoadTier { get; set; } = 3;
@@ -92,7 +97,69 @@ public sealed class GridData
         if (m_RoadTiers[i] == tier) return;
         m_RoadTiers[i] = tier;
         if (tier > 0) m_Pipes[i] = false;
+        m_RoadDirections[i] = 0;
+        ReleasePartner(cell, i);
         OnCellChanged?.Invoke(cell);
+    }
+
+    // 0 for anything but a Highway: the way a vehicle may leave the cell (RoadLayout codes), 0 = two-way (M22).
+    public byte GetRoadDirection(Vector2Int cell)
+    {
+        return m_RoadDirections[Index(cell)];
+    }
+
+    // Sets a Highway cell's one-way direction (0 = two-way); ignored on any other cell or an invalid code.
+    public void SetRoadDirection(Vector2Int cell, byte direction)
+    {
+        int i = Index(cell);
+        if (m_RoadTiers[i] != HighwayTier || !RoadLayout.IsCode(direction)) return;
+        if (m_RoadDirections[i] == direction) return;
+        m_RoadDirections[i] = direction;
+        OnCellChanged?.Invoke(cell);
+    }
+
+    // 0 for anything but a paired Avenue cell: the side its partner lane is on (RoadLayout codes) (M22).
+    public byte GetRoadPair(Vector2Int cell)
+    {
+        return m_RoadPairs[Index(cell)];
+    }
+
+    // Pairs an Avenue cell with its neighbour on `side` (both cells point at each other, and any older pair of
+    // either is released); side 0 unpairs it and its partner. Ignored unless both cells are Avenue road.
+    public void SetRoadPair(Vector2Int cell, byte side)
+    {
+        int i = Index(cell);
+        if (m_RoadTiers[i] != AvenueTier || !RoadLayout.IsCode(side)) return;
+        if (side == 0)
+        {
+            ReleasePartner(cell, i);
+            OnCellChanged?.Invoke(cell);
+            return;
+        }
+        Vector2Int partner = cell + RoadLayout.Offset(side);
+        if (!InBounds(partner) || m_RoadTiers[Index(partner)] != AvenueTier) return;
+        int j = Index(partner);
+        if (m_RoadPairs[i] == side && m_RoadPairs[j] == RoadLayout.Opposite(side)) return;
+        ReleasePartner(cell, i);
+        ReleasePartner(partner, j);
+        m_RoadPairs[i] = side;
+        m_RoadPairs[j] = RoadLayout.Opposite(side);
+        OnCellChanged?.Invoke(cell);
+        OnCellChanged?.Invoke(partner);
+    }
+
+    // Drops the cell's pair byte and, when its partner points back, the partner's (the partner stays a single lane).
+    private void ReleasePartner(Vector2Int cell, int i)
+    {
+        byte side = m_RoadPairs[i];
+        if (side == 0) return;
+        m_RoadPairs[i] = 0;
+        Vector2Int partner = cell + RoadLayout.Offset(side);
+        if (!InBounds(partner)) return;
+        int j = Index(partner);
+        if (m_RoadPairs[j] != RoadLayout.Opposite(side)) return;
+        m_RoadPairs[j] = 0;
+        OnCellChanged?.Invoke(partner);
     }
 
     // Lays DefaultRoadTier (an existing road keeps its tier) or removes the road.
@@ -194,6 +261,22 @@ public sealed class GridData
         Buffer.BlockCopy(m_RoadTiers, 0, dest, 0, m_RoadTiers.Length);
     }
 
+    // The same for the highway direction codes (M22).
+    public void CopyRoadDirectionsTo(byte[] dest)
+    {
+        Buffer.BlockCopy(m_RoadDirections, 0, dest, 0, m_RoadDirections.Length);
+    }
+
+    // True when any road cell is one-way (lets traffic skip the direction checks in an all-two-way city).
+    public bool AnyOneWay()
+    {
+        for (int i = 0; i < m_RoadDirections.Length; i++)
+        {
+            if (m_RoadDirections[i] != 0) return true;
+        }
+        return false;
+    }
+
     // Fills counts[tier] with the number of roads of each tier (index 0 stays 0).
     public void CountRoadsByTier(int[] counts)
     {
@@ -269,6 +352,16 @@ public sealed class GridData
         return (byte[])m_RoadTiers.Clone();
     }
 
+    public byte[] ExportRoadDirections()
+    {
+        return (byte[])m_RoadDirections.Clone();
+    }
+
+    public byte[] ExportRoadPairs()
+    {
+        return (byte[])m_RoadPairs.Clone();
+    }
+
     public byte[] ExportLevels()
     {
         return (byte[])m_BuildingLevel.Clone();
@@ -296,8 +389,10 @@ public sealed class GridData
     // Replaces zones / roads / levels (and built ages / historic flags / pipes; null = all 0) and
     // clears occupancy (release buildings first). Raises OnCellChanged for every cell whose state
     // changed so views resync. Undeveloped cells never keep a built age or historic flag; roads never keep a pipe.
+    // roadDirections / roadPairs (M22, null = all 0): a direction only sticks on a Highway cell, a pair only on an
+    // Avenue cell whose partner is an Avenue cell pointing back; anything else is dropped.
     public void Import(byte[] zones, byte[] roads, byte[] levels, byte[] builtAges = null, byte[] historic = null,
-        byte[] pipes = null)
+        byte[] pipes = null, byte[] roadDirections = null, byte[] roadPairs = null)
     {
         int count = Width * Height;
         if (zones == null || zones.Length != count) throw new ArgumentException("Zone data size mismatch.", nameof(zones));
@@ -306,6 +401,8 @@ public sealed class GridData
         if (builtAges != null && builtAges.Length != count) throw new ArgumentException("Built age data size mismatch.", nameof(builtAges));
         if (historic != null && historic.Length != count) throw new ArgumentException("Historic data size mismatch.", nameof(historic));
         if (pipes != null && pipes.Length != count) throw new ArgumentException("Pipe data size mismatch.", nameof(pipes));
+        if (roadDirections != null && roadDirections.Length != count) throw new ArgumentException("Road direction data size mismatch.", nameof(roadDirections));
+        if (roadPairs != null && roadPairs.Length != count) throw new ArgumentException("Road pair data size mismatch.", nameof(roadPairs));
 
         for (int i = 0; i < count; i++)
         {
@@ -316,8 +413,11 @@ public sealed class GridData
             byte builtAge = level > 0 && builtAges != null ? builtAges[i] : (byte)0;
             bool kept = level > 0 && historic != null && historic[i] != 0;
             bool pipe = !road && pipes != null && pipes[i] != 0;
+            byte direction = roadTier == HighwayTier && roadDirections != null && RoadLayout.IsCode(roadDirections[i]) ? roadDirections[i] : (byte)0;
+            byte pair = ImportedPair(roads, roadPairs, i);
             if (m_Zones[i] == zone && m_RoadTiers[i] == roadTier && m_BuildingLevel[i] == level && m_Occupancy[i] == 0
-                && m_BuiltAge[i] == builtAge && m_Historic[i] == kept && m_Pipes[i] == pipe) continue;
+                && m_BuiltAge[i] == builtAge && m_Historic[i] == kept && m_Pipes[i] == pipe
+                && m_RoadDirections[i] == direction && m_RoadPairs[i] == pair) continue;
 
             m_Zones[i] = zone;
             m_RoadTiers[i] = roadTier;
@@ -325,9 +425,22 @@ public sealed class GridData
             m_BuiltAge[i] = builtAge;
             m_Historic[i] = kept;
             m_Pipes[i] = pipe;
+            m_RoadDirections[i] = direction;
+            m_RoadPairs[i] = pair;
             m_Occupancy[i] = 0;
             OnCellChanged?.Invoke(new Vector2Int(i % Width, i / Width));
         }
+    }
+
+    // The imported pair byte of cell i, or 0 when it is not an Avenue cell whose partner is an Avenue cell pointing back.
+    private byte ImportedPair(byte[] roads, byte[] pairs, int i)
+    {
+        if (pairs == null || roads[i] != AvenueTier || pairs[i] == 0 || !RoadLayout.IsCode(pairs[i])) return 0;
+        Vector2Int cell = new Vector2Int(i % Width, i / Width);
+        Vector2Int partner = cell + RoadLayout.Offset(pairs[i]);
+        if (!InBounds(partner)) return 0;
+        int j = Index(partner);
+        return roads[j] == AvenueTier && pairs[j] == RoadLayout.Opposite(pairs[i]) ? pairs[i] : (byte)0;
     }
 
     private int Index(Vector2Int cell)

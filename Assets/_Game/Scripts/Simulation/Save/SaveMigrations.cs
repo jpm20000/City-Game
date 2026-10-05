@@ -47,6 +47,11 @@ public static class SaveMigrations
             V6ToV7(data);
             data.Version = 7;
         }
+        if (data.Version == 7)
+        {
+            V7ToV8(data);
+            data.Version = 8;
+        }
 
         data.Buildings ??= new();
         data.Loans ??= new();
@@ -156,6 +161,14 @@ public static class SaveMigrations
     {
         data.CityName = "";
         data.Tutorial = SaveData.NoTutorial;
+    }
+
+    // v8 adds the road layout (M22): every highway stays two-way and every avenue a single lane, so old cities play as before.
+    private static void V7ToV8(SaveData data)
+    {
+        int count = Math.Max(0, data.Width * data.Height);
+        data.RoadDirections = new byte[count];
+        data.RoadPairs = new byte[count];
     }
 
     // A city saved without ages played by today's rules: it becomes an Industrial city with every

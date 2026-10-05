@@ -36,6 +36,8 @@ public static class SaveSystem
             BuiltAges = grid.ExportBuiltAges(),
             Historic = grid.ExportHistoric(),
             Pipes = grid.ExportPipes(),
+            RoadDirections = grid.ExportRoadDirections(),
+            RoadPairs = grid.ExportRoadPairs(),
             Funding = sim.Budget.ExportFunding(),
         };
         sim.Disasters.Export(data);
@@ -77,6 +79,8 @@ public static class SaveSystem
             BuiltAges = new byte[count],
             Historic = new byte[count],
             Pipes = new byte[count],
+            RoadDirections = new byte[count],
+            RoadPairs = new byte[count],
             Fires = new byte[count],
             Rubble = new byte[count],
             Plague = new byte[count],
@@ -102,7 +106,7 @@ public static class SaveSystem
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (grid == null) throw new ArgumentNullException(nameof(grid));
         if (data.Width != grid.Width || data.Height != grid.Height) grid.Resize(data.Width, data.Height);
-        grid.Import(data.Zones, data.Roads, data.Levels, data.BuiltAges, data.Historic, data.Pipes);
+        grid.Import(data.Zones, data.Roads, data.Levels, data.BuiltAges, data.Historic, data.Pipes, data.RoadDirections, data.RoadPairs);
     }
 
     // Step 2, after the grid is restored and SimulationSystem.Modifiers/Sources reflect placed buildings.
@@ -185,6 +189,7 @@ public static class SaveSystem
         int count = data.Width * data.Height;
         if (data.Zones?.Length != count || data.Roads?.Length != count || data.Levels?.Length != count
             || data.BuiltAges?.Length != count || data.Historic?.Length != count || data.Pipes?.Length != count
+            || data.RoadDirections?.Length != count || data.RoadPairs?.Length != count
             || data.Fires?.Length != count || data.Rubble?.Length != count || data.Plague?.Length != count)
         {
             error = "Save file has missing or mismatched map data.";
@@ -197,6 +202,25 @@ public static class SaveSystem
             if (road > GridData.MaxRoadTier)
             {
                 error = "Save file has an invalid road tier.";
+                data = null;
+                return false;
+            }
+        }
+
+        foreach (byte code in data.RoadDirections)
+        {
+            if (!RoadLayout.IsCode(code))
+            {
+                error = "Save file has an invalid road direction.";
+                data = null;
+                return false;
+            }
+        }
+        foreach (byte code in data.RoadPairs)
+        {
+            if (!RoadLayout.IsCode(code))
+            {
+                error = "Save file has an invalid road pair.";
                 data = null;
                 return false;
             }

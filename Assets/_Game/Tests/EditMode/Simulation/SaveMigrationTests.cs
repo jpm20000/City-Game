@@ -377,7 +377,7 @@ public sealed class SaveMigrationTests
 
         SaveData data = Read(SaveSystem.ToJson(saved), withAges: false);
 
-        Assert.AreEqual(7, SaveData.CurrentVersion);
+        Assert.GreaterOrEqual(SaveData.CurrentVersion, 7);
         Assert.AreEqual(SaveData.CurrentVersion, data.Version);
         Assert.AreEqual("", data.CityName);
         Assert.AreEqual(SaveData.NoTutorial, data.Tutorial);
