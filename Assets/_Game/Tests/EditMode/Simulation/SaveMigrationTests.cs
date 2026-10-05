@@ -18,6 +18,7 @@ public sealed class SaveMigrationTests
     public void SetUp()
     {
         m_Config = ScriptableObject.CreateInstance<BalanceConfig>();
+        GoodsOff.Apply(m_Config);   // the fixture is a recorded run without goods (M24d)
         m_TestAges = new TestAges();
     }
 

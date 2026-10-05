@@ -20,6 +20,7 @@ public sealed class AgesSimulationTests
     public void SetUp()
     {
         m_Config = Make<BalanceConfig>();
+        GoodsOff.Apply(m_Config);   // compares with the age-less sim (M24d)
         m_TestAges = new TestAges();
         m_Ages = m_TestAges.Ages;
         m_Techs = m_TestAges.Techs;

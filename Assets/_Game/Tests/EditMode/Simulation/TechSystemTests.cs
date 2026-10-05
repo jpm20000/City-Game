@@ -17,6 +17,7 @@ public sealed class TechSystemTests
     public void SetUp()
     {
         m_Config = Make<BalanceConfig>();
+        GoodsOff.Apply(m_Config);   // compares with the age-less sim (M24d)
         m_MedA = Tech("med_a", 0, 100f);
         m_MedB = Tech("med_b", 0, 100f, m_MedA);
         m_MedC = Tech("med_c", 0, 50f);

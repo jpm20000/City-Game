@@ -134,11 +134,38 @@ public sealed class AgeBalanceTests
         Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
     }
 
+    // M24d death-spiral probe: factories that make little or nothing. A player who ignores goods lives on imports (capped at
+    // half of what the city uses): shops at about 70% income, homes held at level 2 (supply 0.5 < 0.7), growth slower but
+    // without a debt spiral. (Industrial start with factories that make nothing: -867 at day 120, its taxes barely cover the
+    // 100 a day of imports; a game state a player leaves by building industry.)
+    [TestCase(2, 0.1f)]
+    [TestCase(3, 0.1f)]
+    [TestCase(3, 0f)]
+    public void LaterStart_WithLittleFactoryOutput_StaysSolvent(int startAge, float perJob)
+    {
+        typeof(BalanceConfig).GetField("m_GoodsPerIndustrialJob", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
+            .SetValue(m_Config, perJob);
+        var city = new EngagedCity(m_Config, startAge);
+        city.RunDays(60);
+        int at60 = city.Sim.Population.Population;
+        city.RunDays(60);
+        TestContext.WriteLine(city.Report());
+
+        Assert.Greater(at60, 120);
+        Assert.Greater(city.Sim.Population.Population, at60 * 1.3f, "still growing between day 60 and 120");
+        if (perJob == 0f) Assert.AreEqual(0.5f, city.Sim.Goods.Last.Supply, 1e-3f, "imports are capped at half of the demand");
+        Assert.GreaterOrEqual(city.MinHappiness, 0.45f);
+        // A thin overdraft at most (measured -752 and -867 at day 120 in two cases): imports are most of the gap between income
+        // and expense for a young city, but nothing spirals.
+        Assert.GreaterOrEqual(city.MinMoney, -1500f, "no debt spiral");
+    }
+
     // Industrial start with the real content = today's game plus the bonuses of every Medieval and
     // Renaissance tech it starts with (accepted in M11g). Same layout as SimulationTests.RunSeededCity
     // (212 pop at day 60 without ages). Re-recorded in M12a for local pollution (was 0.647) and in
     // M14a for crime (was 0.660; crime -0.007 at 220 pop) and M14b for fire risk and sickness (was 0.653;
-    // fire -0.007, health -0.016).
+    // fire -0.007, health -0.016) and in M24d for goods (was 0.631; goods term -0.004 at 220 pop: the seeded city imports
+    // about half of what it uses, supply 0.96; population unchanged).
     [Test]
     public void IndustrialStart_RealContent_Baseline()
     {
@@ -147,7 +174,8 @@ public sealed class AgeBalanceTests
         SimulationSystem sim = SeededCity.Run(new GridData(24, 24), m_Config, 60, ages: ages, techs: techs, startAge: ages.Legacy);
 
         Assert.AreEqual(220, sim.Population.Population);
-        Assert.AreEqual(0.631f, sim.Population.AverageHappiness, 0.005f);
+        Assert.AreEqual(0.627f, sim.Population.AverageHappiness, 0.003f);
+        Assert.AreEqual(-0.004f, sim.Population.Happiness.Goods, 0.002f);
         Assert.AreEqual(0.05f, sim.Population.Happiness.Technology, 1e-5f);
     }
 

@@ -255,6 +255,9 @@ internal sealed class EngagedCity
     }
 
     private const float Cushion = 2000f;
+    // M24d: there is no goods rule. A first version zoned industry whenever supply fell below 0.9 (then 0.8), but a factory only
+    // grows with industrial demand, so the zoned blocks stayed empty and the player paid for roads until it went bankrupt
+    // (-10,000 at day 120); at the shipped numbers the engaged city's supply stays at 0.94-1.0 on imports anyway.
 
     private static readonly ZoneType[] s_Zones = { ZoneType.Residential, ZoneType.Commercial, ZoneType.Industrial };
 
@@ -1099,10 +1102,17 @@ internal sealed class EngagedCity
         sb.Append($"\n  civic: crime {h.Crime:F3} fire {h.Fire:F3} health {h.Health:F3}, retired {Retired}, income {Sim.Economy.IncomePerDay:F0} - expense {Sim.Economy.ExpensePerDay:F0} (upkeep {m_Modifiers.UpkeepPerDay:F0})");
         sb.Append($"\n  traffic: trips {Sim.Traffic.Trips:F0}, worst road {Sim.Traffic.WorstCongestion:F2}, jammed {Sim.Traffic.JammedRoads}, term {h.Traffic:F3}, roads upgraded {RoadsUpgraded}");
         if (Sim.Disasters.Enabled) sb.Append("\n  ").Append(DisastersReport());
+        if (Sim.GoodsActive) sb.Append("\n  ").Append(GoodsLine());
         sb.Append("\n  built: ");
         foreach (var pair in m_Placed) sb.Append($"{pair.Key}×{pair.Value} ");
         sb.Append("\n  ").Append(Diagnostics());
         return sb.ToString();
+    }
+
+    public string GoodsLine()
+    {
+        GoodsReport g = Sim.Goods.Last;
+        return $"goods: made {g.Produced:F1} / wanted {g.Demanded:F1}, imported {g.Imported:F1}, exported {g.Exported:F1}, supply {g.Supply:F2}, stock {g.StockAfter:F0}";
     }
 
     // Demand, capacity and why zoned cells aren't growing, per zone.

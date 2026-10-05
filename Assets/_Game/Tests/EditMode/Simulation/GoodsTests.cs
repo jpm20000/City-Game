@@ -31,9 +31,9 @@ public sealed class GoodsTests
     // --- the pool ---
 
     [Test]
-    public void Defaults_GoodsAreOffUntilTheirAge()
+    public void Defaults_GoodsStartInTheIndustrialAge()
     {
-        Assert.AreEqual(99, m_Config.GoodsMinAge, "24a-24c ship dark; 24d turns goods on");
+        Assert.AreEqual(2, m_Config.GoodsMinAge, "24d turned goods on from the Industrial age");
     }
 
     [Test]

@@ -114,10 +114,10 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_HighDensityPollution = 1.25f;
 
     [Header("Goods (M24)")]
-    [Tooltip("(tuned, M24) Age index from which goods are in play (Industrial = 2). 99 = off: 24a-24c ship dark, 24d turns it on with the baseline re-record.")]
-    [SerializeField] private int m_GoodsMinAge = 99;
-    [Tooltip("(tuned, M24) Goods made per day by each filled industrial job.")]
-    [SerializeField] private float m_GoodsPerIndustrialJob = 0.5f;
+    [Tooltip("(tuned, M24d) Age index from which goods are in play (Industrial = 2). 99 = off (24a-24c shipped dark).")]
+    [SerializeField] private int m_GoodsMinAge = 2;
+    [Tooltip("(tuned, M24d) Goods made per day by each filled industrial job. 0.5 left an engaged city with a permanent surplus (supply 1.0, only exports); 0.2 makes an engaged city import a third to a half of what it uses until it builds more industry.")]
+    [SerializeField] private float m_GoodsPerIndustrialJob = 0.2f;
     [Tooltip("(tuned, M24) Goods a shop sells per day for each commercial job.")]
     [SerializeField] private float m_GoodsPerCommercialJob = 0.35f;
     [Tooltip("(tuned, M24) Goods each resident buys per day.")]
