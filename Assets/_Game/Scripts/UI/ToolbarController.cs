@@ -54,7 +54,7 @@ public sealed class ToolbarController : MonoBehaviour
         public ToolButton Button;
         public ToolbarFlyout Flyout;
         public GameObject Dot;
-        public BuildingDefinition Last;      // the last building picked from the group (the button re-picks it)
+        public BuildingDefinition Last;      // the last building picked from the group (shown on its button)
         public readonly List<BuildingDefinition> Members = new();
     }
     private ToolButton m_ServicesViewButton;   // M14: made at runtime from the Age view button
@@ -250,8 +250,8 @@ public sealed class ToolbarController : MonoBehaviour
         }
     }
 
-    // The group button for a building group, made on first use. Clicking it opens the flyout; once a building has been
-    // picked, clicking it picks that building again and the small arrow opens the flyout.
+    // The group button for a building group, made on first use. Clicking it always opens the flyout (the building last
+    // picked is only shown on the button).
     private Group GroupFor(ToolbarGroup id)
     {
         foreach (Group existing in m_Groups) if (existing.Id == id) return existing;
@@ -265,15 +265,6 @@ public sealed class ToolbarController : MonoBehaviour
         Group captured = group;
         Bind(group.Button, GroupName(id), string.Empty, Color.clear,
             $"{GroupName(id)}\n{GroupTooltip(id)} Click to choose a building.", () => OnGroupClicked(captured));
-
-        Button arrow = UiKit.MakeButton(group.Button.transform, "^", () => captured.Flyout.Toggle(), 22f, new Color(0f, 0f, 0f, 0.35f));
-        arrow.name = "FlyoutArrow";
-        arrow.GetComponent<LayoutElement>().ignoreLayout = true;
-        var arrowRect = (RectTransform)arrow.transform;
-        arrowRect.anchorMin = arrowRect.anchorMax = arrowRect.pivot = new Vector2(1f, 1f);
-        arrowRect.anchoredPosition = new Vector2(-2f, -2f);
-        arrowRect.sizeDelta = new Vector2(22f, 20f);
-        arrow.gameObject.SetActive(false);
 
         var dot = new GameObject("NewDot", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
         dot.transform.SetParent(group.Button.transform, false);
@@ -298,22 +289,13 @@ public sealed class ToolbarController : MonoBehaviour
 
     private void OnGroupClicked(Group group)
     {
-        if (group.Last != null && m_GameManager.CanBuild(group.Last))
-        {
-            group.Flyout.Hide();
-            ToggleBuilding(group.Last);
-        }
-        else
-        {
-            group.Flyout.Toggle();
-        }
+        group.Flyout.Toggle();
     }
 
     private void SetGroupLast(Group group, BuildingDefinition def)
     {
         group.Last = def;
         group.Button.Setup(GroupName(group.Id), def.DisplayName, Color.clear, group.Button.Tooltip);
-        group.Button.transform.Find("FlyoutArrow").gameObject.SetActive(true);
         RefreshActive();
     }
 
@@ -568,6 +550,7 @@ public sealed class ToolbarController : MonoBehaviour
         if (m_TooltipRoot == null || string.IsNullOrEmpty(button.Tooltip)) return;
         foreach (Group group in m_Groups) if (group.Button == button && group.Flyout.IsOpen) return;
         m_TooltipText.text = KeyBindings.Fill(button.Tooltip);
+        RaiseTooltip();
         float delay = GameSettings.TooltipDelay;
         if (delay <= 0f)
         {
@@ -578,6 +561,22 @@ public sealed class ToolbarController : MonoBehaviour
         m_TooltipRoot.SetActive(false);
         m_TooltipDue = Time.unscaledTime + delay;
     }
+
+    // The tooltip floats above the bar; while a flyout is open it sits above the flyout instead of behind it.
+    private void RaiseTooltip()
+    {
+        var rect = (RectTransform)m_TooltipRoot.transform;
+        if (!m_TooltipBaseSet)
+        {
+            m_TooltipBase = rect.anchoredPosition;
+            m_TooltipBaseSet = true;
+        }
+        float parentScale = rect.parent != null ? rect.parent.lossyScale.y : 1f;
+        rect.anchoredPosition = m_TooltipBase + new Vector2(0f, parentScale > 0f ? ToolbarFlyout.OpenHeight / parentScale : 0f);
+    }
+
+    private Vector2 m_TooltipBase;
+    private bool m_TooltipBaseSet;
 
     private void HideTooltip(ToolButton button)
     {

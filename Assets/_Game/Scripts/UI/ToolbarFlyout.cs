@@ -48,6 +48,10 @@ public sealed class ToolbarFlyout : MonoBehaviour
         return flyout;
     }
 
+    // Height of the open flyout (plus its gap) in world units, 0 when none is open: the tooltip rises by it.
+    public static float OpenHeight => s_Open != null && s_Open.IsOpen
+        ? (s_Open.m_Panel.rect.height + s_Open.m_Panel.anchoredPosition.y) * s_Open.m_Panel.lossyScale.y : 0f;
+
     public static bool CloseOpen()
     {
         if (s_Open == null || !s_Open.IsOpen) return false;
