@@ -3,7 +3,7 @@
 ## Project
 - Unity **6000.6.3f1**, URP 17.6.0, Linear, PC (Windows) target plus a WebGL build, new Input System only (`activeInputHandler: 1`).
 - Isometric 2.5D city-builder with an abstract (statistical) simulation. Design, roadmap and the per-system reference: `Docs/GamePlan.md` (§12 roadmap, §13 systems).
-- **Status: the M0–M19 roadmap is complete; version 1.1 (M20–M26) is planned in `Docs/milestones/v1.1.md`, next: M20.** The game is **Chronopolis** by J-man Studios, version 1.0.0 (Windows installer + zip, and a WebGL build). It spans four ages (Medieval 750, Renaissance 1450, Industrial 1760, Modern 1945) with research and a tech tree; M10–M19 added map size, ages, pollution and land value, water, civic services, the budget, traffic, disasters and events, art and atmosphere, and the release (title screen, saves, settings, controls, tutorial). What each milestone built: `Docs/GamePlan.md` §12 (roadmap) and §13 (systems as built); each plan: `Docs/milestones/Mxx.md`. Standing rules below apply to any new work.
+- **Status: the M0–M19 roadmap is complete; version 1.1 (M20–M26) is planned in `Docs/milestones/v1.1/` (`Roadmap.md` + one file per milestone), next: M20.** The game is **Chronopolis** by J-man Studios, version 1.0.0 (Windows installer + zip, and a WebGL build). It spans four ages (Medieval 750, Renaissance 1450, Industrial 1760, Modern 1945) with research and a tech tree; M10–M19 added map size, ages, pollution and land value, water, civic services, the budget, traffic, disasters and events, art and atmosphere, and the release (title screen, saves, settings, controls, tutorial). What each milestone built: `Docs/GamePlan.md` §12 (roadmap) and §13 (systems as built); each plan: `Docs/milestones/<version>/Mxx.md`. Standing rules below apply to any new work.
 - Game code lives under `Assets/_Game/` (never at `Assets/` root). Default scene: `Assets/_Game/Scenes/Main.unity`.
 
 ## Build / run / test
@@ -14,7 +14,7 @@
 
 ## Skills (`.claude/skills/`, read by Claude Code and OpenCode)
 Step-by-step procedures live in skills (load the one that fits the task); per-system notes live in `Docs/GamePlan.md` §13. This file keeps conventions and standing rules.
-- `milestone-workflow` — planning and implementing a roadmap milestone or step (plan in `Docs/milestones/Mxx.md`, per-step verify / document / commit loop, done-when).
+- `milestone-workflow` — planning and implementing a roadmap milestone or step (plan in `Docs/milestones/<version>/Mxx.md`, per-step verify / document / commit loop, done-when).
 - `unity-test-loop` — Unity MCP bridge and RunCommand rules, running EditMode tests via MCP, offline compile checks, domain reloads.
 - `unity-playmode-check` — Play-mode checks, fast-forwarding, screenshots (incl. the UI), protecting the save slot.
 - `virtual-input-playthrough` — UI-only play-throughs with a virtual mouse/keyboard; committed drivers under `Scripts/Editor/Playthrough/` (`FinishDriver` = whole front end, `ControlsDriver`, `TutorialDriver`) are the current templates, `PlaythroughDriver.cs` (in the skill) the older M11g one.
@@ -38,9 +38,9 @@ Step-by-step procedures live in skills (load the one that fits the task); per-sy
 - **Not `IsometricZAsY`** — `Docs/GamePlan.md` §2/§5 is stale on this point.
 
 ## Roadmap M11–M19 (done) and standing rules
-Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M19 exist, all done) — read only the one you need. A new milestone starts with a plan there (`milestone-workflow`).
+Each milestone's plan is its own file, in a folder per version: `Docs/milestones/v1.0/Mxx.md` (M10–M19, all done), `Docs/milestones/v1.1/Mxx.md` (M20–M26, `Roadmap.md` holds the order and shared decisions) — read only the one you need. A new milestone starts with a plan there (`milestone-workflow`).
 
-**Workflow:** follow the `milestone-workflow` skill — plan in `Docs/milestones/Mxx.md` first, commit each step on its own; a milestone is done when EditMode tests are green, a **UI-only virtual-input play-through** of its loop passes (`virtual-input-playthrough`) and the docs (GamePlan §13 Systems reference + §8/§12 status; this file only if a convention changed) are updated.
+**Workflow:** follow the `milestone-workflow` skill — plan in `Docs/milestones/<version>/Mxx.md` first, commit each step on its own; a milestone is done when EditMode tests are green, a **UI-only virtual-input play-through** of its loop passes (`virtual-input-playthrough`) and the docs (GamePlan §13 Systems reference + §8/§12 status; this file only if a convention changed) are updated.
 
 **Standing rules (from M12–M19; they still apply)**
 - **Pure sim.** Rules and data live in `CityBuilder.Simulation` (ScriptableObjects referencing buildings by `Id` string; `BuildingDefinition` stays in `Assembly-CSharp`). Runtime code only feeds it (`CityModifiers`, `ServiceSource`) and draws it.

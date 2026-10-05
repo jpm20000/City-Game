@@ -653,7 +653,7 @@ for the age.
 
 ### M10–M14 — done (one file each)
 
-The complete plans, design-decision tables, step notes and tuning histories live in [Docs/milestones/](milestones/): `M10.md`, `M11.md`, `M12.md`, `M13.md`, `M14.md`. Read the one you need, not all. What each delivered (the code as built is in §13):
+The complete plans, design-decision tables, step notes and tuning histories live in [Docs/milestones/v1.0/](milestones/v1.0/): `M10.md`, `M11.md`, `M12.md`, `M13.md`, `M14.md`. Read the one you need, not all. What each delivered (the code as built is in §13):
 
 - **M10 Scale — done (2026-10-02/03).** Variable map size (32/64/96 in the New City dialog; `GridData.Resize`
   in place with `OnResized` for all per-cell state), shared-material block rendering (23 ms → 1.1 ms frames on a full
@@ -676,14 +676,14 @@ The complete plans, design-decision tables, step notes and tuning histories live
 
 ### M15 — Budget depth — done (2026-10-04)
 
-Full plan: [Docs/milestones/M15.md](milestones/M15.md). Per-service funding sliders (50–150%) for parks, power, water
+Full plan: [Docs/milestones/v1.0/M15.md](milestones/v1.0/M15.md). Per-service funding sliders (50–150%) for parks, power, water
 and the four civic lines; loans by age; 12 tech-unlocked ordinances; the Taxes panel becomes a Budget panel with a
 daily ledger; save v4. Defaults are identity (no baseline change). Steps 15a funding (pure) · 15b loans + save v4 ·
 15c ordinances · 15d UI · 15e balance / play-through / docs. All five steps are done.
 
 ### M16 — Traffic — done (2026-10-04)
 
-Full plan: [Docs/milestones/M16.md](milestones/M16.md). A statistical homes → jobs commute (one Dial pass over the
+Full plan: [Docs/milestones/v1.0/M16.md](milestones/v1.0/M16.md). A statistical homes → jobs commute (one Dial pass over the
 road graph per tick) loads every road cell; congestion costs happiness (a Traffic term from each home's commute) and
 land value (roads beside a cell, so the level-3 gate). Five road tiers (dirt, cobble, paved, avenue, highway) stored
 as a byte per road in `GridData` and unlocked by techs (new tech Macadam); highways give no frontage; upgrades by
@@ -692,7 +692,7 @@ dragging a better tier; Traffic view; save v5. Traffic runs in the age-less sim 
 
 ### M17 — Disasters & events — done (2026-10-04)
 
-Full plan: [Docs/milestones/M17.md](milestones/M17.md). One seeded RNG (`SimRandom`, state saved) drives fires (from
+Full plan: [Docs/milestones/v1.0/M17.md](milestones/v1.0/M17.md). One seeded RNG (`SimRandom`, state saved) drives fires (from
 M14 fire risk; spread block to block, roads as firebreaks, put out by fire cover; burnt grown blocks become rubble
 and **placed buildings burn down too**, by decision), plague (Medieval / Renaissance, from sickness; kills residents,
 Plague happiness term), plant / tower / pump breakdowns (by tech age and funding; repair for 20% of cost; Smart Grid
@@ -703,7 +703,7 @@ save v6 (17a done) · 17b fire (done) · 17c plague + breakdowns (done) · 17d e
 
 ### M18 — Art & atmosphere — done (2026-10-04)
 
-Full plan: [Docs/milestones/M18.md](milestones/M18.md). Presentation only: no sim, save or balance change. A
+Full plan: [Docs/milestones/v1.0/M18.md](milestones/v1.0/M18.md). Presentation only: no sim, save or balance change. A
 generated building kit (per age × zone × level, 2–3 variants, one shared palette material, facing the street) fills
 the `AgeVisualSet` slots under the prefab contract, and your hand-made prefabs can replace any slot later. Textured
 road sheets per tier and ground per age, a day/night cycle once per game month (derived from the date), generated
@@ -713,7 +713,7 @@ load. Steps 18a art pipeline · 18b building kit · 18c roads and ground · 18d 
 
 ### M19 — Release — **done (2026-10-04)** (the roadmap is complete)
 
-Full plan: [Docs/milestones/M19.md](milestones/M19.md). A main menu over a bundled showcase city, a pause menu with
+Full plan: [Docs/milestones/v1.0/M19.md](milestones/v1.0/M19.md). A main menu over a bundled showcase city, a pause menu with
 one Esc router, named saves with thumbnails, quicksave and three rotating autosaves (save v7: city name and tutorial
 progress; the legacy `city.json` is imported), one Settings screen (audio, display, UI scale, gameplay, rebindable
 keys) that takes over the M18 Sound panel, a non-blocking Medieval tutorial (12 objectives, button highlights,
@@ -727,35 +727,35 @@ Studios, version 1.0.0. M0-M19 are complete; further work is polish and balance.
 Moved here from `AGENTS.md` (2026-10-03). Where each outline lands in the code that exists today; decide the details in each milestone's plan.
 
 - **M12 Land value & local pollution — done** (see §13 Land value & pollution). Original outline: per-cell pollution (industrial cells emit in an age-scaled radius) replaces the city-wide `PollutionPenalty` term in `PopulationSystem`; per-cell land value from parks/services, pollution and the heritage bonus (`GridData.IsHistoric` raises value around kept cells). Build both like `CoverageSystem` (per-cell arrays, lazy recompute, `OnResized`). Level 3 gains a land-value gate → new `GrowthBlocker`. Pollution and Land value info views.
-- **M13 Water — done** (see §13 Water; plan in `Docs/milestones/M13.md`). Original outline: `AgeDefinition.UpgradesNeedWater` already exists (unused) — add it to `AgeRules` and gate upgrades in `GrowthSystem` beside the power gate. Early ages: wells and fountains as coverage sources; Industrial and Modern: towers and pumps feeding pipes under roads, a copy of `PowerSystem`'s network and allocation model (`ServiceSource` + `BuildingDefinition` get a water supply). HUD group, view and toasts follow the power pattern.
-- **M14 Civic services — done** (see §13 Civic services; plan in `Docs/milestones/M14.md`). Original outline: (M13 adds: `BuildingDefinition.ObsoleteAge` + `GameManager.IsObsolete` are the hook for "outdated, replace with X"; `UtilityNetwork` is the base for any further road-borne network; the toolbar now scales itself down when it overflows.) order, fire, health and education lines with per-age `BuildingDefinition`s unlocked by existing techs (e.g. fire station → Steam Power). Education buildings produce RP via `ResearchPerDay`. Health and crime become `HappinessBreakdown` terms (+ the happiness tooltip); per-cell crime and fire risk use the coverage pattern. Obsolete placed services get "outdated, replace with X" hints in `SelectionPanel`.
-- **M15 Budget depth — done** (plan in `Docs/milestones/M15.md`). Original outline: per-service funding scales a service's radius and effect (`ServiceSource` / `CoverageSystem`); loans with interest live in `EconomySystem` (saved → version bump); ordinances are tech-unlocked toggles (a new `TechEffectType` if needed). `TaxPanel` grows into a budget panel in the `SidePanels` slot.
+- **M13 Water — done** (see §13 Water; plan in `Docs/milestones/v1.0/M13.md`). Original outline: `AgeDefinition.UpgradesNeedWater` already exists (unused) — add it to `AgeRules` and gate upgrades in `GrowthSystem` beside the power gate. Early ages: wells and fountains as coverage sources; Industrial and Modern: towers and pumps feeding pipes under roads, a copy of `PowerSystem`'s network and allocation model (`ServiceSource` + `BuildingDefinition` get a water supply). HUD group, view and toasts follow the power pattern.
+- **M14 Civic services — done** (see §13 Civic services; plan in `Docs/milestones/v1.0/M14.md`). Original outline: (M13 adds: `BuildingDefinition.ObsoleteAge` + `GameManager.IsObsolete` are the hook for "outdated, replace with X"; `UtilityNetwork` is the base for any further road-borne network; the toolbar now scales itself down when it overflows.) order, fire, health and education lines with per-age `BuildingDefinition`s unlocked by existing techs (e.g. fire station → Steam Power). Education buildings produce RP via `ResearchPerDay`. Health and crime become `HappinessBreakdown` terms (+ the happiness tooltip); per-cell crime and fire risk use the coverage pattern. Obsolete placed services get "outdated, replace with X" hints in `SelectionPanel`.
+- **M15 Budget depth — done** (plan in `Docs/milestones/v1.0/M15.md`). Original outline: per-service funding scales a service's radius and effect (`ServiceSource` / `CoverageSystem`); loans with interest live in `EconomySystem` (saved → version bump); ordinances are tech-unlocked toggles (a new `TechEffectType` if needed). `TaxPanel` grows into a budget panel in the `SidePanels` slot.
 - **M16 Traffic — done:** statistical load per road cell from the homes↔jobs flow (no agents); congestion lowers road access quality and happiness. Road tiers (dirt → cobble → paved → avenue → highway) become a per-road byte in `GridData` (saved → version bump), are unlocked by tech (the `UnlockRoadTier` idea in §12) and drawn per tier by `RoadTilemapView`. Traffic view. Watch the 96² benchmark.
-- **M17 Disasters & events** (plan in `Docs/milestones/M17.md`): fire spreads between cells without fire coverage, plague in the Medieval age without health coverage, plant breakdowns; random events with choices arrive as toasts or popups. Use a seeded RNG whose state is saved; an on/off switch goes in the New City dialog (and `SaveData`).
-- **M18 Art & atmosphere** (plan in `Docs/milestones/M18.md`): hand-made per-age prefabs go into the `AgeVisualSet` slots under the prefab contract (pivot at the ground centre of a 1×1 cell, +Y up, 1 unit = 1 cell, layer 9, a collider on the root, shared materials only, one or two materials; GamePlan §12). Also per-age road tiles, day/night lighting, music and ambience. Re-run `PerfBenchmark`.
-- **M19 Release** (plan in `Docs/milestones/M19.md`): main menu, settings (audio, keybinds, UI scale), multiple save slots with thumbnails (`SaveGameController` is single-slot `city.json` today), a first-age tutorial and a Windows player build (see `perf-benchmark` for building a player and reverting the settings churn it leaves behind).
+- **M17 Disasters & events** (plan in `Docs/milestones/v1.0/M17.md`): fire spreads between cells without fire coverage, plague in the Medieval age without health coverage, plant breakdowns; random events with choices arrive as toasts or popups. Use a seeded RNG whose state is saved; an on/off switch goes in the New City dialog (and `SaveData`).
+- **M18 Art & atmosphere** (plan in `Docs/milestones/v1.0/M18.md`): hand-made per-age prefabs go into the `AgeVisualSet` slots under the prefab contract (pivot at the ground centre of a 1×1 cell, +Y up, 1 unit = 1 cell, layer 9, a collider on the root, shared materials only, one or two materials; GamePlan §12). Also per-age road tiles, day/night lighting, music and ambience. Re-run `PerfBenchmark`.
+- **M19 Release** (plan in `Docs/milestones/v1.0/M19.md`): main menu, settings (audio, keybinds, UI scale), multiple save slots with thumbnails (`SaveGameController` is single-slot `city.json` today), a first-age tutorial and a Windows player build (see `perf-benchmark` for building a player and reverting the settings churn it leaves behind).
 
 ### M15–M19 outline (detailed plans written when each milestone starts)
 
-**M12–M14** are done; their plans are in `Docs/milestones/`.
+**M12–M14** are done; their plans are in `Docs/milestones/v1.0/`.
 
-**M15 — Budget depth** (plan in `Docs/milestones/M15.md`). Per-service funding sliders (funding scales radius/effect), loans with
+**M15 — Budget depth** (plan in `Docs/milestones/v1.0/M15.md`). Per-service funding sliders (funding scales radius/effect), loans with
 interest and repayment, a few ordinances per age (unlocked by tech). Expands the TaxPanel into a
 budget panel.
 
-**M16 — Traffic — done** (plan in `Docs/milestones/M16.md`). Abstract load per road cell from the homes↔jobs flow (statistical, no
+**M16 — Traffic — done** (plan in `Docs/milestones/v1.0/M16.md`). Abstract load per road cell from the homes↔jobs flow (statistical, no
 agents). Congestion reduces road access quality and happiness. Road tiers by age (dirt →
 cobble → paved → avenue → highway), unlocked by tech, with capacity and cost. Traffic view.
 
-**M17 — Disasters & events** (plan in `Docs/milestones/M17.md`). Fire spreads between cells without fire coverage (a big threat
+**M17 — Disasters & events** (plan in `Docs/milestones/v1.0/M17.md`). Fire spreads between cells without fire coverage (a big threat
 in the timber ages), plague in the Medieval age without health coverage, plant breakdowns.
 Random events with choices are delivered as toasts or popups. Can be toggled in New City.
 
-**M18 — Art & atmosphere** (plan in `Docs/milestones/M18.md`). Your hand-made per-age assets go into the `AgeVisualSet` slots,
+**M18 — Art & atmosphere** (plan in `Docs/milestones/v1.0/M18.md`). Your hand-made per-age assets go into the `AgeVisualSet` slots,
 along with per-age road tiles, day/night lighting, and per-age music and ambience. Optional extra:
 cosmetic carts/cars on busy roads (visual only).
 
-**M19 — Release** (plan in `Docs/milestones/M19.md`). Main menu, settings (audio, keybinds, UI scale), multiple save slots with
+**M19 — Release** (plan in `Docs/milestones/v1.0/M19.md`). Main menu, settings (audio, keybinds, UI scale), multiple save slots with
 thumbnails, a tutorial for the first age, and a Windows player build.
 
 **Status (2026-10-03):** M10 done (variable map size, render fix, New City dialog). **M11 done** (steps 11a–11g,
@@ -771,21 +771,21 @@ Industrial age; the age-less sim needs piped water by decision; save v3 stores p
 fire, health and education lines with one building per age, crime / fire risk / sickness as ramped happiness terms, crime in
 land value, research from schooled residents, outdated tiers leave the toolbar; the age-less sim pays the civic needs by
 decision, Industrial start re-recorded at 220 pop / 0.631; no save change; Services views, panel lines, toasts; `AgeBalanceTests`
-84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). **M15 done** (steps 15a–15e: funding per budget line, 50-150%, scaling upkeep and, with diminishing returns, reach, supply and strength; loans by age; 12 tech-unlocked ordinances; a Budget panel with the day's ledger; save v4; the default settings change nothing, Industrial start still 220 pop / 0.631; `AgeBalanceTests` 84 / 61 / 73 days with and without the budget player; 229 EditMode tests green plus the UI-only play-through). Next: M16 (traffic) — planned in `Docs/milestones/M16.md` (2026-10-04); start with step 16a.
+84 / 61 / 73 days; 195 EditMode tests green plus the UI-only play-through). **M15 done** (steps 15a–15e: funding per budget line, 50-150%, scaling upkeep and, with diminishing returns, reach, supply and strength; loans by age; 12 tech-unlocked ordinances; a Budget panel with the day's ledger; save v4; the default settings change nothing, Industrial start still 220 pop / 0.631; `AgeBalanceTests` 84 / 61 / 73 days with and without the budget player; 229 EditMode tests green plus the UI-only play-through). Next: M16 (traffic) — planned in `Docs/milestones/v1.0/M16.md` (2026-10-04); start with step 16a.
 
-**M17 done** (steps 17a–17f: a seeded saved RNG, fire that spreads and burns blocks and placed buildings into rubble, plague, plant breakdowns with a repair price, 13 random events in a pausing popup, a New City switch, save v6; `AgeBalanceTests` hold with disasters on for three seeds (happiness floor 0.54 there), `Disasters.Step` 0.144 ms on a 630-pop 96² city and 1.44 ms on the fully grown stress city, no frame-time change in a player build, 336 EditMode tests green plus a UI-only play-through). Next: M18 (art & atmosphere) — planned in `Docs/milestones/M18.md` (2026-10-04); start with step 18a.
+**M17 done** (steps 17a–17f: a seeded saved RNG, fire that spreads and burns blocks and placed buildings into rubble, plague, plant breakdowns with a repair price, 13 random events in a pausing popup, a New City switch, save v6; `AgeBalanceTests` hold with disasters on for three seeds (happiness floor 0.54 there), `Disasters.Step` 0.144 ms on a 630-pop 96² city and 1.44 ms on the fully grown stress city, no frame-time change in a player build, 336 EditMode tests green plus a UI-only play-through). Next: M18 (art & atmosphere) — planned in `Docs/milestones/v1.0/M18.md` (2026-10-04); start with step 18a.
 
 **M18 done** (steps 18a–18g, all presentation: no sim, save or balance change; a generated building kit of 108 prefabs on one shared `Kit.mat` filling every `AgeVisualSet` slot and facing the street, textured road tiles per tier and ground per age, a day/night cycle once per game month with lit windows, generated effects and ambience with empty music slots and a Sound panel, cosmetic vehicles from the traffic flow; benchmark with everything on 1.26-1.40 ms at default zoom and 1.65 ms zoomed out, 357 EditMode tests green, a UI-only play-through with 0 failed checks; owed: a human listen to the audio). Next: M19 (release): the Sound settings, `DayNightCycle.LockToDay` and the `PlayerPrefs` keys `CityGame.Audio.*` / `CityGame.Visual.LockDay` are what its settings menu should take over.
 
-**M16 done** (steps 16a–16d: byte road tiers dirt / cobble / paved / avenue / highway with tech-unlocked content and Macadam, highways without frontage, save v5; `TrafficSystem` Dial's-algorithm flow with a Traffic happiness term and land-value line; tiered placement, upgrade drags, per-tier sprites, Traffic view and panel / tooltip / toast hooks; the engaged player lays best-tier roads and upgrades jams. `AgeBalanceTests` 84 / 61 / 57 days (budget 84 / 58 / 54), seeded baselines unchanged, traffic flow 0.29 ms on a 96² city in a player build, 260 EditMode tests green plus a UI-only play-through with 0 failed checks). Next: M17 (disasters & events) — planned in `Docs/milestones/M17.md` (2026-10-04); start with step 17a.
+**M16 done** (steps 16a–16d: byte road tiers dirt / cobble / paved / avenue / highway with tech-unlocked content and Macadam, highways without frontage, save v5; `TrafficSystem` Dial's-algorithm flow with a Traffic happiness term and land-value line; tiered placement, upgrade drags, per-tier sprites, Traffic view and panel / tooltip / toast hooks; the engaged player lays best-tier roads and upgrades jams. `AgeBalanceTests` 84 / 61 / 57 days (budget 84 / 58 / 54), seeded baselines unchanged, traffic flow 0.29 ms on a 96² city in a player build, 260 EditMode tests green plus a UI-only play-through with 0 failed checks). Next: M17 (disasters & events) — planned in `Docs/milestones/v1.0/M17.md` (2026-10-04); start with step 17a.
 
 ---
 
 ### Version 1.1 — M20–M26 (plan, 2026-10-05)
 
 The first update after 1.0.0, from player feedback; roadmap, order and shared decisions in
-[`milestones/v1.1.md`](milestones/v1.1.md). The IMPORTANT items (rotatable camera, building toolbar groups, visible
-New City switches) are **M20 — Camera & toolbar**, planned in [`milestones/M20.md`](milestones/M20.md) (next). Then
+[`milestones/v1.1/Roadmap.md`](milestones/v1.1/Roadmap.md). The IMPORTANT items (rotatable camera, building toolbar groups, visible
+New City switches) are **M20 — Camera & toolbar**, planned in [`milestones/v1.1/M20.md`](milestones/v1.1/M20.md) (next). Then
 M21 progression & feedback (research costs, paved before avenues, repair icons), M22 road layout (2-wide avenues,
 one-way highways, save v8), M23 density & Modern skyline (save v9), M24 goods (save v10), M25 custom assets and
 M26 release 1.1.
@@ -903,7 +903,7 @@ What each system is, where it lives and the numbers it was tuned to. Moved here 
 - Tests: `Tests/EditMode/Simulation/TrafficTests.cs` (straight-street loads, trips formula, edge fallback, a job beats the edge, a faster avenue draws the flow, deterministic ties, highway carries but has no frontage, commute = worst on the path, penalty / land-value formulas, housing-weighted term, land value from neighbouring roads, resize, save → load → continue, tech multipliers).
 
 ### Disasters & events (M17)
-- **17a (pure, `Scripts/Simulation/Hazards/`).** `SimRandom` = the sim's only randomness (xorshift64* seeded through SplitMix64, state one `ulong` saved as 16 hex digits, `NextFloat` / `NextInt` / `Chance` always draw once). `DisasterSystem` (`SimulationSystem.Disasters`): `Enabled` (the New City switch, never true without ages), `Random`, per-cell `Fires` / `Rubble` / `Plague` byte layers (reallocated empty on `OnResized`), `PlagueCooldown`, `Broken`, the pending event and its timers, `Export(SaveData)` / `Restore(SaveData)`; `Step()` runs in `Tick` after research and before the traffic flow and does nothing yet (17b-17d). `TechEffectType.HazardMultiplier` (Target `FireSpread` / `PlagueSpread` / `Breakdown`) folds into `TechModifiers.Hazard(HazardKind)`; `AgeDefinition.PlagueRisk` (generator column); `ServiceSource.Cost` / `TechAge`. Plan and decisions: `Docs/milestones/M17.md`. Tests: `DisasterTests.cs`.
+- **17a (pure, `Scripts/Simulation/Hazards/`).** `SimRandom` = the sim's only randomness (xorshift64* seeded through SplitMix64, state one `ulong` saved as 16 hex digits, `NextFloat` / `NextInt` / `Chance` always draw once). `DisasterSystem` (`SimulationSystem.Disasters`): `Enabled` (the New City switch, never true without ages), `Random`, per-cell `Fires` / `Rubble` / `Plague` byte layers (reallocated empty on `OnResized`), `PlagueCooldown`, `Broken`, the pending event and its timers, `Export(SaveData)` / `Restore(SaveData)`; `Step()` runs in `Tick` after research and before the traffic flow and does nothing yet (17b-17d). `TechEffectType.HazardMultiplier` (Target `FireSpread` / `PlagueSpread` / `Breakdown`) folds into `TechModifiers.Hazard(HazardKind)`; `AgeDefinition.PlagueRisk` (generator column); `ServiceSource.Cost` / `TechAge`. Plan and decisions: `Docs/milestones/v1.0/M17.md`. Tests: `DisasterTests.cs`.
 - **Fire (17b, `Hazards/FireSystem.cs`).** Layers: `DisasterSystem.Fires` (0 = not burning, else days burnt, 1..`FireBurnDays`) and `Rubble` (days left). Per day, with a fixed draw order: rubble decays; the fires burning at dawn are snapshotted (a fire lit today starts acting tomorrow); **ignition** — `1 − exp(−FireIgnitionPerRisk × Σ CivicSystem.GrownFireRisk)` (one chance draw, then one pick draw in proportion to risk; nothing while the civic ramp is 0), at most one new fire a day; then each burning unit (a grown block, or a placed building's whole footprint, in row-major order): **extinguish** `min(0.95, FireExtinguishBase + FireExtinguishPerCover × fire cover)` × `DryExtinguishFactor` where the age has a water rule and the block has no water; **spread** to the four neighbours (grown or placed; roads are firebreaks, but a one-cell road is jumped at `FireJumpFactor`) with `FireSpreadChance × flammability × (1 − target's fire cover) × TechModifiers.Hazard(FireSpread)`, where flammability = built age's fire risk (× 1.5 industry) / `BalanceConfig.FireRisk`, placed buildings `PlacedFlammability` × the current age's; then it burns a day longer, or down at more than `FireBurnDays`. A burnt grown block drops to level 0 (the zone stays) with `RubbleDays` of rubble (`GrowthBlocker.Rubble`, `DisasterSystem.IsRubble`); a burnt placed building's cells are released from the grid with rubble, its occupant id is in `FireSystem.DestroyedBuildings`, `SimulationSystem` drops its source at once and raises `BuildingsDestroyed(ids)` (the runtime removes the object, no refund). Results of the last step: `Ignitions`, `Extinguished`, `LostBlocks`, `LostBuildings`. API for tests / DEBUG: `Ignite(cell)`, `IsBurning`, `FireDays`, `BurningCount`, `CanBurn`. Tests: `FireTests.cs`.
 - **Plague and breakdowns (17c).** `PlagueSystem` (`DisasterSystem.Epidemic`; layer `Plague`: 0 healthy, 1..`PlagueDays` days ill, 255 immune): with no outbreak and no cooldown, in a town of `PlagueMinPopulation` (120)+ with `AgeDefinition.PlagueRisk` > 0 (Medieval 1, Renaissance 0.6, later 0), an outbreak starts with `PlagueOutbreakPerDay` (0.06) × risk × the homes' mean sickness (`CivicSystem.HomeSickness`); patient zero by capacity × sickness; each ill home infects healthy homes within `PlagueRadius` 2 with `PlagueSpread` 0.12 × their sickness × the PlagueSpread multiplier; ill for `PlagueDays` 10, then immune; ill homes lose `PlagueDeathRate` (1%) of their residents a day (remainder carried, `PopulationSystem.LoseResidents`); when nobody is ill the outbreak ends and `PlagueCooldownDays` 180 start; `HappinessBreakdown.Plague` = −min(ill share of housing × `PlaguePenalty` 0.5, cap 0.15). `BreakdownSystem` (`Breakdowns`): any placed source with a power or water supply; per day at most one breaks, lambda = Σ `BreakdownPerDay` (0.006) × (1 + 0.5 × ages its tech is behind) / funding² × the Breakdown multiplier, picked by weight in row-major order; a broken source feeds 0 for `BreakdownDays` 10 (`DisasterSystem.Broken`, `ApplySources`), repair = `SimulationSystem.Repair(origin)` for `RepairCostFraction` 0.2 of its cost. Tests: `PlagueBreakdownTests.cs`.
 - **Events (17d).** `EventDefinition` (SO in `TechDatabase.Events`: Id, Title, Text, `MinAge`..`MaxAge`, `MinPopulation`, optional `RequiredTech`, `Weight`, 2-3 `EventChoice`s — label, description, `Cost` + `CostPerResident`, `Reward`, `ResearchPoints`, lasting `Effects` for `Days`; the last choice is free; validated by `TechDatabase.Validate`). `RandomEventSystem` (`DisasterSystem.Events`; state `PendingEvent` / `PendingDays` / `DaysToNextEvent` (0 = unscheduled) / `ActiveEvents` / `RecentEvents`): every `EventIntervalMin..Max` (45-90) days after the last answer one draw schedules, then a weighted draw offers an eligible event (age in range, population, tech researched, not offered in the last `EventRepeatDays` 360); `Choose(i)` charges, pays the reward and research points and adds the running effect (`TechSystem.SetEventEffects` -> `TechModifiers`, happiness as `EventHappiness` -> `HappinessBreakdown.Events`); unanswered for `EventAutoDays` (10) it takes the last choice; `OfferNow(id)` for tests / DEBUG; `Prune` / `RefreshEffects` on load. Content: 13 events and the `Quarantine` ordinance, `HazardMultiplier` effects on Steel Frames / Smart Grid / Building Code. Tests: `EventTests.cs`, `ContentTests`.
