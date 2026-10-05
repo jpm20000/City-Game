@@ -18,6 +18,7 @@ public static class GameEvents
     public static event Action<string> Notification;               // short player-facing message (toast)
     public static event Action<int, int, int> PowerChanged;        // supply, demand, unpowered grown cells
     public static event Action<WaterStatus> WaterChanged;          // rule, piped supply / demand, dry and grown cells (M13)
+    public static event Action<int> CameraRotated;                 // (M20d) the camera's view, 0..3 (0 = the default view); raised when a turn starts
     public static event Action<Vector2Int> WorldResized;           // new map size, before the new city's cells arrive
     public static event Action ResearchChanged;                    // research progress / plan / income changed (per tick, load)
     public static event Action<string> TechCompleted;              // tech Id
@@ -37,6 +38,7 @@ public static class GameEvents
     public static void RaiseSpeedChanged(GameSpeed speed) => SpeedChanged?.Invoke(speed);
     public static void RaiseCellChanged(Vector2Int cell) => CellChanged?.Invoke(cell);
     public static void RaiseCityLoaded() => CityLoaded?.Invoke();
+    public static void RaiseCameraRotated(int view) => CameraRotated?.Invoke(view);
     public static void RaiseNotification(string message) => Notification?.Invoke(message);
     public static void RaisePowerChanged(int supply, int demand, int unpoweredCells) => PowerChanged?.Invoke(supply, demand, unpoweredCells);
     public static void RaiseWaterChanged(WaterStatus status) => WaterChanged?.Invoke(status);
@@ -63,6 +65,7 @@ public static class GameEvents
         SpeedChanged = null;
         CellChanged = null;
         CityLoaded = null;
+        CameraRotated = null;
         Notification = null;
         PowerChanged = null;
         WaterChanged = null;

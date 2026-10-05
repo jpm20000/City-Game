@@ -67,6 +67,26 @@
                     "priority": 0
                 },
                 {
+                    "name": "RotateCameraLeft",
+                    "type": "Button",
+                    "id": "5e0a3c71-2b94-4d6f-9a18-c7d4e2f01a11",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
+                    "name": "RotateCameraRight",
+                    "type": "Button",
+                    "id": "5e0a3c71-2b94-4d6f-9a18-c7d4e2f01a12",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
                     "name": "Demolish",
                     "type": "Button",
                     "id": "12b6d2ce-63e9-4a12-96ab-5bd1935c7f21",
@@ -306,6 +326,28 @@
                     "processors": "",
                     "groups": "",
                     "action": "Rotate",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c41",
+                    "path": "<Keyboard>/q",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RotateCameraLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c42",
+                    "path": "<Keyboard>/e",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "RotateCameraRight",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

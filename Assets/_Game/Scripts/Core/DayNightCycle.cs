@@ -27,7 +27,7 @@ public sealed class DayNightCycle : MonoBehaviour
     private float m_BaseSunIntensity = 1.1f, m_BaseAmbient = 1f;
     private Color m_BaseSunColor = Color.white;
     private float m_Night;                           // the night factor shown now (0 day .. 1 night)
-    private float m_AppliedNight = -1f, m_AppliedPhase = -1f, m_AppliedGlow = -1f;
+    private float m_AppliedNight = -1f, m_AppliedPhase = -1f, m_AppliedGlow = -1f, m_AppliedYaw;
     private Color m_AppliedTint = Color.magenta;
     private float? m_DebugPhase;
 
@@ -92,8 +92,9 @@ public sealed class DayNightCycle : MonoBehaviour
     private void Apply(float phase, bool force)
     {
         // The sun and ambient follow every small step; the tilemap tint and window glow only when they change.
-        if (!force && Mathf.Abs(phase - m_AppliedPhase) < 0.0015f && Mathf.Abs(m_Night - m_AppliedNight) < 0.002f) return;
+        if (!force && Mathf.Abs(phase - m_AppliedPhase) < 0.0015f && Mathf.Abs(m_Night - m_AppliedNight) < 0.002f && Mathf.Approximately(m_AppliedYaw, IsoCameraController.YawOffset)) return;
         m_AppliedPhase = phase;
+        m_AppliedYaw = IsoCameraController.YawOffset;
 
         float sun = Mathf.Clamp01(CalendarMath.SunHeight(phase));
         float twilight = 1f - Mathf.SmoothStep(0f, 0.35f, Mathf.Abs(CalendarMath.SunHeight(phase)));
@@ -103,7 +104,7 @@ public sealed class DayNightCycle : MonoBehaviour
         {
             float dayElevation = Mathf.Lerp(12f, 52f, sun);
             float dayAzimuth = 240f + Mathf.Lerp(-30f, 30f, Mathf.Clamp01(phase * 2f));
-            m_Sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(dayElevation, k_MoonElevation, m_Night), Mathf.Lerp(dayAzimuth, k_MoonAzimuth, m_Night), 0f);
+            m_Sun.transform.rotation = Quaternion.Euler(Mathf.Lerp(dayElevation, k_MoonElevation, m_Night), Mathf.Lerp(dayAzimuth, k_MoonAzimuth, m_Night) + m_AppliedYaw, 0f);   // M20d: turns with the camera
             Color sunColor = Color.Lerp(s_Noon, s_Twilight, twilight);
             m_Sun.color = Color.Lerp(sunColor, s_Moon, m_Night) * (m_BaseSunColor.maxColorComponent > 0f ? m_BaseSunColor : Color.white);
             m_Sun.intensity = Mathf.Lerp(m_BaseSunIntensity * (0.6f + 0.4f * sun), 0.30f, m_Night);

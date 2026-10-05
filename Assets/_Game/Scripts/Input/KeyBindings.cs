@@ -24,6 +24,8 @@ public static class KeyBindings
         new Entry { Label = "Pan left", Action = "Pan", Part = "Left" },
         new Entry { Label = "Pan right", Action = "Pan", Part = "Right" },
         new Entry { Label = "Rotate building", Action = "Rotate" },
+        new Entry { Label = "Rotate view left", Action = "RotateCameraLeft" },
+        new Entry { Label = "Rotate view right", Action = "RotateCameraRight" },
         new Entry { Label = "Demolish tool", Action = "Demolish" },
         new Entry { Label = "Road tool", Action = "RoadTool" },
         new Entry { Label = "Pipe tool", Action = "PipeTool" },
@@ -36,6 +38,7 @@ public static class KeyBindings
     private static readonly (string token, string action)[] s_Tokens =
     {
         ("[V]", "CycleOverlay"), ("[Del]", "Demolish"), ("[B]", "RoadTool"), ("[P]", "PipeTool"), ("[R]", "Rotate"),
+        ("[Q]", "RotateCameraLeft"), ("[E]", "RotateCameraRight"),
     };
 
     public static bool Rebinding { get; private set; }

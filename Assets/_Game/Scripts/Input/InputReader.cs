@@ -18,6 +18,8 @@ public sealed class InputReader : MonoBehaviour
     private InputAction m_ConfirmAction;
     private InputAction m_CancelAction;
     private InputAction m_RotateAction;
+    private InputAction m_RotateCameraLeftAction;
+    private InputAction m_RotateCameraRightAction;
     private InputAction m_DemolishAction;
     private InputAction m_RoadToolAction;
     private InputAction m_PipeToolAction;
@@ -38,6 +40,8 @@ public sealed class InputReader : MonoBehaviour
     public bool ConfirmHeld => !Blocked && m_ConfirmAction.IsPressed();
     public bool CancelPressed => m_CancelAction.WasPressedThisFrame();
     public bool RotatePressed => !Blocked && m_RotateAction.WasPressedThisFrame();
+    public bool RotateCameraLeftPressed => !Blocked && m_RotateCameraLeftAction.WasPressedThisFrame();
+    public bool RotateCameraRightPressed => !Blocked && m_RotateCameraRightAction.WasPressedThisFrame();
     public bool DemolishPressed => !Blocked && m_DemolishAction.WasPressedThisFrame();
     public bool RoadToolPressed => !Blocked && m_RoadToolAction.WasPressedThisFrame();
     public bool PipeToolPressed => !Blocked && m_PipeToolAction.WasPressedThisFrame();
@@ -67,6 +71,8 @@ public sealed class InputReader : MonoBehaviour
         m_ConfirmAction = m_Map.FindAction("Confirm", throwIfNotFound: true);
         m_CancelAction = m_Map.FindAction("Cancel", throwIfNotFound: true);
         m_RotateAction = m_Map.FindAction("Rotate", throwIfNotFound: true);
+        m_RotateCameraLeftAction = m_Map.FindAction("RotateCameraLeft", throwIfNotFound: true);
+        m_RotateCameraRightAction = m_Map.FindAction("RotateCameraRight", throwIfNotFound: true);
         m_DemolishAction = m_Map.FindAction("Demolish", throwIfNotFound: true);
         m_RoadToolAction = m_Map.FindAction("RoadTool", throwIfNotFound: true);
         m_PipeToolAction = m_Map.FindAction("PipeTool", throwIfNotFound: true);

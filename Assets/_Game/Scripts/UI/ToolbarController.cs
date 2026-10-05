@@ -117,6 +117,7 @@ public sealed class ToolbarController : MonoBehaviour
         BindView(m_AgeViewButton, "Ages", InfoOverlay.View.Age,
             "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
         CreateViewsFlyout();
+        CreateRotateButtons();
         CreateBuildingButtons();
 
         EscapeRouter.Register(this, EscapeRouter.Tool + 5, ToolbarFlyout.CloseOpen);
@@ -429,6 +430,25 @@ public sealed class ToolbarController : MonoBehaviour
             case InfoOverlay.View.Off: return "Views";
             default: return CivicViewLabel(view);
         }
+    }
+
+    // M20d: two small buttons after Demolish turn the view; copies of the Demolish button (the font has no arrow glyphs).
+    private void CreateRotateButtons()
+    {
+        var camera = FindAnyObjectByType<IsoCameraController>();
+        if (m_DemolishButton == null || camera == null) return;
+        Transform parent = m_DemolishButton.transform.parent;
+        int index = m_DemolishButton.transform.GetSiblingIndex();
+        MakeRotateButton(parent, index + 1, "RotateLeft", "Turn L", "Rotate the view left  [Q]\nTurns the map a quarter turn around the screen centre.", () => camera.Rotate(-1));
+        MakeRotateButton(parent, index + 2, "RotateRight", "Turn R", "Rotate the view right  [E]\nTurns the map a quarter turn around the screen centre.", () => camera.Rotate(1));
+    }
+
+    private void MakeRotateButton(Transform parent, int index, string name, string label, string tooltip, UnityEngine.Events.UnityAction onClick)
+    {
+        ToolButton button = Instantiate(m_DemolishButton, parent);
+        button.name = name;
+        button.transform.SetSiblingIndex(index);
+        Bind(button, label, string.Empty, Color.clear, tooltip, onClick);
     }
 
     // M20c: the VIEW section is one Views button (a copy of the Age button) showing the active view's name; its flyout

@@ -27,6 +27,56 @@ public sealed class IsoCameraController : MonoBehaviour
     private float m_GridHeight = 24f;
     private float m_BaseDistance;   // scene distance from the camera to its ground-look-at point
 
+    // --- Rotation (M20d): four views, 90 degrees apart, turning around the ground-look-at point. The turn is animated
+    // with unscaled time (so it works while paused); one further press during a turn queues one more step. ---
+
+    private const float RotateSeconds = 0.25f;
+    private float m_Offset;       // current yaw offset from the default view, degrees
+    private float m_AnimFrom;
+    private float m_AnimTo;       // target offset, a multiple of 90
+    private float m_AnimTime = RotateSeconds;
+
+    // The yaw offset of the camera (animated): the directional light adds it so the lit faces stay the same.
+    public static float YawOffset { get; private set; }
+
+    // 0 = the default view (azimuth 45), then each 90 degrees; the target view while a turn is running.
+    public int View => ((Mathf.RoundToInt(m_AnimTo / 90f) % 4) + 4) % 4;
+
+    // dir -1 = turn the view left (Q), +1 = right (E).
+    public void Rotate(int dir)
+    {
+        if (m_Showcase || dir == 0) return;
+        if (Mathf.Abs(m_AnimTo - m_Offset) >= 180f) return;   // already one step queued
+        m_AnimFrom = m_Offset;
+        m_AnimTo += dir > 0 ? 90f : -90f;
+        m_AnimTime = 0f;
+        GameEvents.RaiseCameraRotated(View);
+    }
+
+    // Back to the default view at once (a new or loaded city).
+    public void ResetView()
+    {
+        if (Mathf.Approximately(m_Offset, 0f) && Mathf.Approximately(m_AnimTo, 0f)) return;
+        transform.RotateAround(GroundLookAt(), Vector3.up, -m_Offset);
+        m_Offset = m_AnimFrom = m_AnimTo = 0f;
+        m_AnimTime = RotateSeconds;
+        YawOffset = 0f;
+        GameEvents.RaiseCameraRotated(0);
+    }
+
+    private void AdvanceRotation()
+    {
+        if (m_AnimTime >= RotateSeconds && Mathf.Approximately(m_Offset, m_AnimTo)) return;
+        m_AnimTime = Mathf.Min(RotateSeconds, m_AnimTime + Time.unscaledDeltaTime);
+        float k = Mathf.SmoothStep(0f, 1f, m_AnimTime / RotateSeconds);
+        float next = m_AnimTime >= RotateSeconds ? m_AnimTo : Mathf.Lerp(m_AnimFrom, m_AnimTo, k);
+        float delta = next - m_Offset;
+        if (Mathf.Approximately(delta, 0f)) return;
+        transform.RotateAround(GroundLookAt(), Vector3.up, delta);
+        m_Offset = next;
+        YawOffset = next;
+    }
+
     private void Awake()
     {
         m_Camera = GetComponent<Camera>();
@@ -37,11 +87,13 @@ public sealed class IsoCameraController : MonoBehaviour
     private void OnEnable()
     {
         GameEvents.WorldResized += FrameMap;
+        GameEvents.CityLoaded += ResetView;
     }
 
     private void OnDisable()
     {
         GameEvents.WorldResized -= FrameMap;
+        GameEvents.CityLoaded -= ResetView;
     }
 
     // Start, not Awake: GameManager.Awake creates the map.
@@ -57,6 +109,7 @@ public sealed class IsoCameraController : MonoBehaviour
         m_GridWidth = size.x;
         m_GridHeight = size.y;
         m_Velocity = Vector3.zero;
+        ResetView();
 
         // Orthographic, so distance doesn't change the framing, but the camera must sit far enough back
         // that the map's near corner isn't behind the near clip plane (and the far corner within far).
@@ -121,6 +174,9 @@ public sealed class IsoCameraController : MonoBehaviour
         }
         if (m_InputReader == null) return;
 
+        if (m_InputReader.RotateCameraLeftPressed) Rotate(-1);
+        if (m_InputReader.RotateCameraRightPressed) Rotate(1);
+        AdvanceRotation();
         ApplyZoom();
         ApplyPan();
         ApplyBounds();
@@ -139,9 +195,8 @@ public sealed class IsoCameraController : MonoBehaviour
 
         m_Camera.orthographicSize = newSize;
 
-        Vector3 screenDelta = GroundToScreen(groundPoint) - (Vector3)m_InputReader.Pointer;
-        Vector3 worldDelta = ScreenVectorToWorldDelta(screenDelta);
-        transform.position -= worldDelta;
+        // Slide the camera so the same ground point stays under the pointer (right in every view).
+        transform.position += groundPoint - ScreenToGround(m_InputReader.Pointer);
     }
 
     private void ApplyPan()
@@ -230,14 +285,4 @@ public sealed class IsoCameraController : MonoBehaviour
         return Vector3.zero;
     }
 
-    private Vector3 GroundToScreen(Vector3 worldPoint)
-    {
-        return m_Camera.WorldToScreenPoint(worldPoint);
-    }
-
-    private Vector3 ScreenVectorToWorldDelta(Vector3 screenDelta)
-    {
-        float pixelsPerWorldUnit = m_Camera.pixelHeight / (2f * m_Camera.orthographicSize);
-        return new Vector3(screenDelta.x / pixelsPerWorldUnit, 0f, screenDelta.y / pixelsPerWorldUnit);
-    }
 }
