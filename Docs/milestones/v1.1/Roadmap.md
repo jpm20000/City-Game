@@ -29,8 +29,8 @@ baseline), and last custom assets, which builds on the M20 toolbar groups and th
 One file per milestone, like `../v1.0/` (M10–M19). Outlines become full plans when the milestone starts.
 
 - [M20 — Camera & toolbar (IMPORTANT)](M20.md) — **done 2026-10-05**
-- [M21 — Progression & feedback](M21.md) — outline, next
-- [M22 — Road layout](M22.md) — outline, save v8
+- [M21 — Progression & feedback](M21.md) — **done 2026-10-05**
+- [M22 — Road layout](M22.md) — outline, save v8, next
 - [M23 — Density & Modern skyline](M23.md) — outline, save v9
 - [M24 — Goods](M24.md) — outline, save v10
 - [M25 — Custom assets](M25.md) — outline

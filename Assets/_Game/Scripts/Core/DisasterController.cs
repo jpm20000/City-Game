@@ -45,6 +45,9 @@ public sealed class DisasterController : MonoBehaviour
         var fire = new GameObject("FireVisuals").AddComponent<FireVisuals>();
         fire.transform.SetParent(go.transform, false);
         fire.Init(game, gridSystem);
+        var icons = new GameObject("StatusIcons").AddComponent<StatusIcons>();
+        icons.transform.SetParent(go.transform, false);
+        icons.Init(game);
 
         NotificationController notifications = FindAnyObjectByType<NotificationController>(FindObjectsInactive.Include);
         if (notifications != null)
