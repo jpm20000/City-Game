@@ -29,7 +29,9 @@ public sealed class PauseMenu
         if (m_Flow.Menu != null) AddButton("New city", () => m_Flow.Menu.RequestNew());
         AddButton("Settings", SettingsClicked);
         AddButton("Main menu", () => m_Flow.GuardDiscard(m_Flow.EnterMainMenu));
-        AddButton("Quit", () => m_Flow.Quit());
+#if !UNITY_WEBGL
+        AddButton("Quit", () => m_Flow.Quit());   // a browser tab cannot quit
+#endif
 
         EscapeRouter.Register(this, EscapeRouter.PauseMenu, () =>
         {

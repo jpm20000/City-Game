@@ -292,6 +292,9 @@ public sealed class GameFlow : MonoBehaviour
         GameEvents.RaiseFlowChanged(GameFlowState.MainMenu);
     }
 
+    // The WebGL showcase arrives later than LoadShowcaseCity returns: it brackets its own apply so the title stays up.
+    public void ShowcaseApplying(bool on) => m_LoadingShowcase = on;
+
     private void LoadShowcaseCity()
     {
         m_LoadingShowcase = true;

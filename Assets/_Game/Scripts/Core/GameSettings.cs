@@ -148,6 +148,9 @@ public static class GameSettings
     // Applies the window mode, resolution, VSync and frame cap. Does nothing until the player has chosen something.
     public static void ApplyDisplay(bool force = false)
     {
+#if UNITY_WEBGL
+        return;   // the browser owns the window, resolution and frame rate
+#else
         if (!force && !HasDisplayChoice) return;
         Vector2Int size = Resolution;
         FullScreenMode mode = ScreenMode(DisplayMode);
@@ -155,6 +158,7 @@ public static class GameSettings
         else Screen.fullScreenMode = mode;
         QualitySettings.vSyncCount = VSync ? 1 : 0;
         Application.targetFrameRate = VSync || FrameCap <= 0 ? -1 : FrameCap;
+#endif
     }
 
     // ---- interface and camera ---------------------------------------------------------------------------

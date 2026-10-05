@@ -20,6 +20,7 @@ public sealed class SettingsPanel
     private readonly Action m_Closer;
     private readonly RectTransform m_Content;
     private readonly List<Button> m_TabButtons = new();
+    private readonly List<Tab> m_TabIds = new();   // the tab each button opens (the Display tab has none on WebGL)
     private Tab m_Tab;
     private string m_Status = string.Empty;
 
@@ -36,9 +37,13 @@ public sealed class SettingsPanel
         for (int i = 0; i < TabNames.Length; i++)
         {
             var tab = (Tab)i;
+#if UNITY_WEBGL
+            if (tab == Tab.Display) continue;   // the browser owns the window
+#endif
             Button button = UiKit.MakeButton(tabs, TabNames[i], () => SelectTab(tab), 0f);
             button.GetComponent<LayoutElement>().flexibleWidth = 1f;
             m_TabButtons.Add(button);
+            m_TabIds.Add(tab);
         }
 
         var content = new GameObject("Content", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(LayoutElement));
@@ -87,7 +92,7 @@ public sealed class SettingsPanel
         m_Tab = tab;
         for (int i = 0; i < m_TabButtons.Count; i++)
         {
-            m_TabButtons[i].GetComponent<Image>().color = i == (int)tab ? UiKit.AccentColor : UiKit.ButtonColor;
+            m_TabButtons[i].GetComponent<Image>().color = m_TabIds[i] == tab ? UiKit.AccentColor : UiKit.ButtonColor;
         }
 
         foreach (Transform child in m_Content)
