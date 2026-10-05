@@ -39,8 +39,8 @@ public sealed class GrowthVisuals : MonoBehaviour
         public Profile(float footprint, float height) { Footprint = footprint; Height = height; }
     }
 
-    private static readonly Profile[] s_Residential = { new(0.70f, 0.40f), new(0.64f, 0.95f), new(0.52f, 1.80f) };
-    private static readonly Profile[] s_Commercial = { new(0.80f, 0.50f), new(0.72f, 1.15f), new(0.60f, 2.20f) };
+    private static readonly Profile[] s_Residential = { new(0.70f, 0.40f), new(0.64f, 0.95f), new(0.52f, 1.30f) };
+    private static readonly Profile[] s_Commercial = { new(0.80f, 0.50f), new(0.72f, 1.15f), new(0.60f, 1.40f) };
     // M23: Low and High blocks without art of their own are the Medium look drawn lower / taller.
     private const float k_LowHeight = 0.6f;
     private const float k_HighHeight = 1.5f;
