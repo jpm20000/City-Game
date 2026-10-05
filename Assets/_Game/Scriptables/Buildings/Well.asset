@@ -34,3 +34,4 @@ MonoBehaviour:
   m_WaterSupply: 0
   m_WaterRadius: 3
   m_ObsoleteAge: industrial
+  m_ToolbarGroup: 5

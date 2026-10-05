@@ -210,10 +210,10 @@ public sealed class ContentTests
             groups[so.FindProperty("m_Id").stringValue] = group;
         }
         foreach (ToolbarGroup group in ToolbarGroups.All) Assert.IsTrue(groups.ContainsValue(group), $"no building in {group}");
-        Assert.AreEqual(ToolbarGroup.Utilities, groups["well"]);
         Assert.AreEqual(ToolbarGroup.Utilities, groups["power_plant"]);
         Assert.AreEqual(ToolbarGroup.Parks, groups["park"]);
-        Assert.AreEqual(ToolbarGroup.Utilities, groups["fountain"], "the fountain waters blocks, so it files with the water buildings");
+        Assert.AreEqual(ToolbarGroup.Parks, groups["fountain"], "the fountain and the well are filed under Parks (asked 2026-10-05)");
+        Assert.AreEqual(ToolbarGroup.Parks, groups["well"]);
         Assert.AreEqual(ToolbarGroup.Education, groups["monastery"]);
         Assert.AreEqual(ToolbarGroup.Education, groups["research_lab"]);
     }
