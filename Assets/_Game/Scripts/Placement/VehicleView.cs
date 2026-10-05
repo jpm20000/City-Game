@@ -126,7 +126,7 @@ public sealed class VehicleView : MonoBehaviour
         {
             Vehicle v = m_Active[i];
             bool outside = v.From.x < x0 || v.From.x > x1 || v.From.y < y0 || v.From.y > y1;
-            if (outside || !grid.IsRoad(v.From) || !grid.IsRoad(v.To) || (m_Active.Count > target * 1.25f + 2 && NextInt(4) == 0))
+            if (outside || !grid.IsRoad(v.From) || !grid.IsRoad(v.To) || !RoadLayout.CanStep(grid, v.From, v.To) || (m_Active.Count > target * 1.25f + 2 && NextInt(4) == 0))
             {
                 Release(i);
             }
@@ -176,7 +176,7 @@ public sealed class VehicleView : MonoBehaviour
         foreach (Vector2Int step in CellUtils.Neighbors4)
         {
             Vector2Int next = from + step;
-            if (grid.InBounds(next) && grid.IsRoad(next) && NextInt(++found) == 0) to = next;
+            if (grid.InBounds(next) && grid.IsRoad(next) && RoadLayout.CanStep(grid, from, next) && NextInt(++found) == 0) to = next;
         }
         if (found == 0) return;
 
@@ -240,6 +240,7 @@ public sealed class VehicleView : MonoBehaviour
             m_Weights[s] = 0f;
             Vector2Int candidate = at + CellUtils.Neighbors4[s];
             if (candidate == previous || !grid.InBounds(candidate) || !grid.IsRoad(candidate)) continue;
+            if (!RoadLayout.CanStep(grid, at, candidate)) continue;      // one-way highways (M22)
             float w = 0.25f + traffic.Congestion(candidate);
             if (CellUtils.Neighbors4[s] == heading) w *= 2f;
             m_Weights[s] = w;

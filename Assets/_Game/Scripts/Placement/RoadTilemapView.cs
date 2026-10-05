@@ -51,6 +51,14 @@ public sealed class RoadTilemapView : GridTilemapView
     private readonly Tile[,] m_ConnectedTiles = new Tile[k_Tiers, 16];
     private readonly Tile[,] m_DisconnectedTiles = new Tile[k_Tiers, 16];
 
+    // The lanes of a paired avenue (M22): one set per side the partner lane is on (RoadLayout code 1..4, index code - 1),
+    // drawn with a median strip along that edge and a single dashed lane line.
+    private readonly Texture2D[,] m_LaneTextures = new Texture2D[4, 16];
+    private readonly Sprite[,] m_LaneSprites = new Sprite[4, 16];
+    private readonly Tile[,] m_LaneTiles = new Tile[4, 16];
+    private readonly Tile[,] m_LaneDisconnectedTiles = new Tile[4, 16];
+    private const int k_MedianWidth = 11;       // px of median along the inner edge of a paired lane
+
     private Style StyleOf(int tier)
     {
         switch (tier)
@@ -89,7 +97,25 @@ public sealed class RoadTilemapView : GridTilemapView
                 m_DisconnectedTiles[tier - 1, mask] = CreateTile(sprite, m_DisconnectedTint);
             }
         }
+
+        Style lane = StyleOf(RoadTiersAvenue);
+        lane = new Style(lane.Asphalt, lane.Curb, lane.Line, lane.CurbWidth, new[] { 0 });
+        for (int side = 1; side <= 4; side++)
+        {
+            for (int mask = 0; mask < 16; mask++)
+            {
+                if ((mask & (1 << (side - 1))) != 0) continue;     // the partner side is never a connection
+                Texture2D texture = DrawRoad(RoadTiersAvenue, mask, lane, side);
+                Sprite sprite = Sprite.Create(texture, new Rect(0, 0, k_Size, k_Size), new Vector2(0.5f, 0.5f), k_Size);
+                m_LaneTextures[side - 1, mask] = texture;
+                m_LaneSprites[side - 1, mask] = sprite;
+                m_LaneTiles[side - 1, mask] = CreateTile(sprite, Color.white);
+                m_LaneDisconnectedTiles[side - 1, mask] = CreateTile(sprite, m_DisconnectedTint);
+            }
+        }
     }
+
+    private const int RoadTiersAvenue = 4;
 
     protected override void OnDestroy()
     {
@@ -102,6 +128,16 @@ public sealed class RoadTilemapView : GridTilemapView
                 Destroy(m_DisconnectedTiles[tier, i]);
                 Destroy(m_Sprites[tier, i]);
                 Destroy(m_Textures[tier, i]);
+            }
+        }
+        for (int side = 0; side < 4; side++)
+        {
+            for (int i = 0; i < 16; i++)
+            {
+                Destroy(m_LaneTiles[side, i]);
+                Destroy(m_LaneDisconnectedTiles[side, i]);
+                Destroy(m_LaneSprites[side, i]);
+                Destroy(m_LaneTextures[side, i]);
             }
         }
     }
@@ -118,6 +154,12 @@ public sealed class RoadTilemapView : GridTilemapView
         if (Connects(cell, Vector2Int.left)) mask |= k_West;
 
         bool connected = Roads == null || Roads.IsConnectedToEntry(cell);
+        byte pair = tier == RoadTiersAvenue ? Grid.GetRoadPair(cell) : (byte)0;
+        if (pair != 0)
+        {
+            int laneMask = mask & ~(1 << (pair - 1));
+            return connected ? m_LaneTiles[pair - 1, laneMask] : m_LaneDisconnectedTiles[pair - 1, laneMask];
+        }
         return connected ? m_ConnectedTiles[tier - 1, mask] : m_DisconnectedTiles[tier - 1, mask];
     }
 
@@ -139,7 +181,7 @@ public sealed class RoadTilemapView : GridTilemapView
 
     // Texture pixel x = logical +x. Tile rows run opposite to logical y (see
     // GridSystem.LogicalToTileCell), so pixel +y = logical south.
-    private static Texture2D DrawRoad(int tier, int mask, Style style)
+    private static Texture2D DrawRoad(int tier, int mask, Style style, int medianSide = 0)
     {
         Texture2D texture = new Texture2D(k_Size, k_Size, TextureFormat.RGBA32, true)
         {
@@ -178,7 +220,13 @@ public sealed class RoadTilemapView : GridTilemapView
                 bool corner = (toNorth < curbWidth && toEast < curbWidth) || (toNorth < curbWidth && toWest < curbWidth)
                     || (toSouth < curbWidth && toEast < curbWidth) || (toSouth < curbWidth && toWest < curbWidth);
 
-                if (curb || corner)
+                // A paired lane's inner edge: a raised kerb, then a planted strip, running the full length of the tile.
+                int toMedian = medianSide == 1 ? toNorth : medianSide == 2 ? toEast : medianSide == 3 ? toSouth : medianSide == 4 ? toWest : int.MaxValue;
+                if (toMedian < k_MedianWidth)
+                {
+                    color = toMedian < 3 ? style.Curb : toMedian < 5 ? new Color(0.20f, 0.22f, 0.20f) : new Color(0.30f, 0.42f, 0.26f);
+                }
+                else if (curb || corner)
                 {
                     color = style.Curb;
                 }

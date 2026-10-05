@@ -542,8 +542,8 @@ public sealed class ToolbarController : MonoBehaviour
     {
         RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
         SetupRoadButton(m_RoadButton, tiers.BestStreetTier, "  [B]", "Lay it from the map edge. Drag a better tier over a road to upgrade it for the price difference.");
-        SetupRoadButton(m_AvenueButton, RoadTiers.Avenue, string.Empty, "Wide, fast and busy-street proof. Drag over a jammed road to upgrade it; the Traffic view shows where it helps.");
-        SetupRoadButton(m_HighwayButton, RoadTiers.Highway, string.Empty, "The biggest capacity, but no frontage: land beside a highway gets no road access, so connect it with streets.");
+        SetupRoadButton(m_AvenueButton, RoadTiers.Avenue, string.Empty, "Two tiles wide: drag to lay a pair of lanes (R flips the second lane to the other side), priced per lane. Drag over a jammed street to widen it; the Traffic view shows where it helps.");
+        SetupRoadButton(m_HighwayButton, RoadTiers.Highway, string.Empty, "The biggest capacity, one-way along your drag (R lays it two-way). Side streets join it as ramps. No frontage: land beside a highway gets no road access, so connect it with streets.");
         if (m_AvenueButton != null) m_AvenueButton.gameObject.SetActive(tiers.IsUnlocked(RoadTiers.Avenue) && tiers.HasContent);
         if (m_HighwayButton != null) m_HighwayButton.gameObject.SetActive(tiers.IsUnlocked(RoadTiers.Highway) && tiers.HasContent);
     }
