@@ -401,8 +401,10 @@ public sealed class BudgetPanel : MonoBehaviour
         services += l.OtherUpkeep;
         string mult = Mathf.Approximately(l.TechUpkeepMultiplier, 1f) ? "" : $" (x{l.TechUpkeepMultiplier:0.00} techs)";
         string net = l.Net >= 0f ? $"<color=#6BD67A>+${l.Net:N0}</color>" : $"<color=#F26B5B>-${-l.Net:N0}</color>";
-        m_Ledger.text = $"Income +${l.Income:N0}  (homes ${l.IncomeResidential:N0}, shops ${l.IncomeCommercial:N0}, industry ${l.IncomeIndustrial:N0})\n" +
-                        $"Costs -${l.Expense:N0}  (buildings ${services:N0}, roads ${l.Roads:N0}, pipes ${l.Pipes:N0}{mult}, loans ${l.Loans:N0}, ordinances ${l.Ordinances:N0})\n" +
+        string exports = l.Exports > 0f ? $", exports ${l.Exports:N0}" : string.Empty;     // M24: only while goods are sold abroad
+        string imports = l.Imports > 0f ? $", imports ${l.Imports:N0}" : string.Empty;     // ... or bought
+        m_Ledger.text = $"Income +${l.Income:N0}  (homes ${l.IncomeResidential:N0}, shops ${l.IncomeCommercial:N0}, industry ${l.IncomeIndustrial:N0}{exports})\n" +
+                        $"Costs -${l.Expense:N0}  (buildings ${services:N0}, roads ${l.Roads:N0}, pipes ${l.Pipes:N0}{mult}, loans ${l.Loans:N0}, ordinances ${l.Ordinances:N0}{imports})\n" +
                         $"Net {net} / day, as of today's city";
     }
 

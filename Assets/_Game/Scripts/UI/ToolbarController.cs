@@ -65,6 +65,7 @@ public sealed class ToolbarController : MonoBehaviour
     private ToolButton m_HighwayButton;
     private ToolButton m_TrafficViewButton;    // M16: made at runtime from the Value view button
     private ToolButton m_DensityViewButton;    // M23: made at runtime from the Age view button
+    private ToolButton m_GoodsViewButton;      // M24: likewise
     private readonly ToolButton[] m_DensityButtons = new ToolButton[DensityUtils.Count];   // M23: Low / Medium / High, after Unzone
     private float m_FittedWidth = -1f;
     private float m_FittedAvailable = -1f;
@@ -121,6 +122,7 @@ public sealed class ToolbarController : MonoBehaviour
         CreateTrafficViewButton();
         CreateCivicViewButtons();
         CreateDensityViewButton();
+        CreateGoodsViewButton();
         BindView(m_AgeViewButton, "Ages", InfoOverlay.View.Age,
             "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
         CreateViewsFlyout();
@@ -470,6 +472,17 @@ public sealed class ToolbarController : MonoBehaviour
         m_ViewButtons[InfoOverlay.View.Density] = m_DensityViewButton;
     }
 
+    // M24: the Goods VIEW button, a copy of the Age view button; shown once goods are in play (the age in BalanceConfig.GoodsMinAge).
+    private void CreateGoodsViewButton()
+    {
+        if (m_AgeViewButton == null || m_InfoOverlay == null) return;
+        m_GoodsViewButton = Instantiate(m_AgeViewButton, m_AgeViewButton.transform.parent);
+        m_GoodsViewButton.name = "GoodsView";
+        BindView(m_GoodsViewButton, "Goods", InfoOverlay.View.Goods,
+            "Goods view  [V]\nFactories <color=#59CCB3>make</color> goods, shops <color=#F2B847>sell</color> them and homes <color=#8C9EDB>buy</color> them. Shaded = held at level 2 because the city is short of goods.");
+        m_ViewButtons[InfoOverlay.View.Goods] = m_GoodsViewButton;
+    }
+
     private static string CivicViewLabel(InfoOverlay.View view)
     {
         switch (view)
@@ -493,6 +506,7 @@ public sealed class ToolbarController : MonoBehaviour
             case InfoOverlay.View.Traffic: return "Traffic";
             case InfoOverlay.View.Age: return "Ages";
             case InfoOverlay.View.Density: return "Density";
+            case InfoOverlay.View.Goods: return "Goods";
             case InfoOverlay.View.Off: return "Views";
             default: return CivicViewLabel(view);
         }
@@ -554,7 +568,7 @@ public sealed class ToolbarController : MonoBehaviour
         InfoOverlay.View[] order =
         {
             InfoOverlay.View.Power, InfoOverlay.View.Water, InfoOverlay.View.Coverage, InfoOverlay.View.Pollution,
-            InfoOverlay.View.LandValue, InfoOverlay.View.Traffic, InfoOverlay.View.Age, InfoOverlay.View.Density,
+            InfoOverlay.View.LandValue, InfoOverlay.View.Traffic, InfoOverlay.View.Age, InfoOverlay.View.Density, InfoOverlay.View.Goods,
             InfoOverlay.View.Order, InfoOverlay.View.Fire, InfoOverlay.View.Health, InfoOverlay.View.Education,
         };
         Move(m_ViewOffButton);

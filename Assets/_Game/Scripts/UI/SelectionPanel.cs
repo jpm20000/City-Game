@@ -523,6 +523,31 @@ public sealed class SelectionPanel : MonoBehaviour
         else if (disasters.Epidemic.IsRecovered(cell)) Line("<color=#9AA3B2>Recovered from the plague — immune until the outbreak ends.</color>");
     }
 
+    // What a grown cell makes or needs of goods at full staffing (M24); nothing while goods are not in play.
+    private void DescribeGoods(Vector2Int cell, ZoneType zone)
+    {
+        SimulationSystem sim = m_GameManager.Simulation;
+        GridData grid = m_GameManager.Grid;
+        if (!sim.GoodsActive || grid.GetBuildingLevel(cell) <= 0) return;
+
+        BalanceConfig balance = m_GameManager.Balance;
+        int capacity = sim.Capacity.CapacityOf(grid, cell);
+        float supply = sim.GoodsSupply();
+        string color = supply >= 1f ? "#73D973" : supply >= balance.GoodsLevel3Supply ? "#F2C14E" : "#F2665A";
+        switch (zone)
+        {
+            case ZoneType.Industrial:
+                Line($"Goods  makes up to {capacity * balance.GoodsPerIndustrialJob * sim.TechModifiers.GoodsMultiplier:0.#} / day when fully staffed");
+                break;
+            case ZoneType.Commercial:
+                Line($"Goods  sells up to {capacity * balance.GoodsPerCommercialJob:0.#} / day  (stocked <color={color}>{supply:P0}</color>)");
+                break;
+            case ZoneType.Residential:
+                Line($"Goods  buys about {capacity * balance.GoodsPerResident:0.#} / day  (city supply <color={color}>{supply:P0}</color>)");
+                break;
+        }
+    }
+
     // Bare rubble left by a fire (M17).
     private void DescribeRubble(Vector2Int cell)
     {
@@ -570,6 +595,8 @@ public sealed class SelectionPanel : MonoBehaviour
             Line($"Land value  {value.Total:P0}  (industry doesn't need it)");
         }
         Line($"<size=85%><color=#9AA3B2>{LandValueParts(value)}</color></size>");
+
+        DescribeGoods(cell, zone);
 
         if (grid.IsHistoric(cell) && grid.GetBuildingLevel(cell) > 0)
         {
@@ -766,6 +793,9 @@ public sealed class SelectionPanel : MonoBehaviour
                 return "<color=#F2C14E>Outdated</color> — will be rebuilt in the current age's style.";
             case GrowthBlocker.KeptHistoric:
                 return "<color=#9AA3B2>Historic (kept) — highest level for its age.</color>";
+            case GrowthBlocker.NoGoods:
+                return $"<color=#F2C14E>{verb} waiting:</color> the city is short of goods ({m_GameManager.Simulation.GoodsSupply():P0} of demand met, " +
+                       $"level 3 needs {m_GameManager.Balance.GoodsLevel3Supply:P0}) — build more factories or research Factories.";
             case GrowthBlocker.LowLandValue:
                 return $"<color=#F2C14E>{verb} waiting:</color> land value {m_GameManager.Simulation.LandValue.GetLandValue(cell):P0}, " +
                        $"level 3 needs {m_GameManager.Balance.LandValueForLevel3:P0} — {LandValueFixes(cell)}.";

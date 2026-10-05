@@ -21,11 +21,11 @@ using UnityEngine.Tilemaps;
 // previews the building under the cursor: what would be powered / covered / watered if it were placed there.
 public sealed class InfoOverlay : GridTilemapView
 {
-    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water, Order, Fire, Health, Education, Traffic, Density }
+    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water, Order, Fire, Health, Education, Traffic, Density, Goods }
 
     private static readonly View[] s_CycleOrder =
     {
-        View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Traffic, View.Age, View.Density,
+        View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Traffic, View.Age, View.Density, View.Goods,
         View.Order, View.Fire, View.Health, View.Education,
     };
 
@@ -109,6 +109,11 @@ public sealed class InfoOverlay : GridTilemapView
     [SerializeField] private Color m_TrafficJammed = new Color(0.92f, 0.22f, 0.18f, 0.85f);
     [Tooltip("Load / capacity drawn at full red (homes pay the full penalty from about 1.6).")]
     [SerializeField] private float m_TrafficFull = 1.5f;
+
+    [Header("Goods (M24)")]
+    [SerializeField] private Color m_GoodsMaker = new Color(0.35f, 0.80f, 0.70f, 1f);
+    [SerializeField] private Color m_GoodsSeller = new Color(0.95f, 0.72f, 0.28f, 1f);
+    [SerializeField] private Color m_GoodsHome = new Color(0.55f, 0.62f, 0.85f, 1f);
 
     [Header("Density (M23)")]
     [SerializeField] private Color m_LowDensity = new Color(0.40f, 0.80f, 0.55f, 0.65f);
@@ -211,6 +216,7 @@ public sealed class InfoOverlay : GridTilemapView
             case View.Power: return GameManager.PowerUnlocked;
             case View.Water: return GameManager.WaterUnlocked;
             case View.Age: return GameManager.Simulation.Tech != null;
+            case View.Goods: return GameManager.Simulation.GoodsActive;     // M24
             case View.Order:
             case View.Fire:
             case View.Health:
@@ -247,7 +253,7 @@ public sealed class InfoOverlay : GridTilemapView
     // The traffic flow changes every day without the grid changing.
     private void OnDateChanged(int day, int month, int year)
     {
-        if (m_Shown == View.Traffic) MarkDirty();
+        if (m_Shown == View.Traffic || m_Shown == View.Goods) MarkDirty();
     }
 
     // Outdated cells depend on the current age.
@@ -679,6 +685,19 @@ public sealed class InfoOverlay : GridTilemapView
             if (zone != ZoneType.Residential && zone != ZoneType.Commercial) return m_NotGated;
             Color color = WithAlpha(LandValueColor(Simulation.LandValue.GetLandValue(cell)), 1f);
             return Simulation.Growth.IsHeldByLandValue(cell) ? WithAlpha(color * m_OutdatedShade, 1f) : color;
+        }
+        if (m_Shown == View.Goods)
+        {
+            // Factories make goods, shops sell them, homes buy them; a home or shop held at level 2 for lack of goods is shaded.
+            Color color;
+            switch (Grid.GetZone(cell))
+            {
+                case ZoneType.Industrial: return WithAlpha(m_GoodsMaker, 1f);
+                case ZoneType.Commercial: color = m_GoodsSeller; break;
+                case ZoneType.Residential: color = m_GoodsHome; break;
+                default: return null;
+            }
+            return Simulation.Growth.IsHeldByGoods(cell) ? WithAlpha(color * m_OutdatedShade, 1f) : WithAlpha(color, 1f);
         }
         if (m_Shown == View.Density)
         {

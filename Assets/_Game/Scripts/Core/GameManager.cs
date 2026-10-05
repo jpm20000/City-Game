@@ -476,6 +476,7 @@ public sealed class GameManager : MonoBehaviour
         GameEvents.RaiseHappinessChanged(population.AverageHappiness);
         GameEvents.RaiseCashFlowChanged(Simulation.Economy.IncomePerDay, Simulation.Economy.ExpensePerDay);
         if (Simulation.Tech != null) GameEvents.RaiseResearchChanged();
+        GameEvents.RaiseGoodsChanged(Simulation.Goods.Last);
         // Deferred to LateUpdate: after a load this lands after GameEvents.CityLoaded, so listeners
         // that re-sync on load don't treat the loaded power / water state as news.
         m_PowerDirty = true;

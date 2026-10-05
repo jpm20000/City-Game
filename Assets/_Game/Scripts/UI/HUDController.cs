@@ -38,6 +38,11 @@ public sealed class HUDController : MonoBehaviour
     [SerializeField] private GameObject m_WaterGroup;
     [SerializeField] private Color m_IdleColor = new Color(0.60f, 0.64f, 0.70f);
 
+    // (M24) Made at runtime from the industrial demand meter (no scene edit): shows how well the city's goods cover its demand.
+    private GameObject m_GoodsGroup;
+    private UIMeter m_GoodsMeter;
+    private UnityEngine.UI.Image m_GoodsFill;
+
     [Header("Age & research (M11)")]
     [Tooltip("Hidden when the game has no age data.")]
     [SerializeField] private GameObject m_AgeGroup;
@@ -57,6 +62,7 @@ public sealed class HUDController : MonoBehaviour
         GameEvents.DemandChanged += OnDemandChanged;
         GameEvents.PowerChanged += OnPowerChanged;
         GameEvents.WaterChanged += OnWaterChanged;
+        GameEvents.GoodsChanged += OnGoodsChanged;
         GameEvents.ResearchChanged += RefreshResearch;
         GameEvents.AgeChanged += OnAgeChanged;
         GameEvents.TechCompleted += OnTechCompleted;
@@ -74,6 +80,7 @@ public sealed class HUDController : MonoBehaviour
         GameEvents.DemandChanged -= OnDemandChanged;
         GameEvents.PowerChanged -= OnPowerChanged;
         GameEvents.WaterChanged -= OnWaterChanged;
+        GameEvents.GoodsChanged -= OnGoodsChanged;
         GameEvents.ResearchChanged -= RefreshResearch;
         GameEvents.AgeChanged -= OnAgeChanged;
         GameEvents.TechCompleted -= OnTechCompleted;
@@ -110,7 +117,39 @@ public sealed class HUDController : MonoBehaviour
         OnWaterChanged(m_GameManager.Simulation.Water.Status);
 
         if (m_AgeGroup != null) m_AgeGroup.SetActive(m_GameManager.Simulation.Tech != null);
+        CreateGoodsMeter();
+        OnGoodsChanged(m_GameManager.Simulation.Goods.Last);
         OnCityLoaded();
+    }
+
+    // A copy of the industrial demand column labelled G, beside the three demand meters; hidden while goods are off.
+    private void CreateGoodsMeter()
+    {
+        if (m_GoodsGroup != null || m_IndustrialDemand == null) return;
+        Transform column = m_IndustrialDemand.transform.parent;
+        if (column == null || column.parent == null) return;
+        m_GoodsGroup = Instantiate(column.gameObject, column.parent);
+        m_GoodsGroup.name = "DemandG";
+        m_GoodsGroup.transform.SetSiblingIndex(column.GetSiblingIndex() + 1);
+        m_GoodsMeter = m_GoodsGroup.GetComponentInChildren<UIMeter>(true);
+        TMP_Text label = m_GoodsGroup.GetComponentInChildren<TMP_Text>(true);
+        if (label != null) label.text = "G";
+        if (m_GoodsMeter != null) m_GoodsFill = m_GoodsMeter.transform.Find("Fill")?.GetComponent<Image>();
+        m_GoodsGroup.SetActive(false);
+    }
+
+    // Supply is the share of the city's goods demand that was met: teal when comfortable, amber when it is about to hold
+    // growth, red in a deep shortage. Hidden while goods are not in play.
+    private void OnGoodsChanged(GoodsReport report)
+    {
+        if (m_GoodsGroup == null) return;
+        bool active = m_GameManager != null && m_GameManager.Simulation != null && m_GameManager.Simulation.GoodsActive;
+        m_GoodsGroup.SetActive(active);
+        if (!active) return;
+        float supply = m_GameManager.Simulation.GoodsSupply();
+        m_GoodsMeter.SetValue(supply);
+        float hold = m_GameManager.Balance != null ? m_GameManager.Balance.GoodsLevel3Supply : 0.7f;
+        if (m_GoodsFill != null) m_GoodsFill.color = supply >= 1f ? new Color(0.35f, 0.80f, 0.70f) : supply >= hold ? m_WarningColor : m_NegativeColor;
     }
 
     private void OnAgeChanged(int age) => OnCityLoaded();
@@ -127,6 +166,7 @@ public sealed class HUDController : MonoBehaviour
         if (m_WaterGroup != null) m_WaterGroup.SetActive(water);
         if (m_AgeText != null) m_AgeText.text = m_GameManager.CurrentAgeName ?? string.Empty;
         RefreshResearch();
+        if (m_GameManager.Simulation != null) OnGoodsChanged(m_GameManager.Simulation.Goods.Last);
     }
 
     private void RefreshResearch()
