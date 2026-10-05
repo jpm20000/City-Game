@@ -142,6 +142,20 @@ public sealed class GameManager : MonoBehaviour
         return age >= 0 && Simulation.Tech.CurrentAge >= age;
     }
 
+    // The age index the sim is in (2 = Industrial without age data, like the ground art).
+    public int CurrentAgeIndex => Simulation != null && Simulation.Tech != null ? Simulation.Tech.CurrentAge : 2;
+
+    // Whether High density may be zoned for a zone type yet (M23): shops from the Renaissance, the rest from the Industrial age.
+    public bool HighDensityUnlocked(ZoneType zone) => CurrentAgeIndex >= Balance.HighDensityMinAge(zone);
+
+    // The age name High density opens in for a zone type (for tooltips and hints).
+    public string HighDensityAgeName(ZoneType zone)
+    {
+        int age = Balance.HighDensityMinAge(zone);
+        AgeDatabase ages = Simulation?.Tech?.Ages;
+        return ages != null && ages.IsValidIndex(age) ? ages[age].DisplayName : $"age {age}";
+    }
+
     // The toolbar group of a building in the city's current age (M20b): its own group, or LaterToolbarGroup once the
     // city has reached LaterGroupAge. Without age data it is always the own group.
     public ToolbarGroup ToolbarGroupFor(BuildingDefinition def)

@@ -25,6 +25,9 @@ public sealed class PlacementController : MonoBehaviour
     private BuildingDefinition m_Selected;
     private int m_Rotation;
     private ZoneType m_ZoneBrush;
+    private ZoneType m_LastZone = ZoneType.Residential;    // the zone a density button falls back to (M23)
+    private Density m_DensityBrush;                        // Medium by default, remembered for the session (M23)
+    private readonly Dictionary<Vector2Int, Density> m_PendingRepaint = new();   // built cells a drag would shrink, asked about on release
     private Vector2Int? m_SelectedCell;
     private bool m_PipeErasing;     // this drag removes pipes (it started on one)
     private bool m_PipeFundsWarned; // one "not enough money" per drag (pipes and roads)
@@ -40,6 +43,7 @@ public sealed class PlacementController : MonoBehaviour
 
     public Mode CurrentMode => m_Mode;
     public ZoneType ZoneBrush => m_ZoneBrush;
+    public Density DensityBrush => m_DensityBrush;
     public BuildingDefinition SelectedBuilding => m_Selected;
 
     // The Road tool's tier choice: 0 = the street tool (best unlocked street tier), else a tier (Avenue, Highway).
@@ -110,6 +114,7 @@ public sealed class PlacementController : MonoBehaviour
         HandleRotation();
         HandleConfirm();
         FlushPendingLane();
+        FlushPendingRepaint();
         UpdateGhost();
         UpdateSelection();
     }
@@ -142,7 +147,21 @@ public sealed class PlacementController : MonoBehaviour
     public void SelectZone(ZoneType zone)
     {
         m_ZoneBrush = zone;
+        if (zone != ZoneType.None)
+        {
+            m_LastZone = zone;
+            if (m_DensityBrush == Density.High && !m_GameManager.HighDensityUnlocked(zone)) m_DensityBrush = Density.Medium;
+        }
         SetMode(Mode.Zone);
+    }
+
+    // M23: the density the zone brush paints. Picking one while no zone is selected starts painting the last zone.
+    public void SelectDensity(Density density)
+    {
+        if (density == Density.High && !m_GameManager.HighDensityUnlocked(m_ZoneBrush != ZoneType.None ? m_ZoneBrush : m_LastZone)) return;
+        m_DensityBrush = density;
+        if (m_Mode == Mode.Zone && m_ZoneBrush != ZoneType.None) ModeChanged?.Invoke();
+        else SelectZone(m_LastZone);
     }
 
     public void SelectDemolish()
@@ -339,13 +358,77 @@ public sealed class PlacementController : MonoBehaviour
     private void TryZone(Vector2Int cell)
     {
         if (!CanZone(cell)) return;
+        bool zoning = m_ZoneBrush != ZoneType.None;
+        Density density = zoning ? m_DensityBrush : Density.Medium;
+        if (density == Density.High && !m_GameManager.HighDensityUnlocked(m_ZoneBrush)) return;
         ClearRubble(cell);      // painting over rubble clears it (M17)
-        if (m_GridData.GetZone(cell) == m_ZoneBrush) return;
+        if (m_GridData.GetZone(cell) == m_ZoneBrush)
+        {
+            if (zoning && m_GridData.GetDensity(cell) != density) RepaintDensity(cell, density);
+            return;
+        }
 
         // Rezoning or unzoning bulldozes whatever had grown there.
         m_GridData.SetBuildingLevel(cell, 0);
         m_GridData.SetZone(cell, m_ZoneBrush);
+        if (zoning && density != Density.Medium) m_GridData.SetDensity(cell, density);
         AudioController.Play(SfxId.ZonePaint, m_GridSystem.CellToWorld(cell));
+    }
+
+    // Painting the same zone with another density (M23). A built block keeps its level and its capacity is re-fitted; one
+    // that would hold fewer people or jobs waits for a confirmation when the drag ends.
+    private void RepaintDensity(Vector2Int cell, Density density)
+    {
+        if (ShrinkOf(cell, density) > 0)
+        {
+            m_PendingRepaint[cell] = density;
+            return;
+        }
+        m_GridData.SetDensity(cell, density);
+        AudioController.Play(SfxId.ZonePaint, m_GridSystem.CellToWorld(cell));
+    }
+
+    // How many fewer residents / jobs the built block at the cell would hold at a density (0 when it grows or is empty).
+    private int ShrinkOf(Vector2Int cell, Density density)
+    {
+        int level = m_GridData.GetBuildingLevel(cell);
+        if (level <= 0) return 0;
+        CapacityModel capacity = m_GameManager.Simulation.Capacity;
+        int before = capacity.CapacityOf(m_GridData, cell);
+        int after = capacity.Capacity(level, m_GridData.GetBuiltAge(cell), m_GridData.GetZone(cell), density);
+        return Mathf.Max(0, before - after);
+    }
+
+    private void FlushPendingRepaint()
+    {
+        if (m_PendingRepaint.Count == 0 || m_InputReader.ConfirmHeld) return;
+        var cells = new List<KeyValuePair<Vector2Int, Density>>(m_PendingRepaint);
+        m_PendingRepaint.Clear();
+        int homes = 0;
+        int jobs = 0;
+        foreach (KeyValuePair<Vector2Int, Density> pair in cells)
+        {
+            int shrink = ShrinkOf(pair.Key, pair.Value);
+            if (m_GridData.GetZone(pair.Key) == ZoneType.Residential) homes += shrink;
+            else jobs += shrink;
+        }
+        void Apply()
+        {
+            foreach (KeyValuePair<Vector2Int, Density> pair in cells)
+            {
+                if (m_GridData.InBounds(pair.Key) && m_GridData.GetZone(pair.Key) != ZoneType.None) m_GridData.SetDensity(pair.Key, pair.Value);
+            }
+        }
+        if (GameFlow.Instance == null)
+        {
+            Apply();
+            return;
+        }
+        string what = homes > 0 && jobs > 0 ? $"{homes} residents and {jobs} jobs" : homes > 0 ? $"{homes} residents" : $"{jobs} jobs";
+        string blocks = cells.Count == 1 ? "1 built block" : $"{cells.Count} built blocks";
+        GameFlow.Instance.Confirm.Ask($"Change the density of {blocks}?", $"They keep their level but hold {what} fewer; the surplus move out or lose work.",
+            new ConfirmDialog.Choice("Change density", Apply, primary: true),
+            new ConfirmDialog.Choice("Cancel", null));
     }
 
     // The avenue pair for a cell: the other lane's side from the heading and the R flip (M22).
@@ -870,6 +953,17 @@ public sealed class PlacementController : MonoBehaviour
             case Mode.Zone:
                 if (m_GridData.IsRoad(cell)) SetHint("Can't zone a road", false);
                 else if (m_GridData.IsOccupied(cell)) SetHint("Can't zone under a building", false);
+                else if (m_ZoneBrush != ZoneType.None && m_DensityBrush != Density.Medium)
+                {
+                    if (m_DensityBrush == Density.High && !m_GameManager.HighDensityUnlocked(m_ZoneBrush))
+                    {
+                        SetHint($"High density opens in the {m_GameManager.HighDensityAgeName(m_ZoneBrush)}", false);
+                        break;
+                    }
+                    int shrink = m_GridData.GetZone(cell) == m_ZoneBrush ? ShrinkOf(cell, m_DensityBrush) : 0;
+                    string note = shrink > 0 ? $"  — {shrink} fewer {(m_ZoneBrush == ZoneType.Residential ? "residents" : "jobs")}, asks first" : string.Empty;
+                    SetHint($"{m_ZoneBrush} — {DensityUtils.Name(m_DensityBrush)} density{note}", true);
+                }
                 break;
         }
     }

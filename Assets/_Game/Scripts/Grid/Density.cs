@@ -13,4 +13,14 @@ public static class DensityUtils
     public const int Count = 3;
 
     public static bool IsValid(byte code) => code < Count;
+
+    public static string Name(Density density)
+    {
+        switch (density)
+        {
+            case Density.Low: return "Low";
+            case Density.High: return "High";
+            default: return "Medium";
+        }
+    }
 }

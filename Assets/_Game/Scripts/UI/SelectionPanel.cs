@@ -450,6 +450,7 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Title.text = $"{ZoneName(zone)} building";
         Line($"Level {level} / {maxLevel}");
         Line($"{unit}  {sim.Capacity.CapacityOf(grid, cell)}");
+        Line(DensityLine(cell));
         if (sim.Rules.UpgradesNeedPower)
         {
             Line(sim.Power.IsPowered(cell)
@@ -491,6 +492,23 @@ public sealed class SelectionPanel : MonoBehaviour
         }
         Line("<size=85%><color=#9AA3B2>Demolishing leaves the zone, so it will regrow.</color></size>");
         m_Action = Action.Demolish;
+    }
+
+    // The density the player zoned the cell with and what it does (M23).
+    private string DensityLine(Vector2Int cell)
+    {
+        GridData grid = m_GameManager.Grid;
+        BalanceConfig balance = m_GameManager.Balance;
+        ZoneType zone = grid.GetZone(cell);
+        Density density = grid.GetDensity(cell);
+        switch (density)
+        {
+            case Density.Low: return $"Density  <color=#73D9A0>Low</color>  ({balance.DensityScale(zone, density):0.#}x capacity, fewer trips, a little more land value)";
+            case Density.High:
+                return $"Density  <color=#E0627C>High</color>  ({balance.DensityScale(zone, density):0.#}x capacity, more traffic" +
+                       $"{(zone == ZoneType.Industrial ? " and pollution" : string.Empty)}, needs power and water to start)";
+            default: return "Density  Medium";
+        }
     }
 
     // Fire and plague on a grown block (M17).
@@ -673,6 +691,7 @@ public sealed class SelectionPanel : MonoBehaviour
         ZoneType zone = m_GameManager.Grid.GetZone(cell);
         m_Title.text = $"{ZoneName(zone)} zone";
         Line("Undeveloped.");
+        Line(DensityLine(cell));
         Line(BlockerText(cell, zone, "Growth"));
         DescribeEnvironment(cell, zone);
         DescribePipe(cell);
@@ -728,13 +747,13 @@ public sealed class SelectionPanel : MonoBehaviour
                 return $"<color=#F2C14E>{verb} waiting:</color> {ZoneName(zone).ToLowerInvariant()} demand is {demand.Get(zone):P0} " +
                        $"(needs over {m_GameManager.Balance.GrowthDemandThreshold:P0}).";
             case GrowthBlocker.NoPower:
-                return $"<color=#F2665A>{verb} blocked:</color> needs power — connect a power plant to its road.";
+                return $"<color=#F2665A>{verb} blocked:</color> needs power — connect a power plant to its road.{HighStartNote(cell)}";
             case GrowthBlocker.PowerAtCapacity:
                 return $"<color=#F2C14E>{verb} waiting:</color> its power network is at capacity — build another plant.";
             case GrowthBlocker.NoWater:
                 return m_GameManager.Simulation.Water.Mode == WaterRule.Coverage
-                    ? $"<color=#F2665A>{verb} blocked:</color> needs water — dig a well within reach."
-                    : $"<color=#F2665A>{verb} blocked:</color> needs water — connect a water tower to its road.";
+                    ? $"<color=#F2665A>{verb} blocked:</color> needs water — dig a well within reach.{HighStartNote(cell)}"
+                    : $"<color=#F2665A>{verb} blocked:</color> needs water — connect a water tower to its road.{HighStartNote(cell)}";
             case GrowthBlocker.WaterAtCapacity:
                 return $"<color=#F2C14E>{verb} waiting:</color> its water network is at capacity — build another water tower.";
             case GrowthBlocker.Rubble:
@@ -753,6 +772,15 @@ public sealed class SelectionPanel : MonoBehaviour
             default:
                 return string.Empty;
         }
+    }
+
+    // High density needs its utilities from the first level, where Medium and Low only need them to upgrade (M23).
+    private string HighStartNote(Vector2Int cell)
+    {
+        GridData grid = m_GameManager.Grid;
+        return grid.GetDensity(cell) == Density.High && grid.GetBuildingLevel(cell) == 0
+            ? " <color=#9AA3B2>High density needs it from the start.</color>"
+            : string.Empty;
     }
 
     // Whether a road without frontage (a highway) touches the cell.

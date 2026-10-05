@@ -21,11 +21,11 @@ using UnityEngine.Tilemaps;
 // previews the building under the cursor: what would be powered / covered / watered if it were placed there.
 public sealed class InfoOverlay : GridTilemapView
 {
-    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water, Order, Fire, Health, Education, Traffic }
+    public enum View { Off, Power, Coverage, Pollution, LandValue, Age, Water, Order, Fire, Health, Education, Traffic, Density }
 
     private static readonly View[] s_CycleOrder =
     {
-        View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Traffic, View.Age,
+        View.Off, View.Power, View.Water, View.Coverage, View.Pollution, View.LandValue, View.Traffic, View.Age, View.Density,
         View.Order, View.Fire, View.Health, View.Education,
     };
 
@@ -110,6 +110,11 @@ public sealed class InfoOverlay : GridTilemapView
     [Tooltip("Load / capacity drawn at full red (homes pay the full penalty from about 1.6).")]
     [SerializeField] private float m_TrafficFull = 1.5f;
 
+    [Header("Density (M23)")]
+    [SerializeField] private Color m_LowDensity = new Color(0.40f, 0.80f, 0.55f, 0.65f);
+    [SerializeField] private Color m_MediumDensity = new Color(0.95f, 0.80f, 0.30f, 0.60f);
+    [SerializeField] private Color m_HighDensity = new Color(0.86f, 0.30f, 0.46f, 0.75f);
+
     [Header("Age")]
     [SerializeField] private Color m_OldestAge = new Color(0.90f, 0.52f, 0.22f, 0.65f);
     [SerializeField] private Color m_NewestAge = new Color(0.32f, 0.60f, 0.96f, 0.65f);
@@ -163,6 +168,7 @@ public sealed class InfoOverlay : GridTilemapView
     private Tile[] m_HeldTiles;       // [bucket], striped: held at level 2 by land value
     private Tile[][] m_CivicTiles;    // [ServiceKind][bucket], 0 = none
     private Tile[] m_TrafficTiles;    // [bucket] of load / capacity
+    private Tile[] m_DensityTiles;    // [Density]
     private Tile m_CivicUncoveredTile;  // striped
     private Sprite m_StripeSprite;
 
@@ -356,6 +362,9 @@ public sealed class InfoOverlay : GridTilemapView
         m_TrafficTiles = new Tile[Buckets + 1];
         for (int i = 0; i <= Buckets; i++) m_TrafficTiles[i] = CreateTile(m_Sprite, TrafficColor(m_TrafficFull * i / Buckets));
 
+        m_DensityTiles = new Tile[DensityUtils.Count];
+        for (int i = 0; i < DensityUtils.Count; i++) m_DensityTiles[i] = CreateTile(m_Sprite, DensityColor((Density)i));
+
         m_CivicTiles = new Tile[CivicViews.Length + 1][];
         foreach (View view in CivicViews)
         {
@@ -393,7 +402,7 @@ public sealed class InfoOverlay : GridTilemapView
         if (m_AgeTiles != null) foreach (Tile tile in m_AgeTiles) if (tile != null) Destroy(tile);
         if (m_OutdatedTiles != null) foreach (Tile tile in m_OutdatedTiles) if (tile != null) Destroy(tile);
         if (m_HistoricTile != null) Destroy(m_HistoricTile);
-        foreach (Tile[] tiles in new[] { m_PollutionTiles, m_LandValueTiles, m_HeldTiles, m_TrafficTiles })
+        foreach (Tile[] tiles in new[] { m_PollutionTiles, m_LandValueTiles, m_HeldTiles, m_TrafficTiles, m_DensityTiles })
         {
             if (tiles != null) foreach (Tile tile in tiles) if (tile != null) Destroy(tile);
         }
@@ -419,6 +428,7 @@ public sealed class InfoOverlay : GridTilemapView
             case View.Pollution: return PollutionTile(cell);
             case View.LandValue: return LandValueTile(cell);
             case View.Traffic: return TrafficTile(cell);
+            case View.Density: return DensityTile(cell);
             case View.Order:
             case View.Fire:
             case View.Health:
@@ -460,6 +470,23 @@ public sealed class InfoOverlay : GridTilemapView
         if (!Grid.IsRoad(cell)) return null;
         float ratio = Simulation.Traffic.Congestion(cell);
         return m_TrafficTiles[Mathf.Clamp(Mathf.RoundToInt(ratio / m_TrafficFull * Buckets), 0, Buckets)];
+    }
+
+    private Color DensityColor(Density density)
+    {
+        switch (density)
+        {
+            case Density.Low: return m_LowDensity;
+            case Density.High: return m_HighDensity;
+            default: return m_MediumDensity;
+        }
+    }
+
+    // Every zoned cell by the density the player painted it (M23); grown buildings take the colour too.
+    private Tile DensityTile(Vector2Int cell)
+    {
+        if (Grid.IsRoad(cell) || Grid.GetZone(cell) == ZoneType.None) return null;
+        return m_DensityTiles[(int)Grid.GetDensity(cell)];
     }
 
     private Tile PollutionTile(Vector2Int cell)
@@ -652,6 +679,10 @@ public sealed class InfoOverlay : GridTilemapView
             if (zone != ZoneType.Residential && zone != ZoneType.Commercial) return m_NotGated;
             Color color = WithAlpha(LandValueColor(Simulation.LandValue.GetLandValue(cell)), 1f);
             return Simulation.Growth.IsHeldByLandValue(cell) ? WithAlpha(color * m_OutdatedShade, 1f) : color;
+        }
+        if (m_Shown == View.Density)
+        {
+            return Grid.GetZone(cell) == ZoneType.None ? (Color?)null : WithAlpha(DensityColor(Grid.GetDensity(cell)), 1f);
         }
         if (m_Shown == View.Traffic)
         {

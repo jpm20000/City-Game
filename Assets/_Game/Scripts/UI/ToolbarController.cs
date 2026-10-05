@@ -64,6 +64,8 @@ public sealed class ToolbarController : MonoBehaviour
     private ToolButton m_AvenueButton;         // M16: made at runtime from the Road button
     private ToolButton m_HighwayButton;
     private ToolButton m_TrafficViewButton;    // M16: made at runtime from the Value view button
+    private ToolButton m_DensityViewButton;    // M23: made at runtime from the Age view button
+    private readonly ToolButton[] m_DensityButtons = new ToolButton[DensityUtils.Count];   // M23: Low / Medium / High, after Unzone
     private float m_FittedWidth = -1f;
     private float m_FittedAvailable = -1f;
 
@@ -101,6 +103,7 @@ public sealed class ToolbarController : MonoBehaviour
         BindZone(m_CommercialButton, "Commercial", ZoneType.Commercial, ZonePalette.Commercial, "Shops grow here, providing jobs.");
         BindZone(m_IndustrialButton, "Industrial", ZoneType.Industrial, ZonePalette.Industrial, "Factories grow here, providing jobs.");
         BindZone(m_UnzoneButton, "Unzone", ZoneType.None, Color.clear, "Remove zoning (and anything grown on it).");
+        CreateDensityButtons();
         Bind(m_DemolishButton, "Demolish", string.Empty, Color.clear,
             "Demolish  [Del]\nRemove a road, building or grown cell. No refund.",
             () => Toggle(PlacementController.Mode.Demolish, m_Placement.SelectDemolish));
@@ -117,6 +120,7 @@ public sealed class ToolbarController : MonoBehaviour
             "Land value view  [V]\n<color=#F2554A>Red</color> = low, <color=#59D966>green</color> = high. Parks and kept historic blocks raise it, pollution lowers it. Homes and shops need enough of it for level 3; darker, striped = held at level 2 by it.");
         CreateTrafficViewButton();
         CreateCivicViewButtons();
+        CreateDensityViewButton();
         BindView(m_AgeViewButton, "Ages", InfoOverlay.View.Age,
             "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
         CreateViewsFlyout();
@@ -378,6 +382,53 @@ public sealed class ToolbarController : MonoBehaviour
         });
     }
 
+    // M23: Low / Medium / High sit after Unzone (copies of it, narrow). They set the density the zone brush paints;
+    // High stays hidden until the brush's zone has reached its age.
+    private void CreateDensityButtons()
+    {
+        if (m_UnzoneButton == null) return;
+        Transform parent = m_UnzoneButton.transform.parent;
+        int index = m_UnzoneButton.transform.GetSiblingIndex();
+        for (int i = 0; i < DensityUtils.Count; i++)
+        {
+            var density = (Density)i;
+            ToolButton button = Instantiate(m_UnzoneButton, parent);
+            button.name = $"Density_{density}";
+            button.transform.SetSiblingIndex(index + 1 + DensityOrder(density));
+            if (button.Label != null)
+            {
+                button.Label.enableAutoSizing = true;
+                button.Label.fontSizeMax = button.Label.fontSize;
+                button.Label.fontSizeMin = 11f;
+            }
+            var layout = button.GetComponent<LayoutElement>();
+            if (layout == null) layout = button.gameObject.AddComponent<LayoutElement>();
+            layout.preferredWidth = 72f;
+            Bind(button, DensityUtils.Name(density), string.Empty, Color.clear, DensityTooltip(density), () => m_Placement.SelectDensity(density));
+            m_DensityButtons[i] = button;
+        }
+    }
+
+    // Low, Medium, High left to right.
+    private static int DensityOrder(Density density) => density == Density.Low ? 0 : density == Density.Medium ? 1 : 2;
+
+    private string DensityTooltip(Density density)
+    {
+        BalanceConfig balance = m_GameManager.Balance;
+        switch (density)
+        {
+            case Density.Low:
+                return $"Low density\nA quieter block: {balance.DensityScale(ZoneType.Residential, Density.Low):0.#}x the homes or jobs, fewer trips and a little more land value around. " +
+                       "Paint over a zone to change its density; a built block keeps its level.";
+            case Density.High:
+                return $"High density\n{balance.DensityScale(ZoneType.Residential, Density.High):0.#}x the homes and shops ({balance.DensityScale(ZoneType.Industrial, Density.High):0.#}x for factories): " +
+                       "taller blocks, more traffic and pollution, a little less land value around. Needs power and water before it starts growing. " +
+                       $"Shops from the {m_GameManager.HighDensityAgeName(ZoneType.Commercial)}; homes and factories from the {m_GameManager.HighDensityAgeName(ZoneType.Residential)}.";
+            default:
+                return "Medium density\nThe standard block. Pick a density, then paint a zone (or paint over one to change it).";
+        }
+    }
+
     // Clicking the active view again turns the overlay off. Views don't clear the current tool.
     private void BindView(ToolButton button, string label, InfoOverlay.View view, string tooltip)
     {
@@ -408,6 +459,17 @@ public sealed class ToolbarController : MonoBehaviour
         }
     }
 
+    // M23: the Density VIEW button is a copy of the Age view button.
+    private void CreateDensityViewButton()
+    {
+        if (m_AgeViewButton == null || m_InfoOverlay == null) return;
+        m_DensityViewButton = Instantiate(m_AgeViewButton, m_AgeViewButton.transform.parent);
+        m_DensityViewButton.name = "DensityView";
+        BindView(m_DensityViewButton, "Density", InfoOverlay.View.Density,
+            "Density view  [V]\nZoned land by the density it was painted with: <color=#66CC8C>green</color> = Low, <color=#F2CC4D>yellow</color> = Medium, <color=#DB4D75>crimson</color> = High.");
+        m_ViewButtons[InfoOverlay.View.Density] = m_DensityViewButton;
+    }
+
     private static string CivicViewLabel(InfoOverlay.View view)
     {
         switch (view)
@@ -430,6 +492,7 @@ public sealed class ToolbarController : MonoBehaviour
             case InfoOverlay.View.LandValue: return "Value";
             case InfoOverlay.View.Traffic: return "Traffic";
             case InfoOverlay.View.Age: return "Ages";
+            case InfoOverlay.View.Density: return "Density";
             case InfoOverlay.View.Off: return "Views";
             default: return CivicViewLabel(view);
         }
@@ -491,7 +554,7 @@ public sealed class ToolbarController : MonoBehaviour
         InfoOverlay.View[] order =
         {
             InfoOverlay.View.Power, InfoOverlay.View.Water, InfoOverlay.View.Coverage, InfoOverlay.View.Pollution,
-            InfoOverlay.View.LandValue, InfoOverlay.View.Traffic, InfoOverlay.View.Age,
+            InfoOverlay.View.LandValue, InfoOverlay.View.Traffic, InfoOverlay.View.Age, InfoOverlay.View.Density,
             InfoOverlay.View.Order, InfoOverlay.View.Fire, InfoOverlay.View.Health, InfoOverlay.View.Education,
         };
         Move(m_ViewOffButton);
@@ -613,6 +676,14 @@ public sealed class ToolbarController : MonoBehaviour
         SetActive(m_CommercialButton, zoning && brush == ZoneType.Commercial);
         SetActive(m_IndustrialButton, zoning && brush == ZoneType.Industrial);
         SetActive(m_UnzoneButton, zoning && brush == ZoneType.None);
+        ZoneType densityZone = zoning && brush != ZoneType.None ? brush : ZoneType.Commercial;     // no zone picked: the earliest High age
+        for (int i = 0; i < m_DensityButtons.Length; i++)
+        {
+            if (m_DensityButtons[i] == null) continue;
+            var density = (Density)i;
+            m_DensityButtons[i].SetActive(m_Placement.DensityBrush == density);
+            if (density == Density.High) m_DensityButtons[i].gameObject.SetActive(m_GameManager.HighDensityUnlocked(densityZone));
+        }
         SetActive(m_DemolishButton, mode == PlacementController.Mode.Demolish);
         InfoOverlay.View view = m_InfoOverlay != null ? m_InfoOverlay.Shown : InfoOverlay.View.Off;
         foreach (KeyValuePair<InfoOverlay.View, ToolButton> pair in m_ViewButtons) SetActive(pair.Value, pair.Key == view);
