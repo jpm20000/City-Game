@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Green Building
   m_Description: 'Efficient buildings cost less to run. Upkeep -10%.'
   m_Age: 3
-  m_Cost: 1100
+  m_Cost: 2200
   m_Prerequisites: 
   - {fileID: 11400000, guid: 0118c077324a535790f8a8c3a76e792c, type: 2}
   m_Effects:

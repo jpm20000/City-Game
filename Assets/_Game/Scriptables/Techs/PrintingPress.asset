@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Printing Press
   m_Description: 'Books for everyone. Research +25%. Enables the Public Lectures ordinance.'
   m_Age: 1
-  m_Cost: 200
+  m_Cost: 300
   m_Prerequisites: 
   - {fileID: 11400000, guid: b24517f5e5265555a16be5bf57175248, type: 2}
   m_Effects:

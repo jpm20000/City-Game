@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Academies
   m_Description: 'Halls of scholarship. Unlocks the Academy, which produces research and educates the homes around it.'
   m_Age: 1
-  m_Cost: 250
+  m_Cost: 375
   m_Prerequisites: 
   - {fileID: 11400000, guid: f914d17a0f805758baeec027f4f02b5c, type: 2}
   m_Effects: []

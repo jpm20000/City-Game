@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Civic Planning
   m_Description: 'Squares, straight streets and order. Happiness +3%. Unlocks the Constabulary. Enables the Street Lighting ordinance.'
   m_Age: 1
-  m_Cost: 260
+  m_Cost: 390
   m_Prerequisites: 
   - {fileID: 11400000, guid: 322a317549355e45b609314acd2e2676, type: 2}
   m_Effects:

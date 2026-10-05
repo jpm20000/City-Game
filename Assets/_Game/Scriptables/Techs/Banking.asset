@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Banking
   m_Description: 'Credit and bills of exchange. Commercial demand +15%. Loans cost half the interest.'
   m_Age: 1
-  m_Cost: 220
+  m_Cost: 330
   m_Prerequisites: 
   - {fileID: 11400000, guid: d75976910ef951e68eadaeab2ebeab6a, type: 2}
   m_Effects:

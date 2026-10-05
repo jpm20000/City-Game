@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Watermills
   m_Description: 'Water does the heavy work. Upkeep -10%. Unlocks the Fire Engine House (hand pumps).'
   m_Age: 1
-  m_Cost: 180
+  m_Cost: 270
   m_Prerequisites: 
   - {fileID: 11400000, guid: b5f6a312771751459ef4f75ab86b695b, type: 2}
   m_Effects:

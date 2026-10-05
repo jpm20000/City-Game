@@ -86,7 +86,7 @@ TECHS = [
     ("Telegraph", "telegraph", "Telegraph", 2, 450, ["electricity", "printing_press"], [research(1.2)], "News at the speed of light. Research +20%. Unlocks the Police Station (call boxes)."),
     ("Universities", "universities", "Universities", 2, 500, ["telegraph", "academies"], [], "Research universities. Unlocks the University, which produces research and educates the homes around it."),
     ("SteelFrames", "steel_frames", "Steel Frames", 2, 550, ["factories"], [hazard("FireSpread", 0.5)], "Skeletons of steel let buildings climb. Fires spread half as fast."),
-    ("ElectricTrams", "electric_trams", "Electric Trams", 2, 400, ["electricity"], [traffic(0.9)], "Cheap rides along the main streets. Commute trips -10%. Unlocks the Avenue."),
+    ("ElectricTrams", "electric_trams", "Electric Trams", 2, 400, ["electricity", "macadam"], [traffic(0.9)], "Cheap rides along the main streets. Commute trips -10%. Unlocks the Avenue (paved roads first)."),
     ("Macadam", "macadam", "Macadam", 2, 150, ["architecture"], [], "Crushed-stone roads that carry carts in all weathers. Unlocks the Paved Road."),
     # Modern
     ("Automobiles", "automobiles", "Automobiles", 3, 900, ["railways"], [demand(C, 1.1), traffic(1.2)], "A car in every garage. Commercial demand +10%, but commute trips +20%. Unlocks the Highway."),
@@ -201,9 +201,16 @@ EVENTS = [
 TECHS = [(a, b, c, d, e, f, g, desc + (" Enables the %s ordinance." % ORDINANCE_OF_TECH[b] if b in ORDINANCE_OF_TECH else ""))
          for a, b, c, d, e, f, g, desc in TECHS]
 
+# M21a: later ages research more slowly. The tables above hold the base costs; these scales (by the age of the tech, and
+# by the age being advanced into) are applied when the assets are written.
+TECH_COST_SCALE = [1.0, 1.5, 2.0, 2.0]
+ADVANCE_COST_SCALE = [1.0, 1.0, 2.0, 2.5]
+def scaled(cost, scale): return int(round(cost * scale / 5.0)) * 5
+
 tech_guid = {t[1]: guid("tech_" + t[1]) for t in TECHS}
 
 for asset, tid, display, age, cost, prereqs, effects, desc in TECHS:
+    cost = scaled(cost, TECH_COST_SCALE[age])
     text = header(GUID_TECH_DEF, asset, "TechDefinition")
     text += "  m_Id: %s\n  m_DisplayName: %s\n  m_Description: %s\n  m_Age: %d\n  m_Cost: %s\n" % (tid, display, q(desc), age, cost)
     text += "  m_Prerequisites: %s\n" % array([ref(tech_guid[p]) for p in prereqs])
@@ -217,6 +224,7 @@ age_guid = {}
 for asset, aid, display, year, maxl, scale, power, toadv, req, pop, cost, starting, money, zones, pscale, pradius, water, fire, loan, plague in AGES:
     g = guid("age_" + aid)
     age_guid[aid] = g
+    cost = scaled(cost, ADVANCE_COST_SCALE[AGES.index(next(a for a in AGES if a[1] == aid))])
     text = header(GUID_AGE_DEF, asset, "AgeDefinition")
     text += "  m_Id: %s\n  m_DisplayName: %s\n  m_StartYear: %d\n  m_MaxLevel: %d\n  m_CapacityScale: %s\n" % (aid, display, year, maxl, scale)
     text += "  m_UpgradesNeedPower: %d\n  m_Water: %d\n" % (1 if power else 0, water)

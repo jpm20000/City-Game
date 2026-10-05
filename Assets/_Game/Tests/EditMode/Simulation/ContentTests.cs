@@ -53,6 +53,26 @@ public sealed class ContentTests
     }
 
     // M16: the five road tiers exist, each tier's tech is in the tree, and an Industrial start keeps today's road.
+    // M21b: a city that advances into the Industrial age does not start with Macadam, so the Avenue's tech must lead
+    // through the Paved Road's: no avenues before paved streets.
+    [Test]
+    public void RoadTiers_AvenueTechNeedsThePavedTech()
+    {
+        TechDefinition paved = m_Techs.RoadTiers[2].RequiredTech;
+        TechDefinition avenue = m_Techs.RoadTiers[3].RequiredTech;
+        Assert.Contains(paved, avenue.Prerequisites);
+    }
+
+    // M21a: the advance costs rise with every age (the Medieval age has no entry cost).
+    [Test]
+    public void ResearchCosts_AdvanceCostsRiseWithEveryAge()
+    {
+        for (int age = 1; age < m_Ages.Count; age++)
+        {
+            Assert.Greater(m_Ages[age].AdvanceCost, m_Ages[age - 1].AdvanceCost, $"advance cost into age {age}");
+        }
+    }
+
     [Test]
     public void RoadTiers_Content()
     {

@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Aqueducts
   m_Description: 'Channels carry spring water into town. Unlocks the Fountain, which waters and cheers the blocks around it.'
   m_Age: 1
-  m_Cost: 160
+  m_Cost: 240
   m_Prerequisites: 
   - {fileID: 11400000, guid: 89807dc22f0055238f9706007d6da8f5, type: 2}
   m_Effects: []

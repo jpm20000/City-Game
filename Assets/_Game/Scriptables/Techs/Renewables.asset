@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Renewables
   m_Description: 'Power from wind and sun. Pollution -25%.'
   m_Age: 3
-  m_Cost: 1000
+  m_Cost: 2000
   m_Prerequisites: 
   - {fileID: 11400000, guid: 921727713547586792a514b9a4066d18, type: 2}
   m_Effects:

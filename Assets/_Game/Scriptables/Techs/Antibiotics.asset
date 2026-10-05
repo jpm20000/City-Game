@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Antibiotics
   m_Description: 'Infections cured in days. Unlocks the Medical Centre.'
   m_Age: 3
-  m_Cost: 900
+  m_Cost: 1800
   m_Prerequisites: 
   - {fileID: 11400000, guid: f26eb4264c415e3ca611cebf8ffd8dde, type: 2}
   m_Effects: []

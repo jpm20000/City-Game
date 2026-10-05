@@ -16,7 +16,7 @@ MonoBehaviour:
   m_DisplayName: Macadam
   m_Description: 'Crushed-stone roads that carry carts in all weathers. Unlocks the Paved Road.'
   m_Age: 2
-  m_Cost: 150
+  m_Cost: 300
   m_Prerequisites: 
   - {fileID: 11400000, guid: 322a317549355e45b609314acd2e2676, type: 2}
   m_Effects: []
