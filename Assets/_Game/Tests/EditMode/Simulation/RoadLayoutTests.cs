@@ -323,4 +323,136 @@ public sealed class RoadLayoutTests
         saved.RoadPairs = new byte[3];
         Assert.IsFalse(SaveSystem.TryFromJson(SaveSystem.ToJson(saved), out _, out _), "a layer of the wrong size");
     }
+
+    // --- M22b: directed traffic (legacy tiers: every road has Paved numbers, so only the direction matters) ---
+
+    private static Vector2Int V(int x, int y) => new Vector2Int(x, y);
+
+    private TrafficSystem Traffic(GridData grid) =>
+        new TrafficSystem(grid, m_Config, new CapacityModel(m_Config), new RoadTiers(m_Config));
+
+    private static void Row(GridData grid, int y, int x0, int x1, byte tier)
+    {
+        for (int x = x0; x <= x1; x++) grid.SetRoadTier(V(x, y), tier);
+    }
+
+    private static void Highway(GridData grid, int y, int x0, int x1, byte direction)
+    {
+        for (int x = x0; x <= x1; x++)
+        {
+            grid.SetRoadTier(V(x, y), RoadTiers.Highway);
+            grid.SetRoadDirection(V(x, y), direction);
+        }
+    }
+
+    private static void Grown(GridData grid, int x, int y, ZoneType zone)
+    {
+        grid.SetZone(V(x, y), zone);
+        grid.SetBuildingLevel(V(x, y), 1);
+    }
+
+    [Test]
+    public void OneWay_CarriesTheCommuteOnlyTheLegalWay()
+    {
+        var grid = new GridData(20, 20);
+        Highway(grid, 10, 0, 19, RoadLayout.East);
+        Grown(grid, 10, 11, ZoneType.Residential);
+        Grown(grid, 14, 9, ZoneType.Commercial);        // east of the home: reachable
+        Grown(grid, 6, 9, ZoneType.Commercial);         // west of the home: against the flow
+        TrafficSystem traffic = Traffic(grid);
+        traffic.Update(1f, 1f, 1f);
+
+        Assert.AreEqual(4f, traffic.Load(V(14, 10)), 1e-4f, "the shop ahead is the sink");
+        Assert.AreEqual(0f, traffic.Load(V(6, 10)), 1e-4f, "the shop behind is unreachable");
+        Assert.AreEqual(0f, traffic.Load(V(9, 10)), 1e-4f);
+    }
+
+    [Test]
+    public void OneWay_AnInwardEdgeCellIsNoExit()
+    {
+        var grid = new GridData(20, 20);
+        Row(grid, 10, 0, 19, RoadTiers.Paved);
+        Grown(grid, 3, 11, ZoneType.Residential);
+        TrafficSystem twoWay = Traffic(grid);
+        twoWay.Update(1f, 1f, 1f);
+        Assert.AreEqual(4f, twoWay.Load(V(0, 10)), 1e-4f, "the west edge is nearer");
+
+        Highway(grid, 10, 0, 19, RoadLayout.East);
+        TrafficSystem oneWay = Traffic(grid);
+        oneWay.Update(1f, 1f, 1f);
+        Assert.AreEqual(0f, oneWay.Load(V(0, 10)), 1e-4f, "the west end points into town: not an exit");
+        Assert.AreEqual(4f, oneWay.Load(V(19, 10)), 1e-4f, "the east end points off the map");
+    }
+
+    [Test]
+    public void OneWay_ASideStreetIsARampOntoIt()
+    {
+        var grid = new GridData(20, 20);
+        Highway(grid, 10, 0, 19, RoadLayout.East);
+        for (int y = 8; y <= 9; y++) grid.SetRoadTier(V(10, y), RoadTiers.Paved);
+        Grown(grid, 11, 8, ZoneType.Residential);       // beside the street
+        Grown(grid, 14, 11, ZoneType.Commercial);       // beside the highway, ahead
+        TrafficSystem traffic = Traffic(grid);
+        traffic.Update(1f, 1f, 1f);
+
+        Assert.AreEqual(4f, traffic.Load(V(10, 9)), 1e-4f);
+        Assert.AreEqual(4f, traffic.Load(V(10, 10)), 1e-4f, "the ramp joins the highway");
+        Assert.AreEqual(4f, traffic.Load(V(14, 10)), 1e-4f);
+    }
+
+    [Test]
+    public void OneWay_AHeadOnCellBlocksTheRoute()
+    {
+        var grid = new GridData(20, 20);
+        Row(grid, 10, 0, 19, RoadTiers.Paved);
+        grid.SetRoadTier(V(12, 10), RoadTiers.Highway);
+        grid.SetRoadDirection(V(12, 10), RoadLayout.West);     // between the home and its shop, against the trip
+        Grown(grid, 10, 11, ZoneType.Residential);
+        Grown(grid, 14, 9, ZoneType.Commercial);
+        TrafficSystem traffic = Traffic(grid);
+        traffic.Update(1f, 1f, 1f);
+
+        Assert.AreEqual(0f, traffic.Load(V(14, 10)), 1e-4f, "the shop cannot be reached");
+        Assert.AreEqual(4f, traffic.Load(V(0, 10)), 1e-4f, "so the commute leaves by the west edge");
+    }
+
+    [Test]
+    public void OneWay_AHomeWithNoRoutePutsNoTripsOnTheRoads()
+    {
+        var grid = new GridData(20, 20);
+        Highway(grid, 10, 0, 9, RoadLayout.East);
+        Highway(grid, 10, 10, 19, RoadLayout.West);             // two streams meeting nose to nose, no exit
+        Grown(grid, 10, 11, ZoneType.Residential);
+        TrafficSystem traffic = Traffic(grid);
+        traffic.Update(1f, 1f, 1f);
+
+        Assert.AreEqual(0f, traffic.Trips, 1e-4f);
+        Assert.AreEqual(0f, traffic.HomeTrips(V(10, 11)), 1e-4f);
+        Assert.AreEqual(0f, traffic.CommuteCongestion(V(10, 11)), 1e-4f);
+    }
+
+    [Test]
+    public void OneWay_FlowIsDeterministic()
+    {
+        GridData Build()
+        {
+            var grid = new GridData(20, 20);
+            Highway(grid, 10, 0, 19, RoadLayout.East);
+            Row(grid, 5, 0, 19, RoadTiers.Paved);
+            for (int y = 6; y <= 9; y++) grid.SetRoadTier(V(8, y), RoadTiers.Paved);
+            Grown(grid, 9, 6, ZoneType.Residential);
+            Grown(grid, 9, 7, ZoneType.Residential);
+            Grown(grid, 15, 11, ZoneType.Commercial);
+            return grid;
+        }
+        GridData gridA = Build(), gridB = Build();
+        TrafficSystem a = Traffic(gridA), b = Traffic(gridB);
+        a.Update(1f, 1f, 1f);
+        b.Update(1f, 1f, 1f);
+        for (int y = 0; y < 20; y++)
+        {
+            for (int x = 0; x < 20; x++) Assert.AreEqual(b.Load(V(x, y)), a.Load(V(x, y)), 1e-5f, $"({x},{y})");
+        }
+        Assert.Greater(a.Trips, 0f);
+    }
 }
