@@ -48,6 +48,8 @@ Editor frame times mislead: Hierarchy/editor overhead makes GameObject create/de
 
 | M23e (96² stress city with Low / Medium / High per block; Modern Low/High kit prefabs, stretch fallback elsewhere) | 1.28 ms | 1.62 ms | 2.4-2.9 ms | 2.38 ms |
 
+| M24e (goods: the benchmark city is age-less, so goods are off there; O(1) per tick) | 1.33 ms | 1.60 ms | 2.35-2.65 ms | 2.37 ms |
+
 Regressions to watch: per-instance materials or `MaterialPropertyBlock`s (they drop renderers out of the SRP Batcher / GPU Resident Drawer — this was 23 ms frames / 110 ms zoomed out before M10b), creating/destroying GameObjects per change instead of pooling, and per-tick full-map scans in new sim systems.
 
 Record new numbers in this table and in GamePlan §12's milestone notes.
