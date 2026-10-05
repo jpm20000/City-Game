@@ -425,7 +425,7 @@ public sealed class ToolbarController : MonoBehaviour
                        "taller blocks, more traffic and pollution, a little less land value around. Needs power and water before it starts growing. " +
                        $"Shops from the {m_GameManager.HighDensityAgeName(ZoneType.Commercial)}; homes and factories from the {m_GameManager.HighDensityAgeName(ZoneType.Residential)}.";
             default:
-                return "Medium density\nThe standard block. Pick a density, then paint a zone (or paint over one to change it).";
+                return $"Medium density\nThe standard block. Opens in the {m_GameManager.MediumDensityAgeName}; before it only Low density can be zoned. Pick a density, then paint a zone (or paint over one to change it).";
         }
     }
 
@@ -683,6 +683,7 @@ public sealed class ToolbarController : MonoBehaviour
             var density = (Density)i;
             m_DensityButtons[i].SetActive(m_Placement.DensityBrush == density);
             if (density == Density.High) m_DensityButtons[i].gameObject.SetActive(m_GameManager.HighDensityUnlocked(densityZone));
+            else if (density == Density.Medium) m_DensityButtons[i].gameObject.SetActive(m_GameManager.MediumDensityUnlocked);
         }
         SetActive(m_DemolishButton, mode == PlacementController.Mode.Demolish);
         InfoOverlay.View view = m_InfoOverlay != null ? m_InfoOverlay.Shown : InfoOverlay.View.Off;

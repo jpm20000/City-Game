@@ -145,6 +145,20 @@ public sealed class GameManager : MonoBehaviour
     // The age index the sim is in (2 = Industrial without age data, like the ground art).
     public int CurrentAgeIndex => Simulation != null && Simulation.Tech != null ? Simulation.Tech.CurrentAge : 2;
 
+    // Whether Medium density may be zoned yet (M23): before the Renaissance only Low is offered.
+    public bool MediumDensityUnlocked => CurrentAgeIndex >= Balance.MediumDensityMinAge;
+
+    // The age name Medium density opens in.
+    public string MediumDensityAgeName
+    {
+        get
+        {
+            AgeDatabase ages = Simulation?.Tech?.Ages;
+            int age = Balance.MediumDensityMinAge;
+            return ages != null && ages.IsValidIndex(age) ? ages[age].DisplayName : $"age {age}";
+        }
+    }
+
     // Whether High density may be zoned for a zone type yet (M23): shops from the Renaissance, the rest from the Industrial age.
     public bool HighDensityUnlocked(ZoneType zone) => CurrentAgeIndex >= Balance.HighDensityMinAge(zone);
 

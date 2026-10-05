@@ -43,7 +43,18 @@ public sealed class PlacementController : MonoBehaviour
 
     public Mode CurrentMode => m_Mode;
     public ZoneType ZoneBrush => m_ZoneBrush;
-    public Density DensityBrush => m_DensityBrush;
+
+    // The density the brush paints now: the picked one, or the nearest allowed while the age has not unlocked it (M23).
+    public Density DensityBrush
+    {
+        get
+        {
+            ZoneType zone = m_ZoneBrush != ZoneType.None ? m_ZoneBrush : m_LastZone;
+            if (m_DensityBrush == Density.High && !m_GameManager.HighDensityUnlocked(zone)) return m_GameManager.MediumDensityUnlocked ? Density.Medium : Density.Low;
+            if (m_DensityBrush == Density.Medium && !m_GameManager.MediumDensityUnlocked) return Density.Low;
+            return m_DensityBrush;
+        }
+    }
     public BuildingDefinition SelectedBuilding => m_Selected;
 
     // The Road tool's tier choice: 0 = the street tool (best unlocked street tier), else a tier (Avenue, Highway).
@@ -159,6 +170,7 @@ public sealed class PlacementController : MonoBehaviour
     public void SelectDensity(Density density)
     {
         if (density == Density.High && !m_GameManager.HighDensityUnlocked(m_ZoneBrush != ZoneType.None ? m_ZoneBrush : m_LastZone)) return;
+        if (density == Density.Medium && !m_GameManager.MediumDensityUnlocked) return;
         m_DensityBrush = density;
         if (m_Mode == Mode.Zone && m_ZoneBrush != ZoneType.None) ModeChanged?.Invoke();
         else SelectZone(m_LastZone);
@@ -359,7 +371,7 @@ public sealed class PlacementController : MonoBehaviour
     {
         if (!CanZone(cell)) return;
         bool zoning = m_ZoneBrush != ZoneType.None;
-        Density density = zoning ? m_DensityBrush : Density.Medium;
+        Density density = zoning ? DensityBrush : Density.Medium;
         if (density == Density.High && !m_GameManager.HighDensityUnlocked(m_ZoneBrush)) return;
         ClearRubble(cell);      // painting over rubble clears it (M17)
         if (m_GridData.GetZone(cell) == m_ZoneBrush)
@@ -953,16 +965,12 @@ public sealed class PlacementController : MonoBehaviour
             case Mode.Zone:
                 if (m_GridData.IsRoad(cell)) SetHint("Can't zone a road", false);
                 else if (m_GridData.IsOccupied(cell)) SetHint("Can't zone under a building", false);
-                else if (m_ZoneBrush != ZoneType.None && m_DensityBrush != Density.Medium)
+                else if (m_ZoneBrush != ZoneType.None && DensityBrush != Density.Medium)
                 {
-                    if (m_DensityBrush == Density.High && !m_GameManager.HighDensityUnlocked(m_ZoneBrush))
-                    {
-                        SetHint($"High density opens in the {m_GameManager.HighDensityAgeName(m_ZoneBrush)}", false);
-                        break;
-                    }
-                    int shrink = m_GridData.GetZone(cell) == m_ZoneBrush ? ShrinkOf(cell, m_DensityBrush) : 0;
+                    Density brush = DensityBrush;
+                    int shrink = m_GridData.GetZone(cell) == m_ZoneBrush ? ShrinkOf(cell, brush) : 0;
                     string note = shrink > 0 ? $"  — {shrink} fewer {(m_ZoneBrush == ZoneType.Residential ? "residents" : "jobs")}, asks first" : string.Empty;
-                    SetHint($"{m_ZoneBrush} — {DensityUtils.Name(m_DensityBrush)} density{note}", true);
+                    SetHint($"{m_ZoneBrush} — {DensityUtils.Name(brush)} density{note}", true);
                 }
                 break;
         }

@@ -104,6 +104,8 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private int m_HighDensityMinAgeCommercial = 1;
     [Tooltip("(tuned, M23) Age index from which High density can be zoned for homes and factories (Industrial).")]
     [SerializeField] private int m_HighDensityMinAgeOther = 2;
+    [Tooltip("(tuned, M23) Age index from which Medium density can be zoned (Renaissance); before it only Low is offered. 0 = always.")]
+    [SerializeField] private int m_MediumDensityMinAge = 1;
     [Tooltip("(tuned, M23) Land value a Low-density cell gains (quiet streets, gardens).")]
     [SerializeField] private float m_LowDensityLandValue = 0.05f;
     [Tooltip("(tuned, M23) Land value a High-density cell loses (crowding).")]
@@ -393,6 +395,9 @@ public sealed class BalanceConfig : ScriptableObject
             default: return 1f;
         }
     }
+
+    // First age index in which Medium density can be painted (M23); Low is always available.
+    public int MediumDensityMinAge => m_MediumDensityMinAge;
 
     // First age index in which the zone can be painted High (M23).
     public int HighDensityMinAge(ZoneType zone)
