@@ -65,6 +65,7 @@ public sealed class ToolbarController : MonoBehaviour
     private ToolButton m_HighwayButton;
     private ToolButton m_TrafficViewButton;    // M16: made at runtime from the Value view button
     private float m_FittedWidth = -1f;
+    private float m_FittedAvailable = -1f;
 
     // M13: the toolbar keeps gaining buttons; when it is wider than the screen (minus a margin) it
     // scales down to fit instead of running off both edges.
@@ -74,9 +75,11 @@ public sealed class ToolbarController : MonoBehaviour
         var parent = rect.parent as RectTransform;
         if (parent == null) return;
         float width = rect.rect.width;
-        if (Mathf.Approximately(width, m_FittedWidth)) return;
-        m_FittedWidth = width;
         float available = parent.rect.width - 2f * m_ScreenMargin;
+        // Refit when the bar or the canvas changes width (UI scale, window size), not only when the bar does (M20).
+        if (Mathf.Approximately(width, m_FittedWidth) && Mathf.Approximately(available, m_FittedAvailable)) return;
+        m_FittedWidth = width;
+        m_FittedAvailable = available;
         float scale = width > available && width > 0f ? available / width : 1f;
         rect.localScale = new Vector3(scale, scale, 1f);
     }

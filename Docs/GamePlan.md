@@ -785,7 +785,7 @@ decision, Industrial start re-recorded at 220 pop / 0.631; no save change; Servi
 
 The first update after 1.0.0, from player feedback; roadmap, order and shared decisions in
 [`milestones/v1.1/Roadmap.md`](milestones/v1.1/Roadmap.md). The IMPORTANT items (rotatable camera, building toolbar groups, visible
-New City switches) are **M20 — Camera & toolbar**, planned in [`milestones/v1.1/M20.md`](milestones/v1.1/M20.md) (next). Then
+New City switches) are **M20 — Camera & toolbar** ([`milestones/v1.1/M20.md`](milestones/v1.1/M20.md)) — **done (2026-10-05)**: visible switches (20a), building group flyouts (20b), one Views flyout (20c), the rotatable camera (20d), `CameraToolbarDriver` and a WebGL check (20e). Next: M21. Then
 M21 progression & feedback (research costs, paved before avenues, repair icons), M22 road layout (2-wide avenues,
 one-way highways, save v8), M23 density & Modern skyline (save v9), M24 goods (save v10), M25 custom assets and
 M26 release 1.1.
