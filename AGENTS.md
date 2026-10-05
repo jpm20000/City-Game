@@ -1,9 +1,9 @@
 # AGENTS.md
 
 ## Project
-- Unity **6000.6.3f1**, URP 17.6.0, Linear, PC target, new Input System only (`activeInputHandler: 1`).
+- Unity **6000.6.3f1**, URP 17.6.0, Linear, PC (Windows) target plus a WebGL build, new Input System only (`activeInputHandler: 1`).
 - Isometric 2.5D city-builder with an abstract (statistical) simulation. Design, roadmap and the per-system reference: `Docs/GamePlan.md` (§12 roadmap, §13 systems).
-- **Roadmap M10–M19 (complete)** (`Docs/GamePlan.md` §12): the city spans history through 4 ages (Medieval 750, Renaissance 1450, Industrial 1760, Modern 1945) with research, a tech tree and a selectable starting age. M10 (map size, perf, New City), M11 (ages, research, save v2), M12 (local pollution, land value, heritage), M13 (water: wells, towers, pipes, save v3) M14 (civic services: order, fire, health, education) M15 (budget: funding per service line, loans, ordinances, save v4) M16 (traffic: homes→jobs commute flow, five road tiers, Traffic view, save v5), M17 (disasters & events: fire, plague, breakdowns, random events with choices, a seeded saved RNG, save v6) M18 (art & atmosphere: a generated building kit, textured roads and ground, day/night, audio, vehicles; presentation only, no save change) and M19 (release: title screen over a showcase city, pause menu and one Esc router, named saves with thumbnails and autosaves, save v7, one Settings window with rebindable keys, a Medieval tutorial, a Windows release **Chronopolis 1.0.0** by J-man Studios with installer and `-smokeTest`) are **done**; the roadmap is complete. Standing rules: see **Roadmap M11–M19** below; where each later milestone plugs in: `Docs/GamePlan.md` §12.
+- **Status: the M0–M19 roadmap is complete.** The game is **Chronopolis** by J-man Studios, version 1.0.0 (Windows installer + zip, and a WebGL build). It spans four ages (Medieval 750, Renaissance 1450, Industrial 1760, Modern 1945) with research and a tech tree; M10–M19 added map size, ages, pollution and land value, water, civic services, the budget, traffic, disasters and events, art and atmosphere, and the release (title screen, saves, settings, controls, tutorial). What each milestone built: `Docs/GamePlan.md` §12 (roadmap) and §13 (systems as built); each plan: `Docs/milestones/Mxx.md`. Standing rules below apply to any new work.
 - Game code lives under `Assets/_Game/` (never at `Assets/` root). Default scene: `Assets/_Game/Scenes/Main.unity`.
 
 ## Build / run / test
@@ -17,9 +17,10 @@ Step-by-step procedures live in skills (load the one that fits the task); per-sy
 - `milestone-workflow` — planning and implementing a roadmap milestone or step (plan in `Docs/milestones/Mxx.md`, per-step verify / document / commit loop, done-when).
 - `unity-test-loop` — Unity MCP bridge and RunCommand rules, running EditMode tests via MCP, offline compile checks, domain reloads.
 - `unity-playmode-check` — Play-mode checks, fast-forwarding, screenshots (incl. the UI), protecting the save slot.
-- `virtual-input-playthrough` — UI-only play-throughs with a virtual mouse/keyboard; `PlaythroughDriver.cs` is the M11g template.
+- `virtual-input-playthrough` — UI-only play-throughs with a virtual mouse/keyboard; committed drivers under `Scripts/Editor/Playthrough/` (`FinishDriver` = whole front end, `ControlsDriver`, `TutorialDriver`) are the current templates, `PlaythroughDriver.cs` (in the skill) the older M11g one.
 - `scene-prefab-editing` — editing `Main.unity`, prefabs and assets from scripts (reference wiring, driven-layout overrides, prefab building, hand-written `.meta`s, generated content).
 - `perf-benchmark` — development player build + `PerfBenchmark`, baseline numbers, reverting build churn.
+- `webgl-build` — building the browser version, the `#if UNITY_WEBGL` differences, switching the Editor back to Windows, caching traps.
 - `balance-tuning` — tuning `BalanceConfig` and content with `SeededCity` / `EngagedCity`, balance tests and baselines.
 
 ## C# / scripts
@@ -36,12 +37,12 @@ Step-by-step procedures live in skills (load the one that fits the task); per-sy
 - Layers: `Ground`=8, `Buildings`=9, `Ghost`=10.
 - **Not `IsometricZAsY`** — `Docs/GamePlan.md` §2/§5 is stale on this point.
 
-## Roadmap M11–M19
-Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M19 exist) — read only the one you need.
+## Roadmap M11–M19 (done) and standing rules
+Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M19 exist, all done) — read only the one you need. A new milestone starts with a plan there (`milestone-workflow`).
 
 **Workflow:** follow the `milestone-workflow` skill — plan in `Docs/milestones/Mxx.md` first, commit each step on its own; a milestone is done when EditMode tests are green, a **UI-only virtual-input play-through** of its loop passes (`virtual-input-playthrough`) and the docs (GamePlan §13 Systems reference + §8/§12 status; this file only if a convention changed) are updated.
 
-**Standing rules (carry these into M12–M19)**
+**Standing rules (from M12–M19; they still apply)**
 - **Pure sim.** Rules and data live in `CityBuilder.Simulation` (ScriptableObjects referencing buildings by `Id` string; `BuildingDefinition` stays in `Assembly-CSharp`). Runtime code only feeds it (`CityModifiers`, `ServiceSource`) and draws it.
 - **The age-less sim is the regression baseline.** `SimulationSystem` built without age/tech databases must keep today's numbers (the legacy seeded-city tests); a new system either stays out of that path or the plan says explicitly which baseline numbers change and why. Industrial start with real content = the accepted M11 baseline (`AgeBalanceTests.IndustrialStart_RealContent_Baseline`).
 - **Per-cell state** must survive `GridData.Resize` (reallocate on `OnResized`), and anything tied to growth clears when a cell's level drops to 0 (like built age / historic). Capacity only through `CapacityModel`; growth gates and their explanations through `GrowthSystem` + `GrowthBlocker` (+ `SelectionPanel` text).
@@ -51,11 +52,10 @@ Each milestone's full plan is its own file, `Docs/milestones/Mxx.md` (M10–M19 
 - **Rendering.** Shared materials only (no per-instance materials or `MaterialPropertyBlock`s), pooled objects; re-run `PerfBenchmark` in a player build (`perf-benchmark`) when a milestone adds many renderers or per-frame work.
 - **Presentation reads the sim, never writes it.** Day/night, audio and vehicles (M18) take data from the sim and the calendar, use their own randomness (never `SimRandom`), keep their settings in `PlayerPrefs` (not the city save), and are created at runtime by `GameManager` from one scene reference each; a missing asset means silence / the old look, never an error. The building kit, tile art and audio are generated (`Generate Building Kit` menu, `Tools/gen_tiles.py`, `Tools/gen_audio.py`): edit the generator tables, re-run, commit Unity's rewritten `.meta`s.
 - **UI patterns.** New events go in `GameEvents` (+ `ResetSubscribers`). Info views: add an `InfoOverlay.View` value + `IsAvailable` rule + a `VIEW` `ToolButton`. Features that need a tech stay hidden until unlocked (the `GameManager.PowerUnlocked` pattern for HUD groups, views and toasts). Panels under the HUD share the `SidePanels` slot.
-
-**Where M13–M19 plug in:** `Docs/GamePlan.md` §12 → *Where M13–M19 plug in (integration notes)*. Decide the details in each milestone's plan.
+- **Platforms.** Desktop is the reference build. WebGL-only behaviour goes behind `#if UNITY_WEBGL` (or `Application.platform`), leaving the desktop path as it was; after any WebGL build switch the Editor back to Windows and revert the settings churn (`webgl-build`). Release builds: `CityBuilder > Build Windows Release` (then `-smokeTest -savesDir <folder>`) and `CityBuilder > Build WebGL`; `Build/` is never committed.
 
 ## Systems reference
-Per-system notes (what each class does, tuned numbers, test names) live in `Docs/GamePlan.md` **§13 Systems reference**, not here — read the section for the system you are touching before editing it, and update it in the same commit (`milestone-workflow` step 4). Sections: Camera · Input · Grid · Placement · Roads (M5) · Simulation (M6) · Core / Buildings (M4, M6) · Services & power (M9) · Ages & research (M11) · Land value & pollution (M12) · Water (M13) · Civic services (M14) · Save / load (M8) · UI (M7).
+Per-system notes (what each class does, tuned numbers, test names) live in `Docs/GamePlan.md` **§13 Systems reference**, not here — read the section for the system you are touching before editing it, and update it in the same commit (`milestone-workflow` step 4). Sections: Camera · Input · Grid · Placement · Roads (M5) · Simulation (M6) · Core / Buildings (M4, M6) · Services & power (M9) · Ages & research (M11) · Land value & pollution (M12) · Water (M13) · Civic services (M14) · Budget (M15) · Traffic (M16) · Disasters & events (M17) · Release (M19) · Save / load (M8) · UI (M7, with the M19 front end, settings, controls and tutorial).
 Keep this file to conventions and standing rules; put new per-system detail in §13 and procedures in a skill.
 
 ## Unity 6 gotchas
