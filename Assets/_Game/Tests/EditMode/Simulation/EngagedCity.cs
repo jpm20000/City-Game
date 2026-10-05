@@ -239,6 +239,7 @@ internal sealed class EngagedCity
     private void ZoneBlock(Vector2Int origin, ZoneType zone)
     {
         int last = RoadSpacing - 2;
+        Density density = DensityFor(zone);
         for (int y = 0; y <= last; y++)
         {
             for (int x = 0; x <= last; x++)
@@ -246,9 +247,11 @@ internal sealed class EngagedCity
                 if (x != 0 && x != last && y != 0 && y != last) continue;
                 Vector2Int cell = origin + new Vector2Int(x, y);
                 Grid.SetZone(cell, zone);
+                if (DensityUse != DensityMode.Off) Grid.SetDensity(cell, density);
                 m_ZonedCells.Add(cell);
             }
         }
+        m_BlocksZoned++;
     }
 
     private const float Cushion = 2000f;
@@ -308,7 +311,11 @@ internal sealed class EngagedCity
         Sim.Tick();
         Day++;
         if (Sim.Disasters.Enabled) CountDisasters();
-        if (Sim.Tech.CurrentAge != age) AgeEntries.Add((Day, Sim.Tech.CurrentAge, Sim.Population.Population));
+        if (Sim.Tech.CurrentAge != age)
+        {
+            AgeEntries.Add((Day, Sim.Tech.CurrentAge, Sim.Population.Population));
+            RetuneDensities();
+        }
         if (Sim.Population.Population >= m_Config.SmallTownGracePopulation) MinHappiness = Mathf.Min(MinHappiness, Sim.Population.AverageHappiness);
         MinMoney = Mathf.Min(MinMoney, Sim.Economy.Money);
     }
@@ -454,6 +461,33 @@ internal sealed class EngagedCity
     // 100% (that lever is the human's), and takes one loan when it has been saving for a must-build for a while.
     public bool UseBudget { get; set; }
     public int LoansTaken { get; private set; }
+
+    // --- Density (M23e) ---
+    // Off (default): every block is Medium, the regression baseline. Gated: the player paints what the age allows
+    // (Low before the Renaissance, Medium after) and repaints Low blocks to Medium when it opens. Mixed: also High
+    // homes and shops in alternate blocks once High is unlocked for the zone.
+    public enum DensityMode { Off, Gated, Mixed }
+    public DensityMode DensityUse { get; set; }
+    private int m_BlocksZoned;
+
+    private Density DensityFor(ZoneType zone)
+    {
+        if (DensityUse == DensityMode.Off) return global::Density.Medium;
+        int age = Sim.Tech.CurrentAge;
+        if (age < m_Config.MediumDensityMinAge) return global::Density.Low;
+        if (DensityUse == DensityMode.Mixed && zone != ZoneType.Industrial && age >= m_Config.HighDensityMinAge(zone) && m_BlocksZoned % 2 == 0) return global::Density.High;
+        return global::Density.Medium;
+    }
+
+    // A Low block painted before Medium opened is repainted when it does (free, like any zoning).
+    private void RetuneDensities()
+    {
+        if (DensityUse == DensityMode.Off || Sim.Tech.CurrentAge < m_Config.MediumDensityMinAge) return;
+        foreach (Vector2Int cell in m_ZonedCells)
+        {
+            if (Grid.GetDensity(cell) == global::Density.Low) Grid.SetDensity(cell, global::Density.Medium);
+        }
+    }
     private int m_SavingDays;
 
     public string BudgetReport()

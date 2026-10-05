@@ -273,6 +273,7 @@ public sealed class PerfBenchmark : MonoBehaviour
                 int block = (x / 5 + y / 5) % 3;
                 grid.SetZone(cell, block == 0 ? ZoneType.Residential : block == 1 ? ZoneType.Commercial : ZoneType.Industrial);
                 grid.SetBuiltAge(cell, (byte)((x / 5 * 7 + y / 5 * 3) % ageCount));
+                grid.SetDensity(cell, (Density)((x / 5 + y / 5) % DensityUtils.Count));   // M23: Low / Medium / High per block
                 grid.SetBuildingLevel(cell, 3);
             }
         }

@@ -44,6 +44,46 @@ public sealed class AgeBalanceTests
         Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
     }
 
+    // M23e: the same targets with the density player. Gated = what the toolbar allows (Low in the Medieval age, Medium
+    // from the Renaissance, repainted when it opens); Mixed = also High homes and shops in alternate blocks once High
+    // opens. Measured: Gated 236 / 143 / 210 days, Modern on day 589 (2516 pop); Mixed 236 / 143 / 203, day 582 (2624 pop);
+    // the Off run is the baseline above (199 / 181 / 253, day 633).
+    [TestCase(1)]
+    [TestCase(2)]
+    public void FromMedieval_WithDensity_EachAgeTakes45To90Days_AndReachesModern(int mode)
+    {
+        var city = new EngagedCity(m_Config, 0) { DensityUse = (EngagedCity.DensityMode)mode };
+        for (int day = 0; day < 1000 && city.Sim.Tech.CurrentAge < 3; day++) city.RunDay();
+        TestContext.WriteLine(city.Report());
+
+        Assert.AreEqual(3, city.Sim.Tech.CurrentAge, "reaches the Modern age within 1000 days");
+        for (int i = 1; i < city.AgeEntries.Count; i++)
+        {
+            int span = city.AgeEntries[i].day - city.AgeEntries[i - 1].day;
+            Assert.That(span, i == 1 ? Is.InRange(120, 260) : Is.InRange(100, 320), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
+        }
+        Assert.GreaterOrEqual(city.MinHappiness, 0.40f);
+        Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
+    }
+
+    // Later starts with High blocks in the mix: still growing and solvent (Industrial 244 -> 753 pop, happiness 0.64;
+    // Modern 314 -> 630, 0.78).
+    [TestCase(2)]
+    [TestCase(3)]
+    public void LaterStart_WithMixedDensity_KeepsGrowing(int startAge)
+    {
+        var city = new EngagedCity(m_Config, startAge) { DensityUse = EngagedCity.DensityMode.Mixed };
+        city.RunDays(60);
+        int at60 = city.Sim.Population.Population;
+        city.RunDays(60);
+        TestContext.WriteLine(city.Report());
+
+        Assert.Greater(at60, 150);
+        Assert.Greater(city.Sim.Population.Population, at60 * 1.9f, "still growing between day 60 and 120");
+        Assert.GreaterOrEqual(city.MinHappiness, 0.55f);
+        Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
+    }
+
     // M17f: the same targets with disasters on (fires, plague, breakdowns and events from fixed seeds), the engaged
     // player rebuilding, repairing and answering events. The off runs above stay the regression baseline.
     [TestCase(1ul, false)]
