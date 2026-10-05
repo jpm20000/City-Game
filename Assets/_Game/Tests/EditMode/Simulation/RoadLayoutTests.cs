@@ -52,7 +52,7 @@ public sealed class RoadLayoutTests
         // A points east, B (east of A) is two-way: A -> B ok, B -> A not (A would be entered from its front).
         Assert.IsTrue(RoadLayout.CanStep(A, RoadLayout.East, east, 0));
         Assert.IsFalse(RoadLayout.CanStep(east, 0, A, RoadLayout.East), "head-on into a one-way cell");
-        Assert.IsFalse(RoadLayout.CanStep(A, RoadLayout.East, A + Vector2Int.up, 0), "a one-way cell cannot turn out of its side");
+        Assert.IsTrue(RoadLayout.CanStep(A, RoadLayout.East, A + Vector2Int.up, 0), "a one-way cell may leave sideways into a street (an off-ramp)");
         Assert.IsFalse(RoadLayout.CanStep(A, RoadLayout.East, A + Vector2Int.left, 0), "or back");
     }
 
@@ -65,7 +65,7 @@ public sealed class RoadLayoutTests
         Assert.IsTrue(RoadLayout.CanStep(street, 0, highway, RoadLayout.North), "side ramp on");
         Assert.IsTrue(RoadLayout.CanStep(A + Vector2Int.down, 0, highway, RoadLayout.North), "from behind");
         Assert.IsFalse(RoadLayout.CanStep(A + Vector2Int.up, 0, highway, RoadLayout.North), "from the front");
-        Assert.IsFalse(RoadLayout.CanStep(highway, RoadLayout.North, street, 0), "no side exit: it only leaves ahead");
+        Assert.IsTrue(RoadLayout.CanStep(highway, RoadLayout.North, street, 0), "and leave sideways into the street");
     }
 
     [Test]
@@ -614,5 +614,45 @@ public sealed class RoadLayoutTests
         Assert.AreEqual(RoadLayout.LaneProblem.Taken, RoadLayout.CheckPair(grid, V(6, 7), RoadLayout.South, RoadTiers.Avenue));
         Assert.AreEqual(RoadLayout.LaneProblem.Taken, RoadLayout.CheckPair(grid, V(12, 7), RoadLayout.East, RoadTiers.Avenue),
             "one lane on the avenue, the other off it");
+    }
+
+    // --- branches off one-way highways (second play-test) ---
+
+    [Test]
+    public void Branch_ACarriagewayFeedsAndIsFedByAHighwayBranch_ButNotAParallelCarriageway()
+    {
+        var grid = new GridData(12, 12);
+        for (int x = 2; x <= 8; x++) OneWayCell(grid, x, 5, RoadLayout.East);       // the carriageway
+        OneWayCell(grid, 5, 6, RoadLayout.North);                                   // a branch leaving it
+        OneWayCell(grid, 7, 4, RoadLayout.North);                                   // a branch joining it
+        for (int x = 2; x <= 8; x++) OneWayCell(grid, x, 3, RoadLayout.West);       // the other carriageway, one cell apart from (7,4)'s foot
+
+        Assert.IsTrue(RoadLayout.CanStep(grid, V(5, 5), V(5, 6)), "an off-ramp onto a branch that flows away");
+        Assert.IsTrue(RoadLayout.CanStep(grid, V(7, 4), V(7, 5)), "a branch pointing at the carriageway merges");
+        Assert.IsFalse(RoadLayout.CanStep(grid, V(5, 6), V(5, 5)), "the branch leaving it cannot be driven the wrong way");
+
+        var parallel = new GridData(12, 12);
+        for (int x = 2; x <= 8; x++) OneWayCell(parallel, x, 5, RoadLayout.East);
+        for (int x = 2; x <= 8; x++) OneWayCell(parallel, x, 6, RoadLayout.West);
+        Assert.IsFalse(RoadLayout.CanStep(parallel, V(4, 5), V(4, 6)), "no cutting between carriageways");
+        Assert.IsFalse(RoadLayout.CanStep(parallel, V(4, 6), V(4, 5)));
+
+        var twoWay = new GridData(12, 12);
+        for (int x = 2; x <= 8; x++) OneWayCell(twoWay, x, 5, RoadLayout.East);
+        for (int x = 2; x <= 8; x++) twoWay.SetRoadTier(V(x, 6), RoadTiers.Highway);
+        Assert.IsFalse(RoadLayout.CanStep(twoWay, V(4, 5), V(4, 6)), "nor into a two-way highway beside it");
+    }
+
+    [Test]
+    public void Joined_BranchesAndBendsJoin_ParallelCarriagewaysDoNot()
+    {
+        Assert.IsTrue(RoadLayout.Joined(V(3, 3), 0, V(3, 4), 0), "two-way cells");
+        Assert.IsTrue(RoadLayout.Joined(V(3, 3), RoadLayout.East, V(4, 3), RoadLayout.East), "a straight run");
+        Assert.IsTrue(RoadLayout.Joined(V(3, 3), RoadLayout.North, V(3, 4), RoadLayout.East), "a bend: the first points at the second");
+        Assert.IsTrue(RoadLayout.Joined(V(3, 3), RoadLayout.East, V(3, 4), RoadLayout.North), "a branch flowing away from the carriageway");
+        Assert.IsTrue(RoadLayout.Joined(V(3, 4), RoadLayout.North, V(3, 3), RoadLayout.East), "the same pair seen from the branch");
+        Assert.IsFalse(RoadLayout.Joined(V(3, 3), RoadLayout.East, V(3, 4), RoadLayout.West), "opposite carriageways side by side");
+        Assert.IsFalse(RoadLayout.Joined(V(3, 3), RoadLayout.East, V(3, 4), RoadLayout.East), "same-way carriageways side by side");
+        Assert.IsFalse(RoadLayout.Joined(V(3, 3), RoadLayout.East, V(3, 4), 0), "a one-way run beside a two-way highway");
     }
 }

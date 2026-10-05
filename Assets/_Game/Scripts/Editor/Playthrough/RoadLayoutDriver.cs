@@ -240,6 +240,9 @@ public static class RoadLayoutDriver
             yield return Drag(V(13, 22), V(14, 22), V(15, 22), V(16, 22));
             yield return Drag(V(16, 23), V(15, 23), V(14, 23), V(13, 23));
             Check(grid.GetRoadDirection(V(14, 22)) == RoadLayout.East && grid.GetRoadDirection(V(14, 23)) == RoadLayout.West, "two highways run in opposite directions");
+            yield return Drag(V(15, 24), V(15, 25), V(15, 26));         // a branch leaving the westbound carriageway
+            Check(grid.GetRoadDirection(V(15, 25)) == RoadLayout.North, "the branch points away from the carriageway");
+            Check(RoadLayout.CanStep(grid, V(15, 23), V(15, 24)) && !RoadLayout.CanStep(grid, V(15, 22), V(15, 23)), "traffic can leave onto the branch but not cut between carriageways");
             yield return Frames(6);
             ScreenCapture.CaptureScreenshot(shotPath.Replace(".png", "_parallel.png"));
             yield return Seconds(1.5f);

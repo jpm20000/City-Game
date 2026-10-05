@@ -47,12 +47,8 @@ public static class RoadLayout
     // May a vehicle step from `from` to the adjacent cell `to`? The cell it leaves must be two-way or point at
     // the next cell, and the cell it enters must be two-way or not point back at it (no head-on entry; entering
     // from behind or from the side is a ramp). dirFrom / dirTo are the cells' highway direction codes.
-    public static bool CanStep(Vector2Int from, byte dirFrom, Vector2Int to, byte dirTo)
-    {
-        if (dirFrom != None && from + Offset(dirFrom) != to) return false;
-        if (dirTo != None && to + Offset(dirTo) == from) return false;
-        return true;
-    }
+    public static bool CanStep(Vector2Int from, byte dirFrom, Vector2Int to, byte dirTo) =>
+        CanStep(from, dirFrom, None, 0, to, dirTo, 0);
 
     // The same, and a paired avenue's median is a wall: no step from a lane to its partner lane.
     public static bool CanStep(Vector2Int from, byte dirFrom, byte pairFrom, Vector2Int to, byte dirTo)
@@ -61,10 +57,47 @@ public static class RoadLayout
         return CanStep(from, dirFrom, to, dirTo);
     }
 
+    // The full rule (traffic and vehicles). A one-way cell leaves ahead, or sideways into a street or a one-way cell that
+    // flows away from it (an off-ramp); never backwards, never into a two-way highway beside it (that would cut between
+    // carriageways), and nothing enters a one-way cell head-on (merging from the side or behind is a ramp).
+    public static bool CanStep(Vector2Int from, byte dirFrom, byte pairFrom, byte tierFrom, Vector2Int to, byte dirTo, byte tierTo)
+    {
+        if (pairFrom != None && from + Offset(pairFrom) == to) return false;
+        Vector2Int step = to - from;
+        if (dirFrom != None)
+        {
+            Vector2Int ahead = Offset(dirFrom);
+            if (step != ahead)
+            {
+                if (step == -ahead) return false;
+                bool away = dirTo != None && Offset(dirTo) == step;
+                bool street = dirTo == None && tierTo != GridData.HighwayTier;
+                if (!away && !street) return false;
+            }
+        }
+        return !(dirTo != None && to + Offset(dirTo) == from);
+    }
+
     public static bool CanStep(GridData grid, Vector2Int from, Vector2Int to)
     {
         if (!grid.InBounds(from) || !grid.InBounds(to) || !grid.IsRoad(from) || !grid.IsRoad(to)) return false;
-        return CanStep(from, grid.GetRoadDirection(from), grid.GetRoadPair(from), to, grid.GetRoadDirection(to));
+        return CanStep(from, grid.GetRoadDirection(from), grid.GetRoadPair(from), grid.GetRoadTier(from),
+            to, grid.GetRoadDirection(to), grid.GetRoadTier(to));
+    }
+
+    // Whether two adjacent highway cells are one road (drawn joined, and the only places a branch can leave or join):
+    // two-way cells, a cell pointing at the other, a branch flowing away from the other, or a straight chain. Side by
+    // side carriageways (parallel one-way cells) are not.
+    public static bool Joined(Vector2Int a, byte dirA, Vector2Int b, byte dirB)
+    {
+        if (dirA == None && dirB == None) return true;
+        Vector2Int step = b - a;
+        if (dirA != None && a + Offset(dirA) == b) return true;
+        if (dirB != None && b + Offset(dirB) == a) return true;
+        if (dirB != None && Offset(dirB) == step) return true;
+        if (dirA != None && Offset(dirA) == -step) return true;
+        byte axis = FromStep(step);
+        return (dirA == None || IsVertical(dirA) == IsVertical(axis)) && (dirB == None || IsVertical(dirB) == IsVertical(axis));
     }
 
     // A new pair at `cell` / its neighbour on `side` that lies across an existing pair at a right angle (both cells are

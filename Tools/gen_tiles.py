@@ -198,6 +198,8 @@ def near_axis(px, py, center, mask, offset, half):
 
 
 def road_pixel(tier, mask, px, py):
+    if tier == 4:
+        tier = 3                                    # an avenue lane looks exactly like the paved road (M22)
     style = STYLES[tier]
     center = SIZE // 2
     to_w, to_e, to_s, to_n = px, SIZE - 1 - px, SIZE - 1 - py, py

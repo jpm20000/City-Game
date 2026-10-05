@@ -264,7 +264,7 @@ public sealed class TrafficSystem
                     byte tier = m_Tier[nb];
                     if (tier == 0) continue;
                     // The pass runs from the sinks, so relaxing c -> nb is the trip nb -> c (M22: one-way cells).
-                    if (m_OneWay && !RoadLayout.CanStep(new Vector2Int(nx, ny), m_Dir[nb], m_Pair[nb], new Vector2Int(cx, cy), m_Dir[c])) continue;
+                    if (m_OneWay && !RoadLayout.CanStep(new Vector2Int(nx, ny), m_Dir[nb], m_Pair[nb], m_Tier[nb], new Vector2Int(cx, cy), m_Dir[c], m_Tier[c])) continue;
                     int nd = d + m_TierTravel[tier];
                     if (nd >= m_Dist[nb]) continue;
                     m_Dist[nb] = nd;
