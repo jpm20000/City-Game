@@ -142,6 +142,15 @@ public sealed class GameManager : MonoBehaviour
         return age >= 0 && Simulation.Tech.CurrentAge >= age;
     }
 
+    // The toolbar group of a building in the city's current age (M20b): its own group, or LaterToolbarGroup once the
+    // city has reached LaterGroupAge. Without age data it is always the own group.
+    public ToolbarGroup ToolbarGroupFor(BuildingDefinition def)
+    {
+        if (def.LaterToolbarGroup == ToolbarGroup.Auto || string.IsNullOrEmpty(def.LaterGroupAge) || Simulation?.Tech == null) return def.ToolbarGroupOf;
+        int age = Simulation.Tech.Ages.IndexOf(def.LaterGroupAge);
+        return age >= 0 && Simulation.Tech.CurrentAge >= age ? def.LaterToolbarGroup : def.ToolbarGroupOf;
+    }
+
     // Unlocked, not obsolete and not outdated: the toolbar shows it and the placement tool accepts it.
     public bool CanBuild(BuildingDefinition def) => IsUnlocked(def) && !IsObsolete(def) && ReplacementFor(def) == null;
 

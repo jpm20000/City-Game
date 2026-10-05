@@ -212,8 +212,15 @@ public sealed class ContentTests
         foreach (ToolbarGroup group in ToolbarGroups.All) Assert.IsTrue(groups.ContainsValue(group), $"no building in {group}");
         Assert.AreEqual(ToolbarGroup.Utilities, groups["power_plant"]);
         Assert.AreEqual(ToolbarGroup.Parks, groups["park"]);
-        Assert.AreEqual(ToolbarGroup.Parks, groups["fountain"], "the fountain and the well are filed under Parks (asked 2026-10-05)");
-        Assert.AreEqual(ToolbarGroup.Parks, groups["well"]);
+        // The fountain and the well are water buildings until water is piped (Industrial), then they file under Parks.
+        Assert.AreEqual(ToolbarGroup.Utilities, groups["fountain"]);
+        Assert.AreEqual(ToolbarGroup.Utilities, groups["well"]);
+        foreach (string id in new[] { "fountain", "well" })
+        {
+            var later = new SerializedObject(AssetDatabase.LoadAssetAtPath<ScriptableObject>($"Assets/_Game/Scriptables/Buildings/{(id == "well" ? "Well" : "Fountain")}.asset"));
+            Assert.AreEqual((int)ToolbarGroup.Parks, later.FindProperty("m_LaterToolbarGroup").enumValueIndex, id);
+            Assert.AreEqual("industrial", later.FindProperty("m_LaterGroupAge").stringValue, id);
+        }
         Assert.AreEqual(ToolbarGroup.Education, groups["monastery"]);
         Assert.AreEqual(ToolbarGroup.Education, groups["research_lab"]);
     }

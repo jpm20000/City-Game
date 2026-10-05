@@ -42,6 +42,10 @@ public sealed class BuildingDefinition : ScriptableObject
     [SerializeField] private float m_CivicStrength;
     [Tooltip("(M20) Toolbar group; Auto derives it from the category, civic line and effects (ToolbarGroups.Resolve).")]
     [SerializeField] private ToolbarGroup m_ToolbarGroup;
+    [Tooltip("(M20) Toolbar group from LaterGroupAge on (e.g. the Fountain is a water building until water is piped, then a park); Auto = no change.")]
+    [SerializeField] private ToolbarGroup m_LaterToolbarGroup;
+    [Tooltip("Age Id from which LaterToolbarGroup applies.")]
+    [SerializeField] private string m_LaterGroupAge = "";
 
     public string Id => m_Id;
     public string DisplayName => m_DisplayName;
@@ -69,4 +73,6 @@ public sealed class BuildingDefinition : ScriptableObject
     public int CivicRadius => m_CivicRadius;
     public float CivicStrength => m_CivicStrength;
     public ToolbarGroup ToolbarGroupOf => ToolbarGroups.Resolve(m_ToolbarGroup, m_Category == BuildingCategory.Utility, m_CivicKind, m_ResearchPerDay, m_HappinessEffect);
+    public ToolbarGroup LaterToolbarGroup => m_LaterToolbarGroup;
+    public string LaterGroupAge => m_LaterGroupAge;
 }

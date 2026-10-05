@@ -28,7 +28,7 @@ public static class TutorialContent
         new TutorialObjective
         {
             Id = "well", Title = "Dig a well",
-            Body = "Medieval homes need water to grow past the first level. Open Parks in the toolbar and place a Well within a few cells of your houses.",
+            Body = "Medieval homes need water to grow past the first level. Open Utilities in the toolbar and place a Well within a few cells of your houses.",
             Highlight = "Well", Measure = s => Of(s.PlacedCount(WellId), 1),
         },
         new TutorialObjective

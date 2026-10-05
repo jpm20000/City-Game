@@ -180,8 +180,8 @@ public static class TutorialDriver
             Log($"zones {diag} connected roads {conn}");
             yield return WaitFor(() => Current() != "homes", 3f);
             Check(Current() == "well", "homes zoned -> " + Current());
-            Check(Pointing() == "Group_Parks", "pointing at the Parks group: " + Pointing());
-            yield return ClickUi(Btn("Group_Parks"));
+            Check(Pointing() == "Group_Utilities", "pointing at the Utilities group: " + Pointing());
+            yield return ClickUi(Btn("Group_Utilities"));
             yield return WaitFor(() => Pointing() == "Build_well", 3f);
             Check(Pointing() == "Build_well", "pointing at the Well in the flyout: " + Pointing());
 

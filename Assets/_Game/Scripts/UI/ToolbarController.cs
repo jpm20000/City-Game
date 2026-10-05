@@ -167,6 +167,7 @@ public sealed class ToolbarController : MonoBehaviour
             if (m_ServicesViewButton != null) m_ServicesViewButton.gameObject.SetActive(AnyCivicViewAvailable());
         }
         if (m_PipeButton != null) m_PipeButton.gameObject.SetActive(m_GameManager.PipesUnlocked);
+        RegroupBuildings();
         bool any = false;
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
         {
@@ -200,7 +201,7 @@ public sealed class ToolbarController : MonoBehaviour
             if (def == null) continue;
             if (def.Category != BuildingCategory.Service && def.Category != BuildingCategory.Utility) continue;
 
-            Group group = GroupFor(def.ToolbarGroupOf);
+            Group group = GroupFor(m_GameManager.ToolbarGroupFor(def));
             ToolButton button = Instantiate(m_ButtonTemplate, group.Flyout.Content);
             button.name = $"Build_{def.Id}";
             if (button.Label != null)
@@ -223,6 +224,33 @@ public sealed class ToolbarController : MonoBehaviour
             m_BuildingButtons[def] = button;
             m_GroupOf[def] = group;
             group.Members.Add(def);
+        }
+    }
+
+    // A building can change group with the city's age (the Fountain: water building, then park): its button moves to the
+    // other group's flyout.
+    private void RegroupBuildings()
+    {
+        foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
+        {
+            BuildingDefinition def = pair.Key;
+            Group current = m_GroupOf[def];
+            ToolbarGroup wanted = m_GameManager.ToolbarGroupFor(def);
+            if (current.Id == wanted) continue;
+            Group target = GroupFor(wanted);
+            current.Members.Remove(def);
+            target.Members.Add(def);
+            m_GroupOf[def] = target;
+            pair.Value.transform.SetParent(target.Flyout.Content, false);
+            if (current.Last == def) current.Last = null;
+            Group owner = target;
+            pair.Value.Button.onClick.RemoveAllListeners();
+            pair.Value.Button.onClick.AddListener(() =>
+            {
+                ToggleBuilding(def);
+                owner.Flyout.Hide();
+            });
+            if (current.Flyout.IsOpen) current.Flyout.Hide();
         }
     }
 
