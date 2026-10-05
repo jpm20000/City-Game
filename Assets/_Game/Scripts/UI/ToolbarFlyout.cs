@@ -18,11 +18,13 @@ public sealed class ToolbarFlyout : MonoBehaviour
     public event System.Action Opened;
     public event System.Action Closed;
 
-    public static ToolbarFlyout Create(RectTransform anchor, string name)
+    // columns > 0 lays the buttons out in a grid of fixed-size cells instead of one row (the Views flyout).
+    public static ToolbarFlyout Create(RectTransform anchor, string name, int columns = 0, Vector2 cell = default)
     {
         var flyout = anchor.gameObject.AddComponent<ToolbarFlyout>();
         flyout.m_Anchor = anchor;
-        var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup),
+        var go = new GameObject(name, typeof(RectTransform), typeof(Image),
+            columns > 0 ? typeof(GridLayoutGroup) : typeof(HorizontalLayoutGroup),
             typeof(ContentSizeFitter), typeof(LayoutElement), typeof(Canvas), typeof(GraphicRaycaster));
         go.transform.SetParent(anchor, false);
         flyout.m_Panel = (RectTransform)go.transform;
@@ -34,13 +36,25 @@ public sealed class ToolbarFlyout : MonoBehaviour
         var canvas = go.GetComponent<Canvas>();
         canvas.overrideSorting = true;
         canvas.sortingOrder = 30;
-        var layout = go.GetComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(6, 6, 6, 6);
-        layout.spacing = 4f;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = false;
+        if (columns > 0)
+        {
+            var grid = go.GetComponent<GridLayoutGroup>();
+            grid.padding = new RectOffset(6, 6, 6, 6);
+            grid.spacing = new Vector2(4f, 4f);
+            grid.cellSize = cell;
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = columns;
+        }
+        else
+        {
+            var layout = go.GetComponent<HorizontalLayoutGroup>();
+            layout.padding = new RectOffset(6, 6, 6, 6);
+            layout.spacing = 4f;
+            layout.childControlWidth = true;
+            layout.childControlHeight = true;
+            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+        }
         var fitter = go.GetComponent<ContentSizeFitter>();
         fitter.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;

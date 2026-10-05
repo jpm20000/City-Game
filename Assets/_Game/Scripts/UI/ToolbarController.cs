@@ -57,7 +57,10 @@ public sealed class ToolbarController : MonoBehaviour
         public BuildingDefinition Last;      // the last building picked from the group (shown on its button)
         public readonly List<BuildingDefinition> Members = new();
     }
-    private ToolButton m_ServicesViewButton;   // M14: made at runtime from the Age view button
+    private readonly Dictionary<InfoOverlay.View, ToolButton> m_ViewButtons = new();   // every view entry in the Views flyout
+    private ToolButton m_ViewsButton;          // M20c: the one VIEW button; its flyout holds the views
+    private ToolButton m_ViewOffButton;
+    private ToolbarFlyout m_ViewsFlyout;
     private ToolButton m_AvenueButton;         // M16: made at runtime from the Road button
     private ToolButton m_HighwayButton;
     private ToolButton m_TrafficViewButton;    // M16: made at runtime from the Value view button
@@ -110,9 +113,10 @@ public sealed class ToolbarController : MonoBehaviour
         BindView(m_LandValueViewButton, "Value", InfoOverlay.View.LandValue,
             "Land value view  [V]\n<color=#F2554A>Red</color> = low, <color=#59D966>green</color> = high. Parks and kept historic blocks raise it, pollution lowers it. Homes and shops need enough of it for level 3; darker, striped = held at level 2 by it.");
         CreateTrafficViewButton();
-        CreateServicesViewButton();
+        CreateCivicViewButtons();
         BindView(m_AgeViewButton, "Ages", InfoOverlay.View.Age,
             "Age view  [V]\nThe age each building was built in: <color=#E6853A>orange</color> = oldest, <color=#5299F5>blue</color> = newest. Darker, striped = outdated (will be rebuilt). <color=#F2CC4D>Gold</color> = kept historic.");
+        CreateViewsFlyout();
         CreateBuildingButtons();
 
         EscapeRouter.Register(this, EscapeRouter.Tool + 5, ToolbarFlyout.CloseOpen);
@@ -161,10 +165,10 @@ public sealed class ToolbarController : MonoBehaviour
         RefreshAffordable(m_GameManager.Economy.Money);
         if (m_InfoOverlay != null)
         {
-            if (m_PowerViewButton != null) m_PowerViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Power));
-            if (m_WaterViewButton != null) m_WaterViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Water));
-            if (m_AgeViewButton != null) m_AgeViewButton.gameObject.SetActive(m_InfoOverlay.IsAvailable(InfoOverlay.View.Age));
-            if (m_ServicesViewButton != null) m_ServicesViewButton.gameObject.SetActive(AnyCivicViewAvailable());
+            foreach (KeyValuePair<InfoOverlay.View, ToolButton> pair in m_ViewButtons)
+            {
+                pair.Value.gameObject.SetActive(m_InfoOverlay.IsAvailable(pair.Key));
+            }
         }
         if (m_PipeButton != null) m_PipeButton.gameObject.SetActive(m_GameManager.PipesUnlocked);
         RegroupBuildings();
@@ -378,42 +382,26 @@ public sealed class ToolbarController : MonoBehaviour
             () => m_InfoOverlay.SetView(m_InfoOverlay.Chosen == view ? InfoOverlay.View.Off : view));
     }
 
-    // M14: one VIEW button for the four civic views, so the view row only grows by one. It is a copy
-    // of the Age view button (same look and layout), placed right after it.
-    private void CreateServicesViewButton()
+    // The four civic views (M14) each get an entry of their own (M20c; they used to share one cycling button): copies of
+    // the Age view button.
+    private void CreateCivicViewButtons()
     {
         if (m_AgeViewButton == null || m_InfoOverlay == null) return;
-        m_ServicesViewButton = Instantiate(m_AgeViewButton, m_AgeViewButton.transform.parent);
-        m_ServicesViewButton.name = "ServicesView";
-        m_ServicesViewButton.transform.SetSiblingIndex(m_AgeViewButton.transform.GetSiblingIndex() + 1);
-        Bind(m_ServicesViewButton, "Services", string.Empty, Color.clear,
-            "Services views  [V]\nClick again for the next one: <color=#5B8DEF>order</color> (crime), <color=#F2733F>fire</color> (fire risk), " +
-            "<color=#59D966>health</color> (sickness), <color=#B07AD8>education</color> (schooling). The ground shows each service's reach; " +
-            "buildings go from pale to <color=#E6382E>red</color> as the need grows. Striped = needs it but nothing reaches it.",
-            CycleServicesView);
-    }
-
-    // Off / another view -> the first available civic view -> the next ... -> Off.
-    private void CycleServicesView()
-    {
-        InfoOverlay.View[] views = InfoOverlay.CivicViews;
-        int start = System.Array.IndexOf(views, m_InfoOverlay.Chosen);
-        for (int i = start + 1; i < views.Length; i++)
+        string[] tips =
         {
-            if (!m_InfoOverlay.IsAvailable(views[i])) continue;
-            m_InfoOverlay.SetView(views[i]);
-            return;
-        }
-        m_InfoOverlay.SetView(InfoOverlay.View.Off);
-    }
-
-    private bool AnyCivicViewAvailable()
-    {
-        foreach (InfoOverlay.View view in InfoOverlay.CivicViews)
+            "Crime view  [V]\n<color=#5B8DEF>Blue</color> ground = police reach. Buildings go from pale to <color=#E6382E>red</color> as crime grows. Striped = needs it but nothing reaches it.",
+            "Fire view  [V]\n<color=#F2733F>Orange</color> ground = fire cover. Buildings go from pale to <color=#E6382E>red</color> as fire risk grows. Striped = no fire cover.",
+            "Health view  [V]\n<color=#59D966>Green</color> ground = health care reach. Buildings go from pale to <color=#E6382E>red</color> as sickness grows. Striped = no care.",
+            "Schools view  [V]\n<color=#B07AD8>Purple</color> ground = school reach; schooled homes turn purple. Striped = needs schooling but nothing reaches it.",
+        };
+        for (int i = 0; i < InfoOverlay.CivicViews.Length; i++)
         {
-            if (m_InfoOverlay.IsAvailable(view)) return true;
+            InfoOverlay.View view = InfoOverlay.CivicViews[i];
+            ToolButton button = Instantiate(m_AgeViewButton, m_AgeViewButton.transform.parent);
+            button.name = view + "View";
+            BindView(button, CivicViewLabel(view), view, tips[i]);
+            m_ViewButtons[view] = button;
         }
-        return false;
     }
 
     private static string CivicViewLabel(InfoOverlay.View view)
@@ -424,6 +412,84 @@ public sealed class ToolbarController : MonoBehaviour
             case InfoOverlay.View.Fire: return "Fire";
             case InfoOverlay.View.Health: return "Health";
             default: return "Schools";
+        }
+    }
+
+    private static string ViewLabel(InfoOverlay.View view)
+    {
+        switch (view)
+        {
+            case InfoOverlay.View.Power: return "Power";
+            case InfoOverlay.View.Water: return "Water";
+            case InfoOverlay.View.Coverage: return "Parks";
+            case InfoOverlay.View.Pollution: return "Pollution";
+            case InfoOverlay.View.LandValue: return "Value";
+            case InfoOverlay.View.Traffic: return "Traffic";
+            case InfoOverlay.View.Age: return "Ages";
+            case InfoOverlay.View.Off: return "Views";
+            default: return CivicViewLabel(view);
+        }
+    }
+
+    // M20c: the VIEW section is one Views button (a copy of the Age button) showing the active view's name; its flyout
+    // is a grid of every view plus Off. The view buttons were made above and are moved in, not duplicated. V still
+    // cycles the views (InfoOverlay).
+    private void CreateViewsFlyout()
+    {
+        if (m_AgeViewButton == null || m_InfoOverlay == null) return;
+        Transform parent = m_AgeViewButton.transform.parent;
+        m_ViewsButton = Instantiate(m_AgeViewButton, parent);
+        m_ViewsButton.name = "ViewsButton";
+        m_ViewsButton.transform.SetSiblingIndex(m_AgeViewButton.transform.GetSiblingIndex());
+        if (m_ViewsButton.Label != null)
+        {
+            m_ViewsButton.Label.enableAutoSizing = true;
+            m_ViewsButton.Label.fontSizeMax = m_ViewsButton.Label.fontSize;
+            m_ViewsButton.Label.fontSizeMin = 11f;
+        }
+        m_ViewsFlyout = ToolbarFlyout.Create((RectTransform)m_ViewsButton.transform, "ViewsFlyout", 6, new Vector2(96f, 48f));
+        Bind(m_ViewsButton, "Views", string.Empty, Color.clear,
+            "Views  [V]\nInfo views colour the map to show power, water, parks, pollution, land value, traffic, building ages and the civic services. V cycles through them.",
+            () => m_ViewsFlyout.Toggle());
+        m_ViewsFlyout.Opened += () => HideTooltip(null);
+        m_ViewsFlyout.Closed += () => HideTooltip(null);
+
+        m_ViewOffButton = Instantiate(m_AgeViewButton, parent);
+        m_ViewOffButton.name = "OffView";
+        Bind(m_ViewOffButton, "Off", string.Empty, Color.clear, "Turn the info view off.", () => m_InfoOverlay.SetView(InfoOverlay.View.Off));
+
+        AddView(InfoOverlay.View.Power, m_PowerViewButton);
+        AddView(InfoOverlay.View.Water, m_WaterViewButton);
+        AddView(InfoOverlay.View.Coverage, m_CoverageViewButton);
+        AddView(InfoOverlay.View.Pollution, m_PollutionViewButton);
+        AddView(InfoOverlay.View.LandValue, m_LandValueViewButton);
+        AddView(InfoOverlay.View.Traffic, m_TrafficViewButton);
+        AddView(InfoOverlay.View.Age, m_AgeViewButton);
+        InfoOverlay.View[] order =
+        {
+            InfoOverlay.View.Power, InfoOverlay.View.Water, InfoOverlay.View.Coverage, InfoOverlay.View.Pollution,
+            InfoOverlay.View.LandValue, InfoOverlay.View.Traffic, InfoOverlay.View.Age,
+            InfoOverlay.View.Order, InfoOverlay.View.Fire, InfoOverlay.View.Health, InfoOverlay.View.Education,
+        };
+        Move(m_ViewOffButton);
+        foreach (InfoOverlay.View view in order) if (m_ViewButtons.TryGetValue(view, out ToolButton entry)) Move(entry);
+
+        void AddView(InfoOverlay.View view, ToolButton button)
+        {
+            if (button != null) m_ViewButtons[view] = button;
+        }
+
+        void Move(ToolButton button)
+        {
+            if (button == null) return;
+            button.transform.SetParent(m_ViewsFlyout.Content, false);
+            button.Button.onClick.AddListener(() => m_ViewsFlyout.Hide());
+            if (button.Label != null)
+            {
+                button.Label.enableAutoSizing = true;
+                button.Label.fontSizeMax = button.Label.fontSize;
+                button.Label.fontSizeMin = 11f;
+            }
         }
     }
 
@@ -526,18 +592,12 @@ public sealed class ToolbarController : MonoBehaviour
         SetActive(m_UnzoneButton, zoning && brush == ZoneType.None);
         SetActive(m_DemolishButton, mode == PlacementController.Mode.Demolish);
         InfoOverlay.View view = m_InfoOverlay != null ? m_InfoOverlay.Shown : InfoOverlay.View.Off;
-        SetActive(m_PowerViewButton, view == InfoOverlay.View.Power);
-        SetActive(m_WaterViewButton, view == InfoOverlay.View.Water);
-        SetActive(m_CoverageViewButton, view == InfoOverlay.View.Coverage);
-        SetActive(m_AgeViewButton, view == InfoOverlay.View.Age);
-        SetActive(m_PollutionViewButton, view == InfoOverlay.View.Pollution);
-        SetActive(m_LandValueViewButton, view == InfoOverlay.View.LandValue);
-        SetActive(m_TrafficViewButton, view == InfoOverlay.View.Traffic);
-        if (m_ServicesViewButton != null)
+        foreach (KeyValuePair<InfoOverlay.View, ToolButton> pair in m_ViewButtons) SetActive(pair.Value, pair.Key == view);
+        SetActive(m_ViewOffButton, view == InfoOverlay.View.Off);
+        if (m_ViewsButton != null)
         {
-            bool civic = InfoOverlay.IsCivic(view);
-            SetActive(m_ServicesViewButton, civic);
-            if (m_ServicesViewButton.Label != null) m_ServicesViewButton.Label.text = civic ? CivicViewLabel(view) : "Services";
+            m_ViewsButton.SetActive(view != InfoOverlay.View.Off);
+            if (m_ViewsButton.Label != null) m_ViewsButton.Label.text = ViewLabel(view);
         }
 
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)
@@ -577,6 +637,7 @@ public sealed class ToolbarController : MonoBehaviour
     {
         if (m_TooltipRoot == null || string.IsNullOrEmpty(button.Tooltip)) return;
         foreach (Group group in m_Groups) if (group.Button == button && group.Flyout.IsOpen) return;
+        if (button == m_ViewsButton && m_ViewsFlyout != null && m_ViewsFlyout.IsOpen) return;
         m_TooltipText.text = KeyBindings.Fill(button.Tooltip);
         RaiseTooltip();
         float delay = GameSettings.TooltipDelay;

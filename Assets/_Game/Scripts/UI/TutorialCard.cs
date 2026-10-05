@@ -214,7 +214,7 @@ public sealed class TutorialCard
             "Monastery" => new[] { "Build_monastery", "Group_Education" },
             "Budget" => new[] { "BudgetButton" },
             "Research" => new[] { "ResearchButton" },
-            "Views" => new[] { "WaterView", "CoverageView", "PowerView", "PollutionView" },
+            "Views" => new[] { "WaterView", "CoverageView", "PowerView", "PollutionView", "ViewsButton" },
             _ => System.Array.Empty<string>(),
         };
         // A step that is waiting on the player's panel needs no pointer once it is open.

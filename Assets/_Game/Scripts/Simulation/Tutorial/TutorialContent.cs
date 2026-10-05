@@ -65,7 +65,7 @@ public static class TutorialContent
         new TutorialObjective
         {
             Id = "views", Title = "Read the land",
-            Body = "Open any info view (Water, Parks, Pollution) to see how the village is doing. Click it again to close it.",
+            Body = "Open the Views menu and pick an info view (Water, Parks, Pollution) to see how the village is doing. Click it again to close it.",
             Highlight = "Views", Measure = s => Of(s.ViewUsed ? 1 : 0, 1),
         },
         new TutorialObjective
