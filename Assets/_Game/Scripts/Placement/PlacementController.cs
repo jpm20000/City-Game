@@ -33,6 +33,9 @@ public sealed class PlacementController : MonoBehaviour
     private bool m_AvenueFlip;      // R: the second lane goes on the left of the heading instead of the right
     private Vector2Int? m_DragLast; // the last cell this road drag laid (the heading comes from the step to the next one)
     private Vector2Int? m_PendingLane;  // the drag's first Avenue cell, laid once the second cell shows the heading
+    private bool m_HighwayTwoWay;   // R: the Highway tool lays two-way cells instead of one-way ones (M22)
+    private byte m_HighwayHeading;  // the heading of the current Highway drag (0 until the second cell)
+    private readonly HashSet<Vector2Int> m_FreshHighway = new();    // highway cells this drag laid (they take its direction)
     private readonly Dictionary<int, BuildingInstance> m_Buildings = new();
 
     public Mode CurrentMode => m_Mode;
@@ -42,6 +45,7 @@ public sealed class PlacementController : MonoBehaviour
     // The Road tool's tier choice: 0 = the street tool (best unlocked street tier), else a tier (Avenue, Highway).
     public byte RoadToolTier => m_RoadTier;
     public bool AvenueFlipped => m_AvenueFlip;
+    public bool HighwayTwoWay => m_HighwayTwoWay;
 
     // The tier the Road tool lays or upgrades to right now.
     public byte ActiveRoadTier => m_RoadTier != 0 ? m_RoadTier : m_GameManager.Simulation.RoadTiers.BestStreetTier;
@@ -218,6 +222,11 @@ public sealed class PlacementController : MonoBehaviour
             m_AvenueFlip = !m_AvenueFlip;       // the second lane to the other side (M22)
             return;
         }
+        if (m_Mode == Mode.Road && m_RoadTier == RoadTiers.Highway && m_InputReader.RotatePressed)
+        {
+            m_HighwayTwoWay = !m_HighwayTwoWay;
+            return;
+        }
         if (m_Mode != Mode.Building) return;
         if (!m_InputReader.RotatePressed) return;
 
@@ -254,6 +263,8 @@ public sealed class PlacementController : MonoBehaviour
             m_PipeFundsWarned = false;
             m_DragLast = null;
             m_PendingLane = null;
+            m_HighwayHeading = RoadLayout.None;
+            m_FreshHighway.Clear();
         }
 
         if (m_Mode == Mode.None)
@@ -415,6 +426,7 @@ public sealed class PlacementController : MonoBehaviour
         RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
         byte tier = ActiveRoadTier;
         byte existing = m_GridData.GetRoadTier(cell);
+        if (tier == RoadTiers.Highway) FollowHighwayDrag(cell);
         int cost;
         if (existing != 0)
         {
@@ -435,8 +447,31 @@ public sealed class PlacementController : MonoBehaviour
         }
 
         PlaceRoad(cell, tier);
+        if (tier == RoadTiers.Highway)
+        {
+            m_FreshHighway.Add(cell);
+            if (!m_HighwayTwoWay && m_HighwayHeading != RoadLayout.None) m_GridData.SetRoadDirection(cell, m_HighwayHeading);
+        }
         GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
         AudioController.Play(existing != 0 ? SfxId.RoadUpgrade : SfxId.RoadLay, m_GridSystem.CellToWorld(cell));
+    }
+
+    // A Highway drag is one-way along its heading (M22): the heading is the step between two painted cells, so the
+    // first cell takes it once the second shows it. Only the cells this drag laid take the direction; a highway that
+    // was already there keeps its own (Reverse / Make two-way live in the selection panel).
+    private void FollowHighwayDrag(Vector2Int cell)
+    {
+        if (m_DragLast.HasValue && m_DragLast.Value != cell)
+        {
+            m_HighwayHeading = RoadLayout.HeadingOf(m_DragLast.Value, cell);
+            Vector2Int last = m_DragLast.Value;
+            if (!m_HighwayTwoWay && m_FreshHighway.Contains(last) && m_GridData.GetRoadTier(last) == RoadTiers.Highway
+                && m_GridData.GetRoadDirection(last) == RoadLayout.None)
+            {
+                m_GridData.SetRoadDirection(last, m_HighwayHeading);
+            }
+        }
+        m_DragLast = cell;
     }
 
     private void ClearRubble(Vector2Int cell)
@@ -764,6 +799,7 @@ public sealed class PlacementController : MonoBehaviour
                 byte existing = m_GridData.GetRoadTier(cell);
                 string name = tiers.DisplayName(tier);
                 string note = tiers.Frontage(tier) ? string.Empty : " — no access for blocks beside it";
+                if (tier == RoadTiers.Highway) note += m_HighwayTwoWay ? "  two-way  [R] one-way" : "  one-way along the drag  [R] two-way";
                 if (tier == RoadTiers.Avenue)
                 {
                     AvenueHint(cell, tiers, economy);

@@ -103,6 +103,9 @@ public sealed class TrafficSystem
         return road < 0 ? 0f : m_Worst[road];
     }
 
+    // Whether the home found a legal route to a job or the map edge in the last Update (M22: one-way roads can strand it).
+    public bool HasRoute(Vector2Int home) => Fresh && m_Grid.InBounds(home) && m_HomeRoad[Index(home)] >= 0;
+
     // Daily trips the home put on the road in the last Update.
     public float HomeTrips(Vector2Int home) => Fresh && m_Grid.InBounds(home) ? m_HomeTrips[Index(home)] : 0f;
 

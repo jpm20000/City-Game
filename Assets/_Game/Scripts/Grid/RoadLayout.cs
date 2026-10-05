@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // Pure road-layout rules (M22): the direction / side codes stored per road cell, and the one rule for moving
@@ -90,6 +91,80 @@ public static class RoadLayout
         if (d == Vector2Int.zero) return None;
         if (Mathf.Abs(d.x) >= Mathf.Abs(d.y)) return d.x > 0 ? East : West;
         return d.y > 0 ? North : South;
+    }
+
+    // The run of one-way highway cells the selected one belongs to, following the flow (forward through the cell it
+    // points at, backward through every cell that points at it), so a bend stays in the stretch. Empty when the cell is
+    // not a one-way highway.
+    public static List<Vector2Int> CollectStretch(GridData grid, Vector2Int start)
+    {
+        var stretch = new List<Vector2Int>();
+        if (!IsOneWay(grid, start)) return stretch;
+        var seen = new HashSet<Vector2Int> { start };
+        stretch.Add(start);
+        for (int i = 0; i < stretch.Count; i++)
+        {
+            Vector2Int c = stretch[i];
+            Vector2Int ahead = c + Offset(grid.GetRoadDirection(c));
+            if (IsOneWay(grid, ahead) && ahead + Offset(grid.GetRoadDirection(ahead)) != c && seen.Add(ahead)) stretch.Add(ahead);
+            foreach (Vector2Int step in CellUtils.Neighbors4)
+            {
+                Vector2Int behind = c + step;
+                if (IsOneWay(grid, behind) && behind + Offset(grid.GetRoadDirection(behind)) == c && seen.Add(behind)) stretch.Add(behind);
+            }
+        }
+        return stretch;
+    }
+
+    private static bool IsOneWay(GridData grid, Vector2Int cell) =>
+        grid.InBounds(cell) && grid.GetRoadTier(cell) == GridData.HighwayTier && grid.GetRoadDirection(cell) != None;
+
+    // Turns the whole stretch around: every cell now points at the cell that used to lead into it (the old first cell
+    // points back the way it came). Returns how many cells changed.
+    public static int ReverseStretch(GridData grid, Vector2Int start)
+    {
+        List<Vector2Int> stretch = CollectStretch(grid, start);
+        var next = new byte[stretch.Count];
+        for (int i = 0; i < stretch.Count; i++)
+        {
+            Vector2Int cell = stretch[i];
+            next[i] = Opposite(grid.GetRoadDirection(cell));
+            foreach (Vector2Int other in stretch)
+            {
+                if (other + Offset(grid.GetRoadDirection(other)) != cell) continue;
+                next[i] = FromStep(other - cell);
+                break;
+            }
+        }
+        for (int i = 0; i < stretch.Count; i++) grid.SetRoadDirection(stretch[i], next[i]);
+        return stretch.Count;
+    }
+
+    // Makes the whole stretch two-way. Returns how many cells changed.
+    public static int MakeStretchTwoWay(GridData grid, Vector2Int start)
+    {
+        List<Vector2Int> stretch = CollectStretch(grid, start);
+        foreach (Vector2Int cell in stretch) grid.SetRoadDirection(cell, None);
+        return stretch.Count;
+    }
+
+    // Makes the straight run of two-way highway cells through `start` one-way along `heading` (the run follows the
+    // heading's axis). Returns how many cells changed.
+    public static int MakeLineOneWay(GridData grid, Vector2Int start, byte heading)
+    {
+        if (!grid.InBounds(start) || grid.GetRoadTier(start) != GridData.HighwayTier || heading == None) return 0;
+        Vector2Int step = Offset(heading);
+        int changed = 0;
+        foreach (Vector2Int direction in new[] { step, -step })
+        {
+            for (Vector2Int c = direction == step ? start : start + direction; grid.InBounds(c) && grid.GetRoadTier(c) == GridData.HighwayTier; c += direction)
+            {
+                if (grid.GetRoadDirection(c) != None) break;
+                grid.SetRoadDirection(c, heading);
+                changed++;
+            }
+        }
+        return changed;
     }
 
     // The other lane of a paired avenue cell (false for a single lane).

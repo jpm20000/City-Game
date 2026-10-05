@@ -25,6 +25,10 @@ public sealed class SelectionPanel : MonoBehaviour
     private readonly StringBuilder m_Text = new();
     private Action m_Action;
     private bool m_ShowKeep;
+    private enum RoadLayoutMode { None, OneWay, TwoWay }    // what the road buttons offer for the selected highway (M22)
+    private RoadLayoutMode m_RoadLayout;
+    private Button m_TwoWayButton;        // runtime copy of the Keep button: "Make two-way" on a one-way highway
+    private TMP_Text m_TwoWayLabel;
     private float m_RepairCost;       // of the selected broken plant / tower / pump (M17)
     private bool m_Dirty;
 
@@ -36,7 +40,17 @@ public sealed class SelectionPanel : MonoBehaviour
         GameEvents.CellChanged += OnCellChanged;
         GameEvents.DateChanged += OnDateChanged;
         if (m_ActionButton != null) m_ActionButton.onClick.AddListener(OnAction);
-        if (m_KeepButton != null) m_KeepButton.onClick.AddListener(OnKeep);
+        if (m_KeepButton != null)
+        {
+            m_TwoWayButton = Instantiate(m_KeepButton, m_KeepButton.transform.parent);
+            m_TwoWayButton.name = "TwoWayButton";
+            m_TwoWayButton.transform.SetSiblingIndex(m_KeepButton.transform.GetSiblingIndex() + 1);
+            m_TwoWayLabel = m_TwoWayButton.GetComponentInChildren<TMP_Text>();
+            m_TwoWayButton.onClick.RemoveAllListeners();
+            m_TwoWayButton.onClick.AddListener(OnTwoWay);
+            m_TwoWayButton.gameObject.SetActive(false);
+            m_KeepButton.onClick.AddListener(OnKeep);
+        }
         if (m_CloseButton != null) m_CloseButton.onClick.AddListener(m_Placement.ClearSelection);
         Refresh();
     }
@@ -99,10 +113,40 @@ public sealed class SelectionPanel : MonoBehaviour
         if (!m_Placement.HasSelection) return;
         Vector2Int cell = m_Placement.SelectedCell;
         GridData grid = m_GameManager.Grid;
+        if (grid.IsRoad(cell))
+        {
+            // The Keep button is the highway's Reverse / Make one-way button (M22).
+            if (m_RoadLayout == RoadLayoutMode.OneWay) RoadLayout.ReverseStretch(grid, cell);
+            else if (m_RoadLayout == RoadLayoutMode.TwoWay) RoadLayout.MakeLineOneWay(grid, cell, HighwayAxisHeading(grid, cell));
+            Refresh();
+            return;
+        }
         if (grid.GetBuildingLevel(cell) == 0) return;
         grid.SetHistoric(cell, !grid.IsHistoric(cell));
         Refresh();
     }
+
+    private void OnTwoWay()
+    {
+        if (!m_Placement.HasSelection) return;
+        Vector2Int cell = m_Placement.SelectedCell;
+        if (m_RoadLayout == RoadLayoutMode.OneWay) RoadLayout.MakeStretchTwoWay(m_GameManager.Grid, cell);
+        Refresh();
+    }
+
+    // East when the highway runs along x (a highway neighbour east or west), else north.
+    private static byte HighwayAxisHeading(GridData grid, Vector2Int cell)
+    {
+        foreach (Vector2Int step in new[] { Vector2Int.right, Vector2Int.left })
+        {
+            Vector2Int n = cell + step;
+            if (grid.InBounds(n) && grid.GetRoadTier(n) == GridData.HighwayTier) return RoadLayout.East;
+        }
+        return RoadLayout.North;
+    }
+
+    private static string CodeName(byte code) =>
+        code == RoadLayout.North ? "north" : code == RoadLayout.East ? "east" : code == RoadLayout.South ? "south" : "west";
 
     private void Refresh()
     {
@@ -115,6 +159,7 @@ public sealed class SelectionPanel : MonoBehaviour
         m_Root.SetActive(true);
         m_Text.Clear();
         m_ShowKeep = false;
+        m_RoadLayout = RoadLayoutMode.None;
         Vector2Int cell = m_Placement.SelectedCell;
         GridData grid = m_GameManager.Grid;
 
@@ -133,10 +178,19 @@ public sealed class SelectionPanel : MonoBehaviour
                 : m_Action == Action.Repair ? $"Repair  ${m_RepairCost:N0}"
                 : m_Action == Action.Clear ? "Clear rubble" : "Demolish";
         }
-        if (m_KeepButton != null) m_KeepButton.gameObject.SetActive(m_ShowKeep);
+        if (m_KeepButton != null) m_KeepButton.gameObject.SetActive(m_ShowKeep || m_RoadLayout != RoadLayoutMode.None);
         if (m_ShowKeep && m_KeepLabel != null)
         {
             m_KeepLabel.text = m_GameManager.Grid.IsHistoric(m_Placement.SelectedCell) ? "Stop keeping as historic" : "Keep historical building";
+        }
+        if (m_RoadLayout != RoadLayoutMode.None && m_KeepLabel != null)
+        {
+            m_KeepLabel.text = m_RoadLayout == RoadLayoutMode.OneWay ? "Reverse direction" : "Make one-way";
+        }
+        if (m_TwoWayButton != null)
+        {
+            m_TwoWayButton.gameObject.SetActive(m_RoadLayout == RoadLayoutMode.OneWay);
+            if (m_TwoWayLabel != null) m_TwoWayLabel.text = "Make two-way";
         }
     }
 
@@ -356,7 +410,30 @@ public sealed class SelectionPanel : MonoBehaviour
         Line($"Traffic  <color={trafficColor}>{load:0} / {tiers.Capacity(tier):0} trips a day</color>  ({ratio:P0})");
         if (ratio > 1f) Line("<color=#F2665A>Jammed</color> — upgrade it (drag a better road tier over it) or add a parallel street.");
         if (!tiers.Frontage(tier)) Line("<color=#9AA3B2>No frontage: land beside a highway gets no road access.</color>");
+        DescribeRoadLayout(cell, tier);
         m_Action = Action.Demolish;
+    }
+
+    // M22: an avenue's second lane, a highway's direction.
+    private void DescribeRoadLayout(Vector2Int cell, byte tier)
+    {
+        GridData grid = m_GameManager.Grid;
+        if (tier == GridData.AvenueTier)
+        {
+            Line(grid.GetRoadPair(cell) != RoadLayout.None
+                ? "Two-lane avenue: the other lane is to the " + CodeName(grid.GetRoadPair(cell)) + ". Demolishing one lane removes both."
+                : "<color=#9AA3B2>Single-lane avenue (from before avenues were two tiles wide).</color>");
+        }
+        if (tier != GridData.HighwayTier) return;
+        byte direction = grid.GetRoadDirection(cell);
+        if (direction == RoadLayout.None)
+        {
+            m_RoadLayout = RoadLayoutMode.TwoWay;
+            Line("Two-way highway.");
+            return;
+        }
+        m_RoadLayout = RoadLayoutMode.OneWay;
+        Line($"<color=#8FD1FF>One-way, heading {CodeName(direction)}</color> ({RoadLayout.CollectStretch(grid, cell).Count} cells in this stretch). Side streets join it as ramps.");
     }
 
     private void DescribeGrown(Vector2Int cell)
@@ -505,6 +582,11 @@ public sealed class SelectionPanel : MonoBehaviour
         float penalty = TrafficSystem.TrafficPenaltyAt(balance, commute);
         string color = penalty > 0.0005f ? "#F2665A" : commute > balance.CongestionFree ? "#F2C14E" : "#73D973";
         string cost = penalty > 0.0005f ? $"  (−{penalty:P0} happiness)" : string.Empty;
+        if (!traffic.HasRoute(cell) && m_GameManager.Roads.HasRoadAccess(cell))
+        {
+            Line("Commute  <color=#F2665A>no route</color> to work or out of town: one-way roads block every way. Reverse or open one.");
+            return;
+        }
         Line($"Commute  <color={color}>{commute:P0}</color> of the busiest road on its way to work{cost}");
     }
 

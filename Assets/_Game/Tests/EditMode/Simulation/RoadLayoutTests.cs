@@ -494,4 +494,57 @@ public sealed class RoadLayoutTests
         }
         Assert.Greater(a.Trips, 0f);
     }
+
+    // --- 22d: stretches (Reverse / Make two-way / Make one-way) ---
+
+    private static void OneWayCell(GridData grid, int x, int y, byte direction)
+    {
+        grid.SetRoadTier(V(x, y), RoadTiers.Highway);
+        grid.SetRoadDirection(V(x, y), direction);
+    }
+
+    [Test]
+    public void Stretch_ReverseTurnsAStraightRunAround_AndOnlyThatRun()
+    {
+        var grid = new GridData(12, 12);
+        for (int x = 2; x <= 6; x++) OneWayCell(grid, x, 5, RoadLayout.East);
+        for (int x = 2; x <= 6; x++) OneWayCell(grid, x, 6, RoadLayout.East);       // a parallel carriageway, separate run
+
+        Assert.AreEqual(5, RoadLayout.CollectStretch(grid, V(4, 5)).Count);
+        Assert.AreEqual(5, RoadLayout.ReverseStretch(grid, V(4, 5)));
+        for (int x = 2; x <= 6; x++)
+        {
+            Assert.AreEqual(RoadLayout.West, grid.GetRoadDirection(V(x, 5)), $"x {x}");
+            Assert.AreEqual(RoadLayout.East, grid.GetRoadDirection(V(x, 6)), "the neighbour run is untouched");
+        }
+    }
+
+    [Test]
+    public void Stretch_ReverseFollowsABend()
+    {
+        var grid = new GridData(12, 12);
+        OneWayCell(grid, 3, 3, RoadLayout.North);
+        OneWayCell(grid, 3, 4, RoadLayout.East);
+        OneWayCell(grid, 4, 4, RoadLayout.East);
+
+        Assert.AreEqual(3, RoadLayout.ReverseStretch(grid, V(3, 3)));
+        Assert.AreEqual(RoadLayout.West, grid.GetRoadDirection(V(4, 4)), "the end now leads back into the bend");
+        Assert.AreEqual(RoadLayout.South, grid.GetRoadDirection(V(3, 4)), "the bend leads down");
+        Assert.AreEqual(RoadLayout.South, grid.GetRoadDirection(V(3, 3)), "the old start points back the way it came");
+        Assert.IsTrue(RoadLayout.CanStep(grid, V(4, 4), V(3, 4)));
+        Assert.IsTrue(RoadLayout.CanStep(grid, V(3, 4), V(3, 3)));
+    }
+
+    [Test]
+    public void Stretch_MakeTwoWayClearsTheRun_AndMakeLineOneWayRebuildsIt()
+    {
+        var grid = new GridData(12, 12);
+        for (int x = 2; x <= 6; x++) OneWayCell(grid, x, 5, RoadLayout.East);
+
+        Assert.AreEqual(5, RoadLayout.MakeStretchTwoWay(grid, V(3, 5)));
+        Assert.IsFalse(grid.AnyOneWay());
+        Assert.AreEqual(5, RoadLayout.MakeLineOneWay(grid, V(4, 5), RoadLayout.West));
+        for (int x = 2; x <= 6; x++) Assert.AreEqual(RoadLayout.West, grid.GetRoadDirection(V(x, 5)));
+        Assert.AreEqual(0, RoadLayout.CollectStretch(grid, V(9, 9)).Count, "not a one-way road");
+    }
 }
