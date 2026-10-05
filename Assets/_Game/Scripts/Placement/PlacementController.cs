@@ -29,6 +29,10 @@ public sealed class PlacementController : MonoBehaviour
     private bool m_PipeErasing;     // this drag removes pipes (it started on one)
     private bool m_PipeFundsWarned; // one "not enough money" per drag (pipes and roads)
     private byte m_RoadTier;        // the Road tool's tier: 0 = the best unlocked street tier (M16)
+    private byte m_AvenueHeading = RoadLayout.East;   // the heading the Avenue pair follows (the last drag's; default +x) (M22)
+    private bool m_AvenueFlip;      // R: the second lane goes on the left of the heading instead of the right
+    private Vector2Int? m_DragLast; // the last cell this road drag laid (the heading comes from the step to the next one)
+    private Vector2Int? m_PendingLane;  // the drag's first Avenue cell, laid once the second cell shows the heading
     private readonly Dictionary<int, BuildingInstance> m_Buildings = new();
 
     public Mode CurrentMode => m_Mode;
@@ -37,6 +41,7 @@ public sealed class PlacementController : MonoBehaviour
 
     // The Road tool's tier choice: 0 = the street tool (best unlocked street tier), else a tier (Avenue, Highway).
     public byte RoadToolTier => m_RoadTier;
+    public bool AvenueFlipped => m_AvenueFlip;
 
     // The tier the Road tool lays or upgrades to right now.
     public byte ActiveRoadTier => m_RoadTier != 0 ? m_RoadTier : m_GameManager.Simulation.RoadTiers.BestStreetTier;
@@ -100,6 +105,7 @@ public sealed class PlacementController : MonoBehaviour
         HandleModeToggle();
         HandleRotation();
         HandleConfirm();
+        FlushPendingLane();
         UpdateGhost();
         UpdateSelection();
     }
@@ -207,6 +213,11 @@ public sealed class PlacementController : MonoBehaviour
 
     private void HandleRotation()
     {
+        if (m_Mode == Mode.Road && m_RoadTier == RoadTiers.Avenue && m_InputReader.RotatePressed)
+        {
+            m_AvenueFlip = !m_AvenueFlip;       // the second lane to the other side (M22)
+            return;
+        }
         if (m_Mode != Mode.Building) return;
         if (!m_InputReader.RotatePressed) return;
 
@@ -216,6 +227,8 @@ public sealed class PlacementController : MonoBehaviour
     private void SetMode(Mode mode)
     {
         m_Mode = mode;
+        m_PendingLane = null;
+        m_DragLast = null;
         if (mode != Mode.None) ClearSelection();
         if (mode == Mode.None)
         {
@@ -239,6 +252,8 @@ public sealed class PlacementController : MonoBehaviour
         {
             m_PipeErasing = m_Mode == Mode.Pipe && m_GridData.InBounds(cell) && m_GridData.IsPipe(cell);
             m_PipeFundsWarned = false;
+            m_DragLast = null;
+            m_PendingLane = null;
         }
 
         if (m_Mode == Mode.None)
@@ -320,8 +335,83 @@ public sealed class PlacementController : MonoBehaviour
         AudioController.Play(SfxId.ZonePaint, m_GridSystem.CellToWorld(cell));
     }
 
+    // The avenue pair for a cell: the other lane's side from the heading and the R flip (M22).
+    private byte AvenueSide(byte heading) => m_AvenueFlip ? RoadLayout.LeftOf(heading) : RoadLayout.RightOf(heading);
+
+    // Avenue drag: the heading comes from the step between two painted cells, so the first cell waits for the second
+    // (or for the button to be released, FlushPendingLane); every later cell lays itself and its other lane.
+    private void TryPlaceAvenue(Vector2Int cell)
+    {
+        if (!m_DragLast.HasValue)
+        {
+            m_DragLast = cell;
+            m_PendingLane = cell;
+            return;
+        }
+        if (cell == m_DragLast.Value) return;
+        byte heading = RoadLayout.HeadingOf(m_DragLast.Value, cell);
+        m_AvenueHeading = heading;
+        m_DragLast = cell;
+        if (m_PendingLane.HasValue)
+        {
+            LayAvenuePair(m_PendingLane.Value);
+            m_PendingLane = null;
+        }
+        LayAvenuePair(cell);
+    }
+
+    // A click or a drag released before moving: lay the waiting first cell along the last heading.
+    private void FlushPendingLane()
+    {
+        if (!m_PendingLane.HasValue || m_InputReader.ConfirmHeld) return;
+        Vector2Int cell = m_PendingLane.Value;
+        m_PendingLane = null;
+        if (m_Mode == Mode.Road && m_RoadTier == RoadTiers.Avenue) LayAvenuePair(cell);
+    }
+
+    private int LaneCost(RoadTiers tiers, Vector2Int cell, byte tier)
+    {
+        byte existing = m_GridData.GetRoadTier(cell);
+        return existing == 0 ? tiers.Cost(tier) : existing < tier ? tiers.UpgradeCost(existing, tier) : 0;
+    }
+
+    private int PairCost(Vector2Int cell, byte side)
+    {
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        if (m_GridData.GetRoadPair(cell) == side) return 0;
+        return LaneCost(tiers, cell, RoadTiers.Avenue) + LaneCost(tiers, cell + RoadLayout.Offset(side), RoadTiers.Avenue);
+    }
+
+    // Lays the cell and its other lane as one paired Avenue, paying for both (new land at the full price, a street
+    // upgraded for the difference). Refused as a whole when either lane cannot be one.
+    private void LayAvenuePair(Vector2Int cell)
+    {
+        byte side = AvenueSide(m_AvenueHeading);
+        if (RoadLayout.CheckPair(m_GridData, cell, side, RoadTiers.Avenue) != RoadLayout.LaneProblem.None) return;
+        Vector2Int partner = cell + RoadLayout.Offset(side);
+        if (m_GridData.GetRoadPair(cell) == side) return;       // already this pair
+        int cost = PairCost(cell, side);
+        if (!m_GameManager.Economy.Spend(cost))
+        {
+            if (!m_PipeFundsWarned) GameEvents.RaiseInsufficientFunds(cost);
+            m_PipeFundsWarned = true;
+            return;
+        }
+        bool upgraded = m_GridData.IsRoad(cell) || m_GridData.IsRoad(partner);
+        PlaceRoad(cell, RoadTiers.Avenue);
+        PlaceRoad(partner, RoadTiers.Avenue);
+        m_GridData.SetRoadPair(cell, side);
+        GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
+        AudioController.Play(upgraded ? SfxId.RoadUpgrade : SfxId.RoadLay, m_GridSystem.CellToWorld(cell));
+    }
+
     private void TryPlaceRoad(Vector2Int cell)
     {
+        if (ActiveRoadTier == RoadTiers.Avenue)
+        {
+            TryPlaceAvenue(cell);
+            return;
+        }
         RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
         byte tier = ActiveRoadTier;
         byte existing = m_GridData.GetRoadTier(cell);
@@ -547,6 +637,8 @@ public sealed class PlacementController : MonoBehaviour
 
         if (m_GridData.IsRoad(cell))
         {
+            // One lane of a paired avenue takes the other with it (M22).
+            if (RoadLayout.TryGetPartner(m_GridData, cell, out Vector2Int partner)) m_GridData.SetRoad(partner, false);
             m_GridData.SetRoad(cell, false);
             AudioController.Play(SfxId.Demolish, m_GridSystem.CellToWorld(cell));
             return;
@@ -623,6 +715,13 @@ public sealed class PlacementController : MonoBehaviour
                 CellUtils.EffectiveSize(m_Selected.Size, m_Rotation),
                 CursorHintValid);
         }
+        else if (m_Mode == Mode.Road && ActiveRoadTier == RoadTiers.Avenue)
+        {
+            // The pair: the cell and its other lane.
+            Vector2Int offset = RoadLayout.Offset(AvenueSide(m_AvenueHeading));
+            Vector3 centre = m_GridSystem.CellToWorld(cell) + new Vector3(offset.x, 0f, offset.y) * 0.5f;
+            m_Ghost.Show(centre, new Vector2Int(Mathf.Abs(offset.x) + 1, Mathf.Abs(offset.y) + 1), CursorHintValid);
+        }
         else
         {
             m_Ghost.Show(m_GridSystem.CellToWorld(cell), Vector2Int.one, CursorHintValid);
@@ -665,6 +764,11 @@ public sealed class PlacementController : MonoBehaviour
                 byte existing = m_GridData.GetRoadTier(cell);
                 string name = tiers.DisplayName(tier);
                 string note = tiers.Frontage(tier) ? string.Empty : " — no access for blocks beside it";
+                if (tier == RoadTiers.Avenue)
+                {
+                    AvenueHint(cell, tiers, economy);
+                    break;
+                }
                 if (existing != 0)
                 {
                     if (existing >= tier) { SetHint($"Already {tiers.DisplayName(existing)}", false); break; }
@@ -721,6 +825,23 @@ public sealed class PlacementController : MonoBehaviour
                 else if (m_GridData.IsOccupied(cell)) SetHint("Can't zone under a building", false);
                 break;
         }
+    }
+
+    // The Avenue tool's hint: the pair's price, or why the two lanes do not fit.
+    private void AvenueHint(Vector2Int cell, RoadTiers tiers, EconomySystem economy)
+    {
+        byte side = AvenueSide(m_AvenueHeading);
+        switch (RoadLayout.CheckPair(m_GridData, cell, side, RoadTiers.Avenue))
+        {
+            case RoadLayout.LaneProblem.OffMap: SetHint("Needs two tiles: off the map  [R] flip side", false); return;
+            case RoadLayout.LaneProblem.Blocked: SetHint("Needs the lane beside it free: blocked  [R] flip side", false); return;
+            case RoadLayout.LaneProblem.Taken: SetHint("The lane beside it belongs to another avenue  [R] flip side", false); return;
+            case RoadLayout.LaneProblem.Higher: SetHint("A highway is in the way", false); return;
+        }
+        if (m_GridData.GetRoadPair(cell) == side) { SetHint("Already an Avenue", false); return; }
+        int cost = PairCost(cell, side);
+        if (!economy.CanAfford(cost)) SetHint($"Need ${cost:N0}", false);
+        else SetHint($"{tiers.DisplayName(RoadTiers.Avenue)} (2 tiles wide) ${cost:N0}  [R] flip side", true);
     }
 
     // Why a footprint can't be placed (mirrors GridData.CanPlace), or null if it can.

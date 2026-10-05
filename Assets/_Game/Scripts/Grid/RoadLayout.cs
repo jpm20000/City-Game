@@ -59,6 +59,39 @@ public static class RoadLayout
         return CanStep(from, grid.GetRoadDirection(from), to, grid.GetRoadDirection(to));
     }
 
+    public enum LaneProblem { None, OffMap, Blocked, Taken, Higher }
+
+    // Whether the cell can be a lane of an avenue (tier `tier`): free land, or a road of that tier or a lower one.
+    public static LaneProblem CheckLane(GridData grid, Vector2Int cell, byte tier)
+    {
+        if (!grid.InBounds(cell)) return LaneProblem.OffMap;
+        byte existing = grid.GetRoadTier(cell);
+        if (existing == 0) return grid.CanPlace(cell, Vector2Int.one, 0) ? LaneProblem.None : LaneProblem.Blocked;
+        return existing > tier ? LaneProblem.Higher : LaneProblem.None;
+    }
+
+    // Whether `cell` and its neighbour on `side` can become one paired avenue: both lanes must be usable and neither may
+    // already be paired with some other lane. A pair that already exists (the same two cells) is fine.
+    public static LaneProblem CheckPair(GridData grid, Vector2Int cell, byte side, byte tier)
+    {
+        Vector2Int partner = cell + Offset(side);
+        LaneProblem problem = CheckLane(grid, cell, tier);
+        if (problem != LaneProblem.None) return problem;
+        problem = CheckLane(grid, partner, tier);
+        if (problem != LaneProblem.None) return problem;
+        if (grid.GetRoadPair(cell) == side) return LaneProblem.None;
+        return grid.GetRoadPair(cell) != None || grid.GetRoadPair(partner) != None ? LaneProblem.Taken : LaneProblem.None;
+    }
+
+    // The dominant axis of a drag step as a code (None when it did not move).
+    public static byte HeadingOf(Vector2Int from, Vector2Int to)
+    {
+        Vector2Int d = to - from;
+        if (d == Vector2Int.zero) return None;
+        if (Mathf.Abs(d.x) >= Mathf.Abs(d.y)) return d.x > 0 ? East : West;
+        return d.y > 0 ? North : South;
+    }
+
     // The other lane of a paired avenue cell (false for a single lane).
     public static bool TryGetPartner(GridData grid, Vector2Int cell, out Vector2Int partner)
     {

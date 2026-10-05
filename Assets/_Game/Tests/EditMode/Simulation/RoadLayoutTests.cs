@@ -121,6 +121,45 @@ public sealed class RoadLayoutTests
         Assert.AreEqual(1, changed);
     }
 
+    // --- lane checks (22c) ---
+
+    [Test]
+    public void CheckPair_NeedsFreeLandOrLowerRoadOnBothLanes()
+    {
+        var grid = new GridData(8, 8);
+        Assert.AreEqual(RoadLayout.LaneProblem.None, RoadLayout.CheckPair(grid, A, RoadLayout.North, RoadTiers.Avenue));
+        Assert.AreEqual(RoadLayout.LaneProblem.OffMap, RoadLayout.CheckPair(grid, new Vector2Int(7, 7), RoadLayout.East, RoadTiers.Avenue));
+
+        grid.SetRoadTier(A + Vector2Int.up, RoadTiers.Paved);
+        Assert.AreEqual(RoadLayout.LaneProblem.None, RoadLayout.CheckPair(grid, A, RoadLayout.North, RoadTiers.Avenue), "a street is upgraded");
+        grid.SetRoadTier(A + Vector2Int.up, RoadTiers.Highway);
+        Assert.AreEqual(RoadLayout.LaneProblem.Higher, RoadLayout.CheckPair(grid, A, RoadLayout.North, RoadTiers.Avenue));
+
+        grid.SetRoadTier(A + Vector2Int.up, 0);
+        grid.Occupy(A + Vector2Int.up, Vector2Int.one, 0, 5);
+        Assert.AreEqual(RoadLayout.LaneProblem.Blocked, RoadLayout.CheckPair(grid, A, RoadLayout.North, RoadTiers.Avenue), "a building on the second lane");
+    }
+
+    [Test]
+    public void CheckPair_RefusesALaneAlreadyPairedElsewhere_ButAcceptsTheSamePair()
+    {
+        Vector2Int north = A + Vector2Int.up, south = A + Vector2Int.down;
+        GridData grid = Avenues(A, north, south);
+        grid.SetRoadPair(A, RoadLayout.North);
+        Assert.AreEqual(RoadLayout.LaneProblem.None, RoadLayout.CheckPair(grid, A, RoadLayout.North, RoadTiers.Avenue), "already this pair");
+        Assert.AreEqual(RoadLayout.LaneProblem.Taken, RoadLayout.CheckPair(grid, A, RoadLayout.South, RoadTiers.Avenue), "A belongs to the north lane");
+        Assert.AreEqual(RoadLayout.LaneProblem.Taken, RoadLayout.CheckPair(grid, south, RoadLayout.North, RoadTiers.Avenue));
+    }
+
+    [Test]
+    public void HeadingOf_IsTheDominantAxis()
+    {
+        Assert.AreEqual(RoadLayout.East, RoadLayout.HeadingOf(A, A + new Vector2Int(2, 1)));
+        Assert.AreEqual(RoadLayout.South, RoadLayout.HeadingOf(A, A + new Vector2Int(0, -1)));
+        Assert.AreEqual(RoadLayout.North, RoadLayout.HeadingOf(A, A + new Vector2Int(1, 3)));
+        Assert.AreEqual(RoadLayout.None, RoadLayout.HeadingOf(A, A));
+    }
+
     // --- GridData: avenue pairs ---
 
     private static GridData Avenues(params Vector2Int[] cells)
