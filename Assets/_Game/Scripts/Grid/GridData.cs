@@ -16,6 +16,7 @@ public sealed class GridData
     private bool[] m_Pipes;         // water pipe under the cell (M13); never under a road (roads carry water anyway)
     private byte[] m_RoadDirections;    // RoadLayout code: a Highway's one-way direction (0 = two-way); 0 elsewhere (M22)
     private byte[] m_RoadPairs;         // RoadLayout code: the side of an Avenue cell's partner lane (0 = single lane); 0 elsewhere (M22)
+    private byte[] m_Densities;         // Density of a zoned cell (0 = Medium); 0 on unzoned cells (M23)
 
     public event Action<Vector2Int> OnCellChanged;
 
@@ -51,6 +52,7 @@ public sealed class GridData
         m_Pipes = new bool[width * height];
         m_RoadDirections = new byte[width * height];
         m_RoadPairs = new byte[width * height];
+        m_Densities = new byte[width * height];
     }
 
     public bool InBounds(Vector2Int cell)
@@ -68,6 +70,24 @@ public sealed class GridData
         int i = Index(cell);
         if (m_Zones[i] == zone) return;
         m_Zones[i] = zone;
+        m_Densities[i] = 0;
+        OnCellChanged?.Invoke(cell);
+    }
+
+    // The density the player zoned the cell with; Medium on an unzoned cell (M23).
+    public Density GetDensity(Vector2Int cell)
+    {
+        return (Density)m_Densities[Index(cell)];
+    }
+
+    // Changes a zoned cell's density (its zone and building level stay); ignored on an unzoned cell. Changing the zone
+    // resets it to Medium.
+    public void SetDensity(Vector2Int cell, Density density)
+    {
+        int i = Index(cell);
+        if (m_Zones[i] == ZoneType.None || (byte)density >= DensityUtils.Count) return;
+        if (m_Densities[i] == (byte)density) return;
+        m_Densities[i] = (byte)density;
         OnCellChanged?.Invoke(cell);
     }
 
@@ -377,6 +397,11 @@ public sealed class GridData
         return (byte[])m_RoadPairs.Clone();
     }
 
+    public byte[] ExportDensities()
+    {
+        return (byte[])m_Densities.Clone();
+    }
+
     public byte[] ExportLevels()
     {
         return (byte[])m_BuildingLevel.Clone();
@@ -406,8 +431,9 @@ public sealed class GridData
     // changed so views resync. Undeveloped cells never keep a built age or historic flag; roads never keep a pipe.
     // roadDirections / roadPairs (M22, null = all 0): a direction only sticks on a Highway cell, a pair only on an
     // Avenue cell whose partner is an Avenue cell pointing back; anything else is dropped.
+    // densities (M23, null = all Medium): sticks only on a zoned cell and only for a valid Density.
     public void Import(byte[] zones, byte[] roads, byte[] levels, byte[] builtAges = null, byte[] historic = null,
-        byte[] pipes = null, byte[] roadDirections = null, byte[] roadPairs = null)
+        byte[] pipes = null, byte[] roadDirections = null, byte[] roadPairs = null, byte[] densities = null)
     {
         int count = Width * Height;
         if (zones == null || zones.Length != count) throw new ArgumentException("Zone data size mismatch.", nameof(zones));
@@ -418,6 +444,7 @@ public sealed class GridData
         if (pipes != null && pipes.Length != count) throw new ArgumentException("Pipe data size mismatch.", nameof(pipes));
         if (roadDirections != null && roadDirections.Length != count) throw new ArgumentException("Road direction data size mismatch.", nameof(roadDirections));
         if (roadPairs != null && roadPairs.Length != count) throw new ArgumentException("Road pair data size mismatch.", nameof(roadPairs));
+        if (densities != null && densities.Length != count) throw new ArgumentException("Density data size mismatch.", nameof(densities));
 
         for (int i = 0; i < count; i++)
         {
@@ -430,9 +457,10 @@ public sealed class GridData
             bool pipe = !road && pipes != null && pipes[i] != 0;
             byte direction = roadTier == HighwayTier && roadDirections != null && RoadLayout.IsCode(roadDirections[i]) ? roadDirections[i] : (byte)0;
             byte pair = ImportedPair(roads, roadPairs, i);
+            byte density = zone != ZoneType.None && densities != null && DensityUtils.IsValid(densities[i]) ? densities[i] : (byte)0;
             if (m_Zones[i] == zone && m_RoadTiers[i] == roadTier && m_BuildingLevel[i] == level && m_Occupancy[i] == 0
                 && m_BuiltAge[i] == builtAge && m_Historic[i] == kept && m_Pipes[i] == pipe
-                && m_RoadDirections[i] == direction && m_RoadPairs[i] == pair) continue;
+                && m_RoadDirections[i] == direction && m_RoadPairs[i] == pair && m_Densities[i] == density) continue;
 
             m_Zones[i] = zone;
             m_RoadTiers[i] = roadTier;
@@ -442,6 +470,7 @@ public sealed class GridData
             m_Pipes[i] = pipe;
             m_RoadDirections[i] = direction;
             m_RoadPairs[i] = pair;
+            m_Densities[i] = density;
             m_Occupancy[i] = 0;
             OnCellChanged?.Invoke(new Vector2Int(i % Width, i / Width));
         }

@@ -38,6 +38,7 @@ public static class SaveSystem
             Pipes = grid.ExportPipes(),
             RoadDirections = grid.ExportRoadDirections(),
             RoadPairs = grid.ExportRoadPairs(),
+            Densities = grid.ExportDensities(),
             Funding = sim.Budget.ExportFunding(),
         };
         sim.Disasters.Export(data);
@@ -81,6 +82,7 @@ public static class SaveSystem
             Pipes = new byte[count],
             RoadDirections = new byte[count],
             RoadPairs = new byte[count],
+            Densities = new byte[count],
             Fires = new byte[count],
             Rubble = new byte[count],
             Plague = new byte[count],
@@ -106,7 +108,7 @@ public static class SaveSystem
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (grid == null) throw new ArgumentNullException(nameof(grid));
         if (data.Width != grid.Width || data.Height != grid.Height) grid.Resize(data.Width, data.Height);
-        grid.Import(data.Zones, data.Roads, data.Levels, data.BuiltAges, data.Historic, data.Pipes, data.RoadDirections, data.RoadPairs);
+        grid.Import(data.Zones, data.Roads, data.Levels, data.BuiltAges, data.Historic, data.Pipes, data.RoadDirections, data.RoadPairs, data.Densities);
     }
 
     // Step 2, after the grid is restored and SimulationSystem.Modifiers/Sources reflect placed buildings.
@@ -189,7 +191,7 @@ public static class SaveSystem
         int count = data.Width * data.Height;
         if (data.Zones?.Length != count || data.Roads?.Length != count || data.Levels?.Length != count
             || data.BuiltAges?.Length != count || data.Historic?.Length != count || data.Pipes?.Length != count
-            || data.RoadDirections?.Length != count || data.RoadPairs?.Length != count
+            || data.RoadDirections?.Length != count || data.RoadPairs?.Length != count || data.Densities?.Length != count
             || data.Fires?.Length != count || data.Rubble?.Length != count || data.Plague?.Length != count)
         {
             error = "Save file has missing or mismatched map data.";
@@ -221,6 +223,16 @@ public static class SaveSystem
             if (!RoadLayout.IsCode(code))
             {
                 error = "Save file has an invalid road pair.";
+                data = null;
+                return false;
+            }
+        }
+
+        for (int i = 0; i < data.Densities.Length; i++)
+        {
+            if (!DensityUtils.IsValid(data.Densities[i]) || (data.Densities[i] != 0 && data.Zones[i] == (byte)ZoneType.None))
+            {
+                error = "Save file has an invalid zone density.";
                 data = null;
                 return false;
             }

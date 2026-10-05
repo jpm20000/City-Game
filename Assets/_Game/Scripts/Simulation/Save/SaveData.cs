@@ -7,7 +7,7 @@ using System.Collections.Generic;
 [Serializable]
 public sealed class SaveData
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
     public const int NoAge = -1;
     public const int NoTutorial = -1;
 
@@ -78,6 +78,9 @@ public sealed class SaveData
     // side of a paired Avenue cell's partner lane.
     public byte[] RoadDirections;
     public byte[] RoadPairs;
+
+    // v9 (M23): the Density of each zoned cell, row-major (0 = Medium, 1 = Low, 2 = High).
+    public byte[] Densities;
 
     public List<BuildingRecord> Buildings = new();
 }

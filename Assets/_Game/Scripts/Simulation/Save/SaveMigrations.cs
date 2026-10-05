@@ -52,6 +52,11 @@ public static class SaveMigrations
             V7ToV8(data);
             data.Version = 8;
         }
+        if (data.Version == 8)
+        {
+            V8ToV9(data);
+            data.Version = 9;
+        }
 
         data.Buildings ??= new();
         data.Loans ??= new();
@@ -169,6 +174,12 @@ public static class SaveMigrations
         int count = Math.Max(0, data.Width * data.Height);
         data.RoadDirections = new byte[count];
         data.RoadPairs = new byte[count];
+    }
+
+    // v9 adds zone densities (M23): every zoned cell was what is now Medium, so old cities play as before.
+    private static void V8ToV9(SaveData data)
+    {
+        data.Densities = new byte[Math.Max(0, data.Width * data.Height)];
     }
 
     // A city saved without ages played by today's rules: it becomes an Industrial city with every
