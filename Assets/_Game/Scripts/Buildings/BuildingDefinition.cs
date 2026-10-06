@@ -46,6 +46,8 @@ public sealed class BuildingDefinition : ScriptableObject
     [SerializeField] private ToolbarGroup m_LaterToolbarGroup;
     [Tooltip("Age Id from which LaterToolbarGroup applies.")]
     [SerializeField] private string m_LaterGroupAge = "";
+    [Tooltip("(M25) Set by the Add Custom Building wizard: the build menu tags it Custom. Shipped content leaves it off.")]
+    [SerializeField] private bool m_IsCustom;
 
     public string Id => m_Id;
     public string DisplayName => m_DisplayName;
@@ -75,4 +77,5 @@ public sealed class BuildingDefinition : ScriptableObject
     public ToolbarGroup ToolbarGroupOf => ToolbarGroups.Resolve(m_ToolbarGroup, m_Category == BuildingCategory.Utility, m_CivicKind, m_ResearchPerDay, m_HappinessEffect);
     public ToolbarGroup LaterToolbarGroup => m_LaterToolbarGroup;
     public string LaterGroupAge => m_LaterGroupAge;
+    public bool IsCustom => m_IsCustom;
 }

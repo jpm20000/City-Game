@@ -29,6 +29,65 @@ public static class ArtContract
     private static readonly float[] s_MinHeight = { 0.15f, 0.40f, 0.60f };
     private static readonly float[] s_MaxHeight = { 1.20f, 2.00f, 3.40f };
 
+    // Placeable buildings (M25) follow a different contract from grown blocks: BuildingInstance.ApplyTransform scales the
+    // whole prefab to footprint x Definition.Height and stands it at height / 2, so the prefab is modelled as a UNIT
+    // BOX centred on its pivot (every mesh inside -0.5..0.5 on all three axes), carries a BuildingInstance on the root,
+    // sits on layer 9 with a collider on the root. Its optional Decor child (BuildingInstance.m_Decor) is counter-scaled
+    // and authored in world units, so it is left out of the box check. The shipped placeables use 1-5 shared
+    // materials (small flat-colour assets), not the kit's single material, so the limit is looser than for grown blocks.
+    public const int MaxPlaceableMaterials = 6;
+    public const float UnitBoxMargin = 0.02f;
+
+    public static bool ValidatePlaceable(GameObject prefab, List<string> errors)
+    {
+        int before = errors.Count;
+        if (prefab == null)
+        {
+            errors.Add("empty prefab");
+            return false;
+        }
+        string name = prefab.name;
+        if (prefab.layer != BuildingsLayer) errors.Add($"{name}: layer {prefab.layer}, must be {BuildingsLayer} (Buildings)");
+        if (prefab.GetComponent<Collider>() == null) errors.Add($"{name}: no collider on the root (selection raycasts need it)");
+        var instance = prefab.GetComponent<BuildingInstance>();
+        if (instance == null) errors.Add($"{name}: no BuildingInstance on the root (placement needs it)");
+
+        Transform decor = null;
+        if (instance != null)
+        {
+            decor = new SerializedObject(instance).FindProperty("m_Decor").objectReferenceValue as Transform;
+        }
+
+        var materials = new HashSet<Material>();
+        bool hasRenderer = false;
+        foreach (Renderer renderer in prefab.GetComponentsInChildren<Renderer>(true))
+        {
+            hasRenderer = true;
+            foreach (Material material in renderer.sharedMaterials)
+            {
+                if (material == null) errors.Add($"{name}/{renderer.name}: missing material");
+                else materials.Add(material);
+            }
+        }
+        if (!hasRenderer) errors.Add($"{name}: no renderers");
+        if (materials.Count > MaxPlaceableMaterials) errors.Add($"{name}: {materials.Count} materials, at most {MaxPlaceableMaterials}");
+
+        if (!TryGetBounds(prefab, decor, out Bounds bounds))
+        {
+            errors.Add($"{name}: no meshes to measure");
+        }
+        else
+        {
+            float limit = 0.5f + UnitBoxMargin;
+            if (bounds.min.x < -limit || bounds.max.x > limit || bounds.min.y < -limit || bounds.max.y > limit
+                || bounds.min.z < -limit || bounds.max.z > limit)
+            {
+                errors.Add($"{name}: bounds x {bounds.min.x:F2}..{bounds.max.x:F2}, y {bounds.min.y:F2}..{bounds.max.y:F2}, z {bounds.min.z:F2}..{bounds.max.z:F2} leave the unit box around the pivot (the game scales it to footprint x height)");
+            }
+        }
+        return errors.Count == before;
+    }
+
     public static bool Validate(GameObject prefab, int level, List<string> errors)
     {
         int before = errors.Count;
@@ -56,7 +115,7 @@ public static class ArtContract
         if (!hasRenderer) errors.Add($"{name}: no renderers");
         if (materials.Count > MaxMaterials) errors.Add($"{name}: {materials.Count} materials, at most {MaxMaterials}");
 
-        if (!TryGetBounds(prefab, out Bounds bounds))
+        if (!TryGetBounds(prefab, null, out Bounds bounds))
         {
             errors.Add($"{name}: no meshes to measure");
         }
@@ -83,7 +142,7 @@ public static class ArtContract
 
     // Bounds of every mesh under the root, in the root's own space (the root's transform is ignored: the
     // game places the instance itself). Works on prefab assets, where Renderer.bounds is not reliable.
-    private static bool TryGetBounds(GameObject root, out Bounds bounds)
+    private static bool TryGetBounds(GameObject root, Transform exclude, out Bounds bounds)
     {
         bounds = default;
         bool any = false;
@@ -92,6 +151,7 @@ public static class ArtContract
         {
             Mesh mesh = filter.sharedMesh;
             if (mesh == null) continue;
+            if (exclude != null && filter.transform.IsChildOf(exclude)) continue;
             Matrix4x4 matrix = toRoot * filter.transform.localToWorldMatrix;
             Bounds local = mesh.bounds;
             for (int c = 0; c < 8; c++)
