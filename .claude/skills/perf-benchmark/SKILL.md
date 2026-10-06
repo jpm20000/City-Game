@@ -50,6 +50,10 @@ Editor frame times mislead: Hierarchy/editor overhead makes GameObject create/de
 
 | M24e (goods: the benchmark city is age-less, so goods are off there; O(1) per tick) | 1.33 ms | 1.60 ms | 2.35-2.65 ms | 2.37 ms |
 
+| M26 (release 1.1.0; two runs) | 1.19-1.35 ms (budget 1.7) | 1.16-1.20 ms (budget 3.0) | **3.2-3.7 ms** (rezone 3.23-3.29, demolish + regrow 3.67-3.70, road toggle 3.25-3.31; M24e 2.35-2.65) | 2.41-2.50 ms (`Disasters.Step` 1.43-1.59 ms) |
+
+The M26 edit-every-frame rows are about 0.8 ms above M24e in both runs while idle, 4x, zoomed-out and sim-tick numbers are unchanged; no budget covers this row and it is far inside a frame, so it was recorded, not chased. Not bisected (M24e to M26 touched the HUD, input and Build menu, none of which run per edit); if it ever matters, build a development player at 5813fb1 and at eb45d06 and compare.
+
 Regressions to watch: per-instance materials or `MaterialPropertyBlock`s (they drop renderers out of the SRP Batcher / GPU Resident Drawer — this was 23 ms frames / 110 ms zoomed out before M10b), creating/destroying GameObjects per change instead of pooling, and per-tick full-map scans in new sim systems.
 
 Record new numbers in this table and in GamePlan §12's milestone notes.
