@@ -226,8 +226,40 @@ public static class CustomAssetsDriver
             yield return ClickUi(Btn("LockedFilter", "UI/BuildMenu"));
             yield return Frames(4);
             Check(menu.ShownCount <= withLocked, $"hiding Locked does not add rows: {withLocked} -> {menu.ShownCount}");
+            // --- layout: the window must fit a 1280x720 screen (read from the canvas scaler, not by resizing the Game view) ---
+            GameObject windowRoot = GameObject.Find("UI/BuildMenu");
+            Canvas canvas = GameObject.Find("UI").GetComponent<Canvas>();
+            var scaler = canvas.GetComponent<CanvasScaler>();
+            var rect = (RectTransform)windowRoot.transform.GetChild(0);
+            Vector3[] corners = new Vector3[4];
+            rect.GetWorldCorners(corners);
+            float heightPx = corners[1].y - corners[0].y, widthPx = corners[2].x - corners[1].x;
+            // pixels at the current screen -> pixels at 720 high (the canvas scales with the screen height, or not at all)
+            float scaleAt720 = scaler != null && scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize ? 720f / Screen.height : 1f;
+            Log($"layout: window {widthPx:F0}x{heightPx:F0} px on {Screen.width}x{Screen.height}, scaler {(scaler != null ? scaler.uiScaleMode.ToString() : "none")}, at 720p {widthPx * scaleAt720:F0}x{heightPx * scaleAt720:F0}");
+            Check(heightPx * scaleAt720 <= 720f && widthPx * scaleAt720 <= 1280f, "the Build menu fits a 1280x720 screen");
             yield return Press(Key.Escape);
             Check(!menu.IsOpen, "Esc closes the menu at the end");
+
+            // --- rebinding F: the real rebind path, then back ---
+            KeyBindings.Entry entry = KeyBindings.Entries.First(e => e.Action == "BuildMenu");
+            string rebound = null;
+            KeyBindings.Rebind(entry, m => rebound = m);
+            yield return Frames(3);
+            yield return Press(Key.G);
+            float until = Time.realtimeSinceStartup + 1f;       // the rebind op waits a moment in real time for another key
+            while (rebound == null && Time.realtimeSinceStartup < until) yield return null;
+            Check(rebound != null && KeyBindings.Label(entry) == "G", "Build menu rebound to G: " + rebound);
+            yield return Press(Key.F);
+            Check(!menu.IsOpen, "F no longer opens the menu");
+            yield return Press(Key.G);
+            Check(menu.IsOpen, "G opens it");
+            yield return Press(Key.Escape);
+            KeyBindings.Reset(entry);
+            yield return Frames(3);
+            yield return Press(Key.F);
+            Check(menu.IsOpen && KeyBindings.IsDefault(entry), "reset puts F back");
+            yield return Press(Key.Escape);
         }
         finally
         {
