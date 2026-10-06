@@ -209,6 +209,24 @@ public static class GoodsDriver
             Check(game.Simulation.GoodsActive, "goods are on in the Industrial age");
             gMeter = GameObject.Find("DemandG");
             Check(gMeter != null && gMeter.activeInHierarchy, "the G meter is shown");
+            // The G meter explains itself on hover.
+            var goodsTip = gMeter.GetComponent<GoodsTooltip>();
+            Check(goodsTip != null, "the G meter has a tooltip");
+            if (goodsTip != null)
+            {
+                MouseTo(UiPos(gMeter), false);
+                yield return Frames(6);
+                Check(goodsTip.IsShown && goodsTip.Text.Contains("Factories make goods") && goodsTip.Text.Contains("Supply"), "hovering the G meter shows what goods are: " + goodsTip.Text.Replace("\n", " | "));
+                ScreenCapture.CaptureScreenshot(shotPath.Replace(".png", "_tip.png"));
+                yield return Seconds(1.5f);
+                MouseTo(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f), false);
+                yield return Frames(4);
+                Check(!goodsTip.IsShown, "the tooltip hides when the pointer leaves");
+            }
+            // DEBUG: the age event the real advance raises; the toast names goods.
+            GameEvents.RaiseAgeChanged(game.Simulation.Tech.CurrentAge);
+            yield return Frames(4);
+            Check(TextContaining("are now in play") != null, "entering the goods age toasts what goods are");
             Check(game.Simulation.Goods.Last.Demanded > 0f, $"the city wants goods: {game.Simulation.Goods.Last.Demanded:F1} (made {game.Simulation.Goods.Last.Produced:F1}, imported {game.Simulation.Goods.Last.Imported:F1})");
 
             yield return ClickUi(Btn("ViewsButton"));

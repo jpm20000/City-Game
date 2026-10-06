@@ -135,6 +135,7 @@ public sealed class HUDController : MonoBehaviour
         TMP_Text label = m_GoodsGroup.GetComponentInChildren<TMP_Text>(true);
         if (label != null) label.text = "G";
         if (m_GoodsMeter != null) m_GoodsFill = m_GoodsMeter.transform.Find("Fill")?.GetComponent<Image>();
+        m_GoodsGroup.AddComponent<GoodsTooltip>().Init(m_GameManager);
         m_GoodsGroup.SetActive(false);
     }
 

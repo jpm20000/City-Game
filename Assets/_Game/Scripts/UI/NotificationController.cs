@@ -268,6 +268,10 @@ public sealed class NotificationController : MonoBehaviour
                 ? " Water now comes from <color=#59A6F2>water towers</color> on the roads — wells no longer count. Build a Water Tower beside a road."
                 : " Water now comes from <color=#59A6F2>water towers</color> on the roads — wells no longer count. Research Waterworks and build a Water Tower.";
         }
+        if (age == m_GameManager.Balance.GoodsMinAge && m_GameManager.Simulation.GoodsActive)
+        {
+            message += " <color=#59CCB3>Goods</color> are now in play: factories make them, shops and homes use them. Hover the G meter to see how the city stands.";
+        }
         ShowToast(message);
         m_AnnouncedReady = false;
         m_AnnouncedRebuild = false;
