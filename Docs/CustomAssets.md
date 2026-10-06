@@ -107,6 +107,8 @@ one entry per level 1-3, each with a list of variants (one is picked per cell). 
 Enter Play mode on a new city, place or zone, and look at it from all four camera views (Q / E): a prefab that
 looks right from one side may have an open back. Save, load, and check it is still there.
 
+The repo has a UI-only check of the whole path: `CustomAssetsDriver` (`Scripts/Editor/Playthrough/`) opens the Build menu with F, searches, places the sample Market Hall and saves and loads it. Copy it as a starting point for your own building.
+
 ## Things not to do
 
 - Do not change an `Id` after release: saved cities would lose the building.
