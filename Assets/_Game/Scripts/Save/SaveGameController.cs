@@ -241,7 +241,7 @@ public sealed class SaveGameController : MonoBehaviour
         Dirty = false;
         GameEvents.RaiseNotification(skipped == 0
             ? $"City loaded — {name} (Day {data.Day}, Month {data.Month}, Year {data.Year})"
-            : $"City loaded — {skipped} building(s) could not be restored");
+            : $"City loaded — {skipped} building(s) could not be restored{MissingNote()}");
         return true;
     }
 
@@ -354,6 +354,16 @@ public sealed class SaveGameController : MonoBehaviour
         Dirty = true;
     }
 
+    // Ids in the last loaded save that this game doesn't know (a custom building that was removed, M25): named in the load toast.
+    private readonly List<string> m_MissingIds = new();
+
+    private string MissingNote()
+    {
+        if (m_MissingIds.Count == 0) return "";
+        int shown = Mathf.Min(m_MissingIds.Count, 3);
+        return $" (unknown: {string.Join(", ", m_MissingIds.GetRange(0, shown))}{(m_MissingIds.Count > shown ? ", ..." : "")})";
+    }
+
     // Returns how many saved buildings couldn't be re-placed (unknown id or blocked footprint).
     private int Apply(SaveData data)
     {
@@ -362,9 +372,11 @@ public sealed class SaveGameController : MonoBehaviour
         SaveSystem.ApplyGrid(data, m_GameManager.Grid);
 
         int skipped = 0;
+        m_MissingIds.Clear();
         foreach (BuildingRecord record in data.Buildings)
         {
             BuildingDefinition definition = m_GameManager.Buildings != null ? m_GameManager.Buildings.GetById(record.Id) : null;
+            if (definition == null && !m_MissingIds.Contains(record.Id)) m_MissingIds.Add(record.Id);
             if (definition == null || !m_Placement.RestoreBuilding(definition, new Vector2Int(record.X, record.Y), record.Rotation & 3))
             {
                 Debug.LogWarning($"SaveGameController: couldn't restore building '{record.Id}' at ({record.X}, {record.Y}).", this);

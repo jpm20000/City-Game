@@ -1,7 +1,7 @@
 # Adding your own assets to Chronopolis
 
-*Draft from M25a (2026-10-06). The **Add Custom Building…** wizard and the in-game **Build menu** arrive in
-M25b / M25c; the manual route below works today and is what the wizard automates. Plan:
+*Draft from M25a-b (2026-10-06). The **Add Custom Building…** wizard exists (M25b); the in-game **Build menu**
+arrives in M25c. The manual route below is what the wizard automates. Plan:
 [`milestones/v1.1/M25.md`](milestones/v1.1/M25.md).*
 
 Custom assets are added **in the Unity Editor** (the project, not the shipped game). The game does not load models
@@ -50,6 +50,29 @@ simple masses (as the shipped ones are) or keep `Size` and `Height` close to the
 `CustomBuildingValidator` runs these rules through `ArtContract.ValidatePlaceable`, and also checks: unique `Id`,
 existing `RequiredTech`, non-negative cost / upkeep / housing / jobs, size at least 1x1, a prefab present. Both report
 numbers, e.g. `bounds ... leave the unit box around the pivot`.
+
+## Making a placeable building with the wizard
+
+*CityBuilder > Add Custom Building...* does the steps below for you:
+
+1. Give it a **display name** (the id is made from it, e.g. "Market Hall" becomes `market_hall`; it is saved in cities, so do
+   not change it later).
+2. Drop in the **model**: a prefab, a model asset (FBX) or a scene object. With *Fit the model to the unit box* ticked
+   (the default) the wizard builds the game prefab around it: layer 9, a root collider, a `BuildingInstance`, and the
+   model stretched to fill the unit box on every axis (it becomes the footprint and height you set below). Untick it
+   if the model already is a game prefab.
+3. Set category, footprint, height, cost, upkeep, housing, jobs, happiness and the required tech, then **Create / update**.
+
+The wizard checks everything first (`CustomBuildingValidator`); a problem is listed in the window and nothing is
+written. On success it saves `Scriptables/Buildings/Custom/<Name>.asset` and `Prefabs/Custom/<Name>.prefab` and adds the
+definition to the `BuildingDatabase` (a custom building shows in its toolbar group once its tech is researched). Run it
+again with the same id to change a building you made; it refuses ids that belong to shipped content.
+
+The model's materials must be **assets** (saved `.mat` files): materials that exist only in a scene cannot be kept in
+a prefab, and the check reports `missing material`.
+
+The shipped sample is the **Market Hall** (`market_hall`, Renaissance, needs Banking, 2x2, 8 shop jobs), made with
+the wizard from four boxes; open its prefab to see the shape.
 
 ## Making a placeable building by hand
 
