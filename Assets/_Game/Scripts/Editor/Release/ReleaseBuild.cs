@@ -19,7 +19,7 @@ public static class ReleaseBuild
 {
     public const string Company = "J-man Studios";
     public const string Product = "Chronopolis";
-    public const string Version = "1.0.0";
+    public const string Version = "1.1.0";
     private const string ScenePath = "Assets/_Game/Scenes/Main.unity";
     private const string IconFolder = "Assets/_Game/Art/Icon";
     private static readonly string[] s_InnoPaths =
