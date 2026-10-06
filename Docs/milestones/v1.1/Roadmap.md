@@ -34,7 +34,7 @@ One file per milestone, like `../v1.0/` (M10–M19). Outlines become full plans 
 - [M23 — Density & Modern skyline](M23.md) — **done 2026-10-05**, save v9
 - [M24 — Goods](M24.md) — **done 2026-10-06**, save v10
 - [M25 — Custom assets](M25.md) — done 2026-10-06 (landmarks dropped; see its decision table)
-- [M26 — Release 1.1](M26.md) — plan, in progress (version 1.1.0)
+- [M26 — Release 1.1](M26.md) — **done 2026-10-06**, version 1.1.0
 
 ## Cross-milestone decisions (recommended defaults — change before the milestone that uses them)
 

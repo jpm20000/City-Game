@@ -28,6 +28,9 @@ Every action goes through Input System events, so the EventSystem, `InputReader`
 - If map input does nothing, log `InputReader.Pointer` against the virtual mouse position: `Pointer` must be a **Pass Through** action (it was a Value action until M11g and stuck to the first pointer device).
 - Statics don't carry between RunCommands; write results to the log file.
 
+## One driver per Play session (M26)
+Drivers leave the game in whatever state they finished in (a city, a selection, a window), and most start by assuming the title or a clean city. Chained in one Play session, five of nine reported false failures; each passed alone. Exit and re-enter Play mode between drivers, and check `Time.frameCount` is advancing before starting one (an Editor without focus may not tick Play mode at all, and a driver started then logs nothing). `Release11Driver` is the whole 1.1 loop from the title.
+
 ## Reporting
 End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; distinguish driver bugs (fix and rerun) from game bugs (fix in the game, add a test where the sim is involved).
 

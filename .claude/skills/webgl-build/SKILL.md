@@ -28,6 +28,10 @@ The profile stays active and the target stays WebGL after a build. In a `RunComm
 - **The showcase city** is fetched with `UnityWebRequest` (`StreamingAssets` is a URL, `File` can't read it): `SaveGameController.LoadShowcaseWeb`. It arrives after `GameFlow` finished its own showcase load, so it brackets the apply with `GameFlow.ShowcaseApplying(true/false)`; without that `OnCityLoaded` took it for a real load and left the title menu. It also applies only while the player is still on the title.
 - The rest is unchanged: saves still use `File` under `persistentDataPath` (the browser keeps them in IndexedDB), `Application.wantsToQuit` never fires.
 
+## Notes from M26 (1.1.0)
+- Checked in the browser pane against a local `python -m http.server` on `Build/WebGL`: the title, New City, a road drag, **E turns the view**, **F opens the Build menu and key presses fill its search box**. The pane's `type` action (text insertion) does not reach the Unity input field; use the `key` action with the letters. The generated page has a fixed 1920x1080 canvas: set the canvas CSS size (and `body{margin:0;overflow:hidden}`) to see all of it in a small pane.
+- After the build the Editor is still on WebGL (no profile in this run): switch back with `SwitchActiveBuildTarget`, wait about 30 s, and `git checkout -- Assets/Settings ProjectSettings`.
+
 ## Not checked
 Save durability across a closed tab and cleared browser data, performance and memory on a large city, mobile browsers, high-DPI sharpness (a page setting). Do not claim them without a browser test.
 
