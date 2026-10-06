@@ -117,6 +117,16 @@
                     "priority": 0
                 },
                 {
+                    "name": "BuildMenu",
+                    "type": "Button",
+                    "id": "8c1d5e72-4b3a-4f6e-9d20-6a1b7c3e9f55",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false,
+                    "priority": 0
+                },
+                {
                     "name": "SpeedDelta",
                     "type": "Value",
                     "id": "33c81250-7960-4652-a87a-48ac754b71c6",
@@ -392,6 +402,17 @@
                     "processors": "",
                     "groups": "",
                     "action": "PipeTool",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "2f6b9a14-7d3c-4e58-8a01-5c9e1d7b3a66",
+                    "path": "<Keyboard>/f",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "BuildMenu",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

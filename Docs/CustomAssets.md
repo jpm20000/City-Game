@@ -51,6 +51,13 @@ simple masses (as the shipped ones are) or keep `Size` and `Height` close to the
 existing `RequiredTech`, non-negative cost / upkeep / housing / jobs, size at least 1x1, a prefab present. Both report
 numbers, e.g. `bounds ... leave the unit box around the pivot`.
 
+## Finding and placing buildings: the Build menu
+
+In the game, press **F** (rebindable in Settings > Controls) or click **Find** in the Tools group of the toolbar. Type to
+search by name, group, age or effect ("market", "police", "jobs", "custom"); narrow with the group buttons, the age
+button, **Custom only** and **Locked**. Custom buildings carry a green **Custom** tag; buildings whose tech is not researched
+are greyed with the tech they need. Up / Down and Enter, or a click, start placing; Esc closes.
+
 ## Making a placeable building with the wizard
 
 *CityBuilder > Add Custom Building...* does the steps below for you:

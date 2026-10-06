@@ -36,6 +36,7 @@ public sealed class GameFlow : MonoBehaviour
     private SettingsPanel m_Settings;
     private TutorialCard m_Tutorial;
     private SaveBrowser m_Browser;
+    private BuildMenu m_BuildMenu;
     private ConfirmDialog m_Confirm;
 
     private readonly List<Action> m_Windows = new();
@@ -58,6 +59,7 @@ public sealed class GameFlow : MonoBehaviour
     public GameFlowState State => m_InMainMenu ? GameFlowState.MainMenu : m_Windows.Count > 0 ? GameFlowState.Paused : GameFlowState.Playing;
     public SaveGameController Save => m_Save;
     public SaveBrowser Browser => m_Browser;
+    public BuildMenu BuildMenu => m_BuildMenu;
     public ConfirmDialog Confirm => m_Confirm;
     public PauseMenu Pause => m_Pause;
     public MainMenu Main => m_MainMenu;
@@ -122,6 +124,7 @@ public sealed class GameFlow : MonoBehaviour
 
         m_Confirm = new ConfirmDialog(canvas, this);
         m_Browser = new SaveBrowser(canvas, this);
+        m_BuildMenu = new BuildMenu(canvas, this);
         m_Pause = new PauseMenu(canvas, this);
         m_Settings = new SettingsPanel(canvas, this);
         m_MainMenu = new MainMenu(canvas, this);
@@ -161,6 +164,7 @@ public sealed class GameFlow : MonoBehaviour
         Application.wantsToQuit -= OnWantsToQuit;
         EscapeRouter.Unregister(m_Confirm);
         EscapeRouter.Unregister(m_Browser);
+        EscapeRouter.Unregister(m_BuildMenu);
         EscapeRouter.Unregister(m_Pause);
         EscapeRouter.Unregister(m_Settings);
         if (m_Input != null) m_Input.Blocked = false;
@@ -170,6 +174,7 @@ public sealed class GameFlow : MonoBehaviour
     private void Update()
     {
         m_Tutorial?.Update();
+        if (m_Input != null && m_Input.BuildMenuPressed) OpenBuildMenu();
         if (m_Input == null || !m_Input.CancelPressed) return;
         if (!EscapeRouter.Dispatch() && !m_InMainMenu) OpenPauseMenu();
     }
@@ -328,6 +333,13 @@ public sealed class GameFlow : MonoBehaviour
     // Leaves the main menu without loading anything (Play-mode checks and tools that start from the current city).
     // The title's Tutorial entry and the pause menu: a fresh tutorial city (unsaved changes are asked about first).
     public void StartTutorial() => GuardDiscard(() => m_Save.StartTutorial());
+
+    // The Build menu (M25c): the toolbar's Build button and its key. Not on the title screen or over another window.
+    public void OpenBuildMenu()
+    {
+        if (m_InMainMenu || m_Windows.Count > 0 || m_BuildMenu == null) return;
+        m_BuildMenu.Open();
+    }
 
     public void StartPlaying()
     {

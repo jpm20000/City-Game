@@ -521,6 +521,8 @@ public sealed class ToolbarController : MonoBehaviour
         int index = m_DemolishButton.transform.GetSiblingIndex();
         MakeRotateButton(parent, index + 1, "RotateLeft", "Turn L", "Rotate the view left  [Q]\nTurns the map a quarter turn around the screen centre.", () => camera.Rotate(-1));
         MakeRotateButton(parent, index + 2, "RotateRight", "Turn R", "Rotate the view right  [E]\nTurns the map a quarter turn around the screen centre.", () => camera.Rotate(1));
+        MakeRotateButton(parent, index + 3, "BuildMenuButton", "Find", "Build menu  [F]\nSearch every building you can place by name, group, age or effect, and pick one.",
+            () => { if (GameFlow.Instance != null) GameFlow.Instance.OpenBuildMenu(); });
     }
 
     private void MakeRotateButton(Transform parent, int index, string name, string label, string tooltip, UnityEngine.Events.UnityAction onClick)

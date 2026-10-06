@@ -29,6 +29,7 @@ public static class KeyBindings
         new Entry { Label = "Demolish tool", Action = "Demolish" },
         new Entry { Label = "Road tool", Action = "RoadTool" },
         new Entry { Label = "Pipe tool", Action = "PipeTool" },
+        new Entry { Label = "Build menu", Action = "BuildMenu" },
         new Entry { Label = "Cycle info view", Action = "CycleOverlay" },
         new Entry { Label = "Quick save", Action = "QuickSave" },
         new Entry { Label = "Quick load", Action = "QuickLoad" },
@@ -37,7 +38,7 @@ public static class KeyBindings
     // The old hard-coded hints in tooltips, toasts and hints; Fill swaps them for the current keys.
     private static readonly (string token, string action)[] s_Tokens =
     {
-        ("[V]", "CycleOverlay"), ("[Del]", "Demolish"), ("[B]", "RoadTool"), ("[P]", "PipeTool"), ("[R]", "Rotate"),
+        ("[V]", "CycleOverlay"), ("[Del]", "Demolish"), ("[B]", "RoadTool"), ("[P]", "PipeTool"), ("[F]", "BuildMenu"), ("[R]", "Rotate"),
         ("[Q]", "RotateCameraLeft"), ("[E]", "RotateCameraRight"),
     };
 
