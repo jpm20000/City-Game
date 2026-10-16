@@ -7,6 +7,8 @@ using UnityEngine.UI;
 // The Save as / Load window (M19b): every named save with its thumbnail and a one-line summary, newest first. Save mode
 // has a name field (a click on a row copies its name there, to overwrite it); Load mode loads the selected save. Rename
 // and Delete work on the selected save in both. The list reads only the sidecar summaries, never the cities.
+// M28b, browser build only (WebStorage.FilesSupported): Load mode also has Export (downloads the selected save's .json)
+// and Import (adds a picked .json as a new save), since browser storage can be cleared with the site's data.
 public sealed class SaveBrowser
 {
     public enum Mode { Save, Load }
@@ -26,6 +28,8 @@ public sealed class SaveBrowser
     private readonly Button m_Primary;
     private readonly Button m_Rename;
     private readonly Button m_Delete;
+    private readonly Button m_Export;
+    private readonly Button m_Import;
     private readonly List<Row> m_Rows = new();
     private readonly List<Texture2D> m_Textures = new();
 
@@ -60,8 +64,16 @@ public sealed class SaveBrowser
         m_Primary = UiKit.MakeButton(buttons, "Save", PrimaryClicked, 0f, UiKit.AccentColor);
         m_Rename = UiKit.MakeButton(buttons, "Rename", RenameClicked, 0f);
         m_Delete = UiKit.MakeButton(buttons, "Delete", DeleteClicked, 0f);
+        if (WebStorage.FilesSupported)
+        {
+            m_Export = UiKit.MakeButton(buttons, "Export", ExportClicked, 0f);
+            m_Import = UiKit.MakeButton(buttons, "Import…", ImportClicked, 0f);
+        }
         Button close = UiKit.MakeButton(buttons, "Close", Hide, 0f);
-        foreach (Button b in new[] { m_Primary, m_Rename, m_Delete, close }) b.GetComponent<LayoutElement>().flexibleWidth = 1f;
+        foreach (Button b in new[] { m_Primary, m_Rename, m_Delete, m_Export, m_Import, close })
+        {
+            if (b != null) b.GetComponent<LayoutElement>().flexibleWidth = 1f;
+        }
 
         EscapeRouter.Register(this, EscapeRouter.Window, () =>
         {
@@ -127,7 +139,11 @@ public sealed class SaveBrowser
         m_Window.Title.text = mode == Mode.Save ? "Save city" : "Load city";
         UiKit.SetLabel(m_Primary, mode == Mode.Save ? "Save" : "Load");
         m_Selected = "";
-        m_Status.text = "";
+        m_Status.text = mode == Mode.Load && m_Import != null
+            ? "Saves are kept in this browser. Export one to keep a copy that survives clearing the site's data."
+            : "";
+        if (m_Export != null) m_Export.gameObject.SetActive(mode == Mode.Load);
+        if (m_Import != null) m_Import.gameObject.SetActive(mode == Mode.Load);
 
         SaveGameController save = m_Flow.Save;
         if (mode == Mode.Save)
@@ -291,6 +307,7 @@ public sealed class SaveBrowser
         m_Primary.interactable = m_Mode == Mode.Save || (selected != null && !selected.Damaged);
         m_Rename.interactable = selected != null && !selected.Damaged;
         m_Delete.interactable = selected != null;
+        if (m_Export != null) m_Export.interactable = selected != null && !selected.Damaged;
     }
 
     // --- Actions ---
@@ -343,6 +360,38 @@ public sealed class SaveBrowser
         Refresh();
         Select(finalName, copyName: true);
         m_Status.text = "Renamed.";
+    }
+
+    private void ExportClicked()
+    {
+        SaveSummary selected = SelectedSummary();
+        if (selected == null) return;
+        string text = SaveSlots.ExportText(selected.Name);
+        if (text == null)
+        {
+            m_Status.text = "Couldn't read that save.";
+            return;
+        }
+        WebStorage.Download(SaveSlots.ExportFileName(selected.Name), text);
+        m_Status.text = $"Exported {SaveSlots.ExportFileName(selected.Name)} to your downloads.";
+    }
+
+    private void ImportClicked() => WebStorage.PickFile(ImportFile);
+
+    // A picked file (the browser's file picker; public for checks): added as a new save and selected.
+    public void ImportFile(string fileName, string text)
+    {
+        GameManager game = FindGame();
+        if (!SaveSlots.ImportJson(fileName, text, out string name, out string error, game != null ? game.Ages : null,
+                game != null ? game.Techs : null))
+        {
+            m_Status.text = error;
+            return;
+        }
+        if (!IsOpen) return;
+        Refresh();
+        Select(name, copyName: true);
+        m_Status.text = $"Imported {fileName} as '{name}'.";
     }
 
     private void DeleteClicked()

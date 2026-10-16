@@ -293,6 +293,48 @@ public static class SaveSlots
         return summary;
     }
 
+    // --- Export / import (M28, the browser build's Load panel) ---
+
+    // The city file's text, for a download named ExportFileName. Null when the save is gone or unreadable.
+    public static string ExportText(string name)
+    {
+        if (!Exists(name)) return null;
+        try { return File.ReadAllText(JsonPath(name)); }
+        catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) { return null; }
+    }
+
+    public static string ExportFileName(string name) => name + JsonExt;
+
+    // Adds a city file the player picked as a new manual save, never over an existing one: named after the file
+    // ("Ashford.json" -> "Ashford", or "Ashford 2" when that is taken), or after the city when the file name is empty
+    // or an autosave / quicksave name (an imported "autosave_2" would be rotated away). The city is read and migrated
+    // first, so a file that is not a save is refused and nothing is written.
+    public static bool ImportJson(string fileName, string json, out string finalName, out string error,
+        AgeDatabase ages = null, TechDatabase techs = null)
+    {
+        finalName = null;
+        if (!SaveSystem.TryFromJson(json, out SaveData data, out error, ages, techs))
+        {
+            error = "That file is not a Chronopolis save" + (string.IsNullOrEmpty(error) ? "." : $" ({error}).");
+            return false;
+        }
+
+        string stem = Path.GetFileNameWithoutExtension(fileName ?? "");
+        if (stem.EndsWith(".info", StringComparison.OrdinalIgnoreCase)) stem = stem.Substring(0, stem.Length - 5);
+        string candidate = SanitizeName(stem);
+        if (string.IsNullOrWhiteSpace(stem) || KindOf(candidate) != SaveKind.Manual)
+        {
+            candidate = string.IsNullOrWhiteSpace(data.CityName) ? UnnamedCity : data.CityName;
+        }
+        finalName = UniqueName(candidate);
+
+        string ageName = ages != null && ages.IsValidIndex(data.Age) ? ages[data.Age].DisplayName : "";
+        SaveSummary summary = SaveSummary.From(data, SaveKind.Manual, DateTime.UtcNow.Ticks, "", ageName);
+        if (Write(finalName, data, summary, null, out error)) return true;
+        finalName = null;
+        return false;
+    }
+
     // --- The old single-slot save ---
 
     // M19g: the game was renamed, which moved the data folder. Copies (never moves) every save file of the old Saves

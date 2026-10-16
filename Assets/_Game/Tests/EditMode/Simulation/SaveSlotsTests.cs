@@ -275,6 +275,47 @@ public sealed class SaveSlotsTests
         finally { SaveSlots.Changed -= Count; }
     }
 
+    [Test]
+    public void ImportJson_AddsANewManualSave_NamedAfterTheFile_NeverOverAnother()
+    {
+        Save("Ashford", City("Ashford", 100), SaveKind.Manual, 100);
+        string exported = SaveSlots.ExportText("Ashford");
+        Assert.IsNotNull(exported);
+        Assert.AreEqual("Ashford.json", SaveSlots.ExportFileName("Ashford"));
+
+        Assert.IsTrue(SaveSlots.ImportJson("Ashford.json", exported, out string name, out string error), error);
+        Assert.AreEqual("Ashford 2", name, "the existing save is kept");
+        Assert.IsTrue(SaveSlots.ImportJson("Ashford (1).json", exported, out name, out error), error);
+        Assert.AreEqual("Ashford (1)", name, "a browser's download suffix is kept: it is a different file");
+        Assert.AreEqual(SaveKind.Manual, SaveSlots.KindOf(name));
+
+        Assert.IsTrue(SaveSlots.TryRead("Ashford 2", out SaveData data, out error), error);
+        Assert.AreEqual(100, data.Population);
+        SaveSummary listed = SaveSlots.List().Find(s => s.Name == "Ashford 2");
+        Assert.IsFalse(listed.Damaged);
+        Assert.AreEqual((int)SaveKind.Manual, listed.Kind);
+    }
+
+    [Test]
+    public void ImportJson_UsesTheCityName_ForAnAutosaveOrQuicksaveFile_AndRefusesAFileThatIsNotASave()
+    {
+        Save("autosave_1", City("Kingsbridge", 50), SaveKind.Auto, 100);
+        string exported = SaveSlots.ExportText("autosave_1");
+
+        Assert.IsTrue(SaveSlots.ImportJson("autosave_1.json", exported, out string name, out string error), error);
+        Assert.AreEqual("Kingsbridge", name);
+        Assert.IsTrue(SaveSlots.ImportJson("Kingsbridge_quick.json", exported, out name, out error), error);
+        Assert.AreEqual("Kingsbridge 2", name);
+
+        int before = SaveSlots.List().Count;
+        Assert.IsFalse(SaveSlots.ImportJson("notes.json", "{\"hello\": 1}", out name, out error));
+        Assert.IsNull(name);
+        StringAssert.Contains("not a Chronopolis save", error);
+        Assert.IsFalse(SaveSlots.ImportJson("photo.json", "not json at all", out _, out _));
+        Assert.AreEqual(before, SaveSlots.List().Count, "nothing written");
+        Assert.IsNull(SaveSlots.ExportText("Missing"));
+    }
+
     // --- autosave rotation ---
 
     [Test]
