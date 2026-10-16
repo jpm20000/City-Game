@@ -223,12 +223,14 @@ public static class KeyBindings
     {
         Asset?.RemoveAllBindingOverrides();
         try { PlayerPrefs.DeleteKey(PrefsKey); } catch (Exception) { }
+        WebStorage.PrefsChanged();
     }
 
     public static void Save()
     {
         if (Asset == null) return;
         try { PlayerPrefs.SetString(PrefsKey, Asset.SaveBindingOverridesAsJson()); } catch (Exception) { }
+        WebStorage.PrefsChanged();
     }
 
     public static void Load(InputActionAsset asset)

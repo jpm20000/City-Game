@@ -237,6 +237,44 @@ public sealed class SaveSlotsTests
         Assert.IsFalse(SaveSlots.Rename("Nothing", "Else", out _, out _));
     }
 
+    [Test]
+    public void Changed_FiresAfterEveryChangeToTheFolder_AndNotForRefusedOnes()
+    {
+        int count = 0;
+        void Count() => count++;
+        SaveSlots.Changed += Count;
+        try
+        {
+            Save("Ashford", City(), SaveKind.Manual, 100);
+            Assert.AreEqual(1, count, "write");
+            Assert.IsTrue(SaveSlots.Rename("Ashford", "Kingsbridge", out _, out _));
+            Assert.AreEqual(2, count, "rename");
+            Assert.IsFalse(SaveSlots.Rename("Nothing", "Else", out _, out _));
+            Assert.IsFalse(SaveSlots.Write("bad.name", City(), Summary(City(), SaveKind.Manual, 1), null, out _));
+            Assert.AreEqual(2, count, "refused rename and write");
+            Assert.IsTrue(SaveSlots.Delete("Kingsbridge"));
+            Assert.AreEqual(3, count, "delete");
+            Assert.IsFalse(SaveSlots.Delete("Kingsbridge"));
+            Assert.AreEqual(3, count, "nothing to delete");
+
+            string legacy = Path.Combine(m_Dir, "legacy_city.json");
+            Assert.IsTrue(SaveSystem.TryWrite(legacy, City(), out string error), error);
+            Assert.IsTrue(SaveSlots.ImportLegacy(legacy));
+            Assert.AreEqual(4, count, "legacy import");
+            string oldFolder = m_Dir + "_old";
+            Directory.CreateDirectory(oldFolder);
+            try
+            {
+                SaveSlots.ImportFolder(oldFolder);
+                Assert.AreEqual(5, count, "folder import (the marker is written)");
+                SaveSlots.ImportFolder(oldFolder);
+                Assert.AreEqual(5, count, "a second folder import does nothing");
+            }
+            finally { Directory.Delete(oldFolder, true); }
+        }
+        finally { SaveSlots.Changed -= Count; }
+    }
+
     // --- autosave rotation ---
 
     [Test]

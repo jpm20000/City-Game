@@ -30,6 +30,12 @@ public static class SaveSlots
 
     private static string s_Root;
 
+    // M28: raised after anything in the folder changed (a write, delete, rename or import). The WebGL build flushes the
+    // browser's file system to IndexedDB on it (WebStorage); elsewhere nothing listens.
+    public static event Action Changed;
+
+    private static void RaiseChanged() => Changed?.Invoke();
+
     public static bool HasRoot => !string.IsNullOrEmpty(s_Root);
 
     public static string Root
@@ -148,6 +154,7 @@ public static class SaveSlots
         catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
         {
         }
+        RaiseChanged();
         return true;
     }
 
@@ -159,6 +166,7 @@ public static class SaveSlots
             File.Delete(JsonPath(name));
             if (File.Exists(InfoPath(name))) File.Delete(InfoPath(name));
             if (File.Exists(ThumbnailPath(name))) File.Delete(ThumbnailPath(name));
+            RaiseChanged();
             return true;
         }
         catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
@@ -188,6 +196,7 @@ public static class SaveSlots
             File.Move(JsonPath(oldName), JsonPath(finalName));
             if (File.Exists(InfoPath(oldName))) File.Move(InfoPath(oldName), InfoPath(finalName));
             if (File.Exists(ThumbnailPath(oldName))) File.Move(ThumbnailPath(oldName), ThumbnailPath(finalName));
+            RaiseChanged();
             return true;
         }
         catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
@@ -307,6 +316,7 @@ public static class SaveSlots
                 if (extension == JsonExt && !file.EndsWith(InfoExt, StringComparison.Ordinal)) copied++;
             }
             File.WriteAllText(marker, "");
+            RaiseChanged();
         }
         catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
         {
@@ -334,6 +344,7 @@ public static class SaveSlots
                 imported = true;
             }
             File.WriteAllText(marker, "");
+            RaiseChanged();
         }
         catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
         {

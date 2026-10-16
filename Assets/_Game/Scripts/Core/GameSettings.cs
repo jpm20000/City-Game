@@ -42,6 +42,7 @@ public static class GameSettings
     {
         s_Floats[key] = value;
         try { PlayerPrefs.SetFloat(Prefix + key, value); } catch (Exception) { }
+        WebStorage.PrefsChanged();
         Changed?.Invoke();
     }
 
@@ -58,6 +59,7 @@ public static class GameSettings
     {
         s_Ints[key] = value;
         try { PlayerPrefs.SetInt(Prefix + key, value); } catch (Exception) { }
+        WebStorage.PrefsChanged();
         Changed?.Invoke();
     }
 
@@ -74,6 +76,7 @@ public static class GameSettings
             s_Ints.Remove(key);
             try { PlayerPrefs.DeleteKey(Prefix + key); } catch (Exception) { }
         }
+        WebStorage.PrefsChanged();
         Changed?.Invoke();
     }
 
