@@ -98,7 +98,7 @@ public sealed class ToolbarController : MonoBehaviour
         RefreshRoadButtons();
         int pipeCost = m_GameManager.Balance.PipeCost;
         Bind(m_PipeButton, "Pipes", $"${pipeCost}", Color.clear,
-            $"Water pipes  [P]\nDrag to lay pipes under any land but roads (${pipeCost} each). Roads carry water already; pipes reach a tower off the road network, join two road networks or feed the building above them. Drag from a pipe to remove pipes.",
+            $"Water pipes  [P]\nDrag a straight line of pipes under any land but roads (${pipeCost} each); it is laid when you let go. Roads carry water already; pipes reach a tower off the road network, join two road networks or feed the building above them. A line that starts on a pipe removes pipes.",
             () => Toggle(PlacementController.Mode.Pipe, m_Placement.SelectPipe));
         BindZone(m_ResidentialButton, "Residential", ZoneType.Residential, ZonePalette.Residential, "Homes grow here when residential demand is high.");
         BindZone(m_CommercialButton, "Commercial", ZoneType.Commercial, ZonePalette.Commercial, "Shops grow here, providing jobs.");
@@ -106,7 +106,7 @@ public sealed class ToolbarController : MonoBehaviour
         BindZone(m_UnzoneButton, "Unzone", ZoneType.None, Color.clear, "Remove zoning (and anything grown on it).");
         CreateDensityButtons();
         Bind(m_DemolishButton, "Demolish", string.Empty, Color.clear,
-            "Demolish  [Del]\nRemove a road, building or grown cell. No refund.",
+            "Demolish  [Del]\nRemove a road, building or grown cell. Hold and drag to clear everything you pass over. No refund.",
             () => Toggle(PlacementController.Mode.Demolish, m_Placement.SelectDemolish));
 
         BindView(m_PowerViewButton, "Power", InfoOverlay.View.Power,
@@ -620,8 +620,8 @@ public sealed class ToolbarController : MonoBehaviour
     private void RefreshRoadButtons()
     {
         RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
-        SetupRoadButton(m_RoadButton, tiers.BestStreetTier, "  [B]", "Lay it from the map edge. Drag a better tier over a road to upgrade it for the price difference.");
-        SetupRoadButton(m_AvenueButton, RoadTiers.Avenue, string.Empty, "Two tiles wide: drag to lay a pair of lanes (R flips the second lane to the other side), priced per lane. Drag over a jammed street to widen it; the Traffic view shows where it helps.");
+        SetupRoadButton(m_RoadButton, tiers.BestStreetTier, "  [B]", "Drag a straight line from the map edge; it is built when you let go (Esc or right click drops it). Drag a better tier over a road to upgrade it for the price difference.");
+        SetupRoadButton(m_AvenueButton, RoadTiers.Avenue, string.Empty, "Two tiles wide: drag a line of paired lanes (R flips the second lane to the other side), priced per lane. Drag over a jammed street to widen it; the Traffic view shows where it helps.");
         SetupRoadButton(m_HighwayButton, RoadTiers.Highway, string.Empty, "The biggest capacity, one-way along your drag (R lays it two-way). Side streets join it as ramps. No frontage: land beside a highway gets no road access, so connect it with streets.");
         if (m_AvenueButton != null) m_AvenueButton.gameObject.SetActive(tiers.IsUnlocked(RoadTiers.Avenue) && tiers.HasContent);
         if (m_HighwayButton != null) m_HighwayButton.gameObject.SetActive(tiers.IsUnlocked(RoadTiers.Highway) && tiers.HasContent);

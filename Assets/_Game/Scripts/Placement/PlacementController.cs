@@ -39,6 +39,13 @@ public sealed class PlacementController : MonoBehaviour
     private bool m_HighwayTwoWay;   // R: the Highway tool lays two-way cells instead of one-way ones (M22)
     private byte m_HighwayHeading;  // the heading of the current Highway drag (0 until the second cell)
     private readonly HashSet<Vector2Int> m_FreshHighway = new();    // highway cells this drag laid (they take its direction)
+    private Vector2Int? m_LineStart;    // M27: the cell a road / pipe line was pressed on (the line is built on release)
+    private Vector2Int m_LineEnd;       // the cursor cell the line last reached (kept while the pointer is over the UI)
+    private bool m_BatchSpend;          // a line is being built: its costs add up into one MoneySpent popup
+    private float m_BatchSpent;
+    private bool m_DemolishDrag;        // M27: the Demolish button is held: every cell the cursor enters is cleared once
+    private readonly HashSet<Vector2Int> m_DemolishVisited = new();
+    private readonly List<int> m_PendingDemolish = new();      // placed buildings the drag touched, asked about on release
     private readonly Dictionary<int, BuildingInstance> m_Buildings = new();
 
     public Mode CurrentMode => m_Mode;
@@ -61,6 +68,13 @@ public sealed class PlacementController : MonoBehaviour
     public byte RoadToolTier => m_RoadTier;
     public byte AvenueSideChoice => m_AvenueSide;
     public bool HighwayTwoWay => m_HighwayTwoWay;
+
+    // M27: a road / pipe line is being dragged (pressed, not yet released or cancelled).
+    public bool LineActive => m_LineStart.HasValue;
+
+    // M27: a demolish drag is held, and how many placed buildings it will remove (or ask about) on release.
+    public bool DemolishDragActive => m_DemolishDrag;
+    public int PendingDemolishCount => m_PendingDemolish.Count;
 
     // The tier the Road tool lays or upgrades to right now.
     public byte ActiveRoadTier => m_RoadTier != 0 ? m_RoadTier : m_GameManager.Simulation.RoadTiers.BestStreetTier;
@@ -111,6 +125,16 @@ public sealed class PlacementController : MonoBehaviour
     // Esc cancels the active tool and clears the selection; with neither it falls through (side panels, pause menu).
     private bool TryEscape()
     {
+        if (m_LineStart.HasValue)
+        {
+            m_LineStart = null;     // the first Esc / right click drops the line being dragged, the next one the tool
+            return true;
+        }
+        if (m_DemolishDrag)
+        {
+            EndDemolishDrag();      // what was cleared stays cleared; the placed buildings it collected are left standing
+            return true;
+        }
         if (m_Mode == Mode.None && !HasSelection) return false;
         SetMode(Mode.None);
         ClearSelection();
@@ -271,6 +295,8 @@ public sealed class PlacementController : MonoBehaviour
         m_Mode = mode;
         m_PendingLane = null;
         m_DragLast = null;
+        m_LineStart = null;
+        EndDemolishDrag();
         if (mode != Mode.None) ClearSelection();
         if (mode == Mode.None)
         {
@@ -280,26 +306,28 @@ public sealed class PlacementController : MonoBehaviour
         ModeChanged?.Invoke();
     }
 
+    private bool IsLineTool => m_Mode == Mode.Road || m_Mode == Mode.Pipe;
+
     private void HandleConfirm()
     {
+        if (IsLineTool)
+        {
+            HandleLine();
+            return;
+        }
+        if (m_Mode == Mode.Demolish)
+        {
+            HandleDemolishDrag();
+            return;
+        }
         if (IsPointerOverUI()) return;
 
-        // Zoning, pipes and roads paint while the button is held (a road drag lays and upgrades); other tools act once per click.
-        bool painting = m_Mode == Mode.Zone || m_Mode == Mode.Pipe || m_Mode == Mode.Road;
+        // Zoning paints while the button is held; other tools act once per click.
+        bool painting = m_Mode == Mode.Zone;
         bool active = painting ? m_InputReader.ConfirmHeld : m_InputReader.ConfirmPressed;
         if (!active) return;
 
         Vector2Int cell = GetMouseCell();
-        if ((m_Mode == Mode.Pipe || m_Mode == Mode.Road) && m_InputReader.ConfirmPressed)
-        {
-            m_PipeErasing = m_Mode == Mode.Pipe && m_GridData.InBounds(cell) && m_GridData.IsPipe(cell);
-            m_PipeFundsWarned = false;
-            m_DragLast = null;
-            m_PendingLane = null;
-            m_HighwayHeading = RoadLayout.None;
-            m_FreshHighway.Clear();
-        }
-
         if (m_Mode == Mode.None)
         {
             SelectCell(cell);
@@ -310,22 +338,127 @@ public sealed class PlacementController : MonoBehaviour
 
         switch (m_Mode)
         {
-            case Mode.Road:
-                TryPlaceRoad(cell);
-                break;
             case Mode.Building:
                 TryPlaceBuilding(cell);
-                break;
-            case Mode.Demolish:
-                DemolishAt(cell);
                 break;
             case Mode.Zone:
                 TryZone(cell);
                 break;
-            case Mode.Pipe:
-                TryPipe(cell);
-                break;
         }
+    }
+
+    // M27: every road tier and the pipe tool lay a straight line. Press on a cell, drag (the line follows the cursor along
+    // x or z, whichever is longer), release to build it; Esc / right click while dragging drops it. Nothing is laid
+    // before the release, and a release over the UI still builds the line as it last stood on the map.
+    private void HandleLine()
+    {
+        if (m_LineStart.HasValue)
+        {
+            if (m_InputReader.Blocked)
+            {
+                m_LineStart = null;     // a dialog opened mid-drag: nothing is built
+                return;
+            }
+            if (!IsPointerOverUI()) m_LineEnd = GetMouseCell();
+            if (!m_InputReader.ConfirmHeld) CommitLine();
+            return;
+        }
+        if (!m_InputReader.ConfirmPressed || IsPointerOverUI()) return;
+        Vector2Int cell = GetMouseCell();
+        if (!m_GridData.InBounds(cell)) return;
+        m_LineStart = cell;
+        m_LineEnd = cell;
+        if (!m_InputReader.ConfirmHeld) CommitLine();   // pressed and released in one frame: a click lays one cell
+    }
+
+    // Lays the line cell by cell from the start through the same code a single cell uses, so Avenue pairing, the
+    // Highway's one-way heading and upgrade prices come from consecutive cells exactly as before; money runs out
+    // part-way with one warning. A single cell of Avenue waits for FlushPendingLane (the last heading).
+    private void CommitLine()
+    {
+        Vector2Int start = m_LineStart.Value;
+        m_LineStart = null;
+        int length = RoadLayout.StraightRun(m_GridData, start, m_LineEnd, out byte heading);
+        m_PipeErasing = m_Mode == Mode.Pipe && m_GridData.IsPipe(start);
+        m_PipeFundsWarned = false;
+        m_DragLast = null;
+        m_PendingLane = null;
+        m_HighwayHeading = RoadLayout.None;
+        m_FreshHighway.Clear();
+        m_BatchSpend = true;
+        m_BatchSpent = 0f;
+        foreach (Vector2Int cell in RoadLayout.RunCells(start, heading, length))
+        {
+            if (m_Mode == Mode.Pipe) TryPipe(cell);
+            else TryPlaceRoad(cell);
+        }
+        m_BatchSpend = false;
+        Vector2Int end = start + RoadLayout.Offset(heading) * length;
+        if (m_BatchSpent > 0f) GameEvents.RaiseMoneySpent(m_BatchSpent, (m_GridSystem.CellToWorld(start) + m_GridSystem.CellToWorld(end)) * 0.5f);
+    }
+
+    // M27: Demolish clears whatever is under the cursor while the button is held — roads (an avenue lane takes its
+    // partner), grown blocks and rubble at once, each cell once per drag; placed buildings are collected and removed on
+    // release (one confirmation for all of them when Confirm demolish is on). A click is a drag of one cell.
+    private void HandleDemolishDrag()
+    {
+        if (m_InputReader.ConfirmPressed && !IsPointerOverUI())
+        {
+            m_DemolishDrag = true;
+            m_DemolishVisited.Clear();
+            m_PendingDemolish.Clear();
+        }
+        if (!m_DemolishDrag) return;
+        if (m_InputReader.Blocked)
+        {
+            EndDemolishDrag();
+            return;
+        }
+        if (!IsPointerOverUI())
+        {
+            Vector2Int cell = GetMouseCell();
+            if (m_GridData.InBounds(cell) && m_DemolishVisited.Add(cell)) DemolishAt(cell, deferBuildings: true);
+        }
+        if (m_InputReader.ConfirmHeld) return;
+        m_DemolishDrag = false;
+        FlushPendingDemolish();
+    }
+
+    private void EndDemolishDrag()
+    {
+        m_DemolishDrag = false;
+        m_DemolishVisited.Clear();
+        m_PendingDemolish.Clear();
+    }
+
+    // The placed buildings a demolish drag collected: removed, or asked about once.
+    private void FlushPendingDemolish()
+    {
+        if (m_PendingDemolish.Count == 0) return;
+        var ids = new List<int>(m_PendingDemolish);
+        m_PendingDemolish.Clear();
+        void Apply()
+        {
+            foreach (int id in ids) RemoveBuilding(id);
+        }
+        if (!GameSettings.ConfirmDemolish || GameFlow.Instance == null)
+        {
+            Apply();
+            return;
+        }
+        string title = ids.Count == 1 && m_Buildings.TryGetValue(ids[0], out BuildingInstance only)
+            ? $"Demolish {only.Definition.DisplayName}?"
+            : $"Demolish {ids.Count} buildings?";
+        GameFlow.Instance.Confirm.Ask(title, ids.Count == 1 ? "It is removed with no refund." : "They are removed with no refund.",
+            new ConfirmDialog.Choice("Demolish", Apply, primary: true),
+            new ConfirmDialog.Choice("Cancel", null));
+    }
+
+    // One MoneySpent per action, or one per line while a line is being built.
+    private void ReportSpent(float cost, Vector2Int cell)
+    {
+        if (m_BatchSpend) m_BatchSpent += cost;
+        else GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
     }
 
     private void TryPipe(Vector2Int cell)
@@ -345,7 +478,7 @@ public sealed class PlacementController : MonoBehaviour
             return;
         }
         m_GridData.SetPipe(cell, true);
-        GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
+        ReportSpent(cost, cell);
         AudioController.Play(SfxId.PipeLay, m_GridSystem.CellToWorld(cell));
     }
 
@@ -518,7 +651,7 @@ public sealed class PlacementController : MonoBehaviour
         PlaceRoad(cell, RoadTiers.Avenue);
         PlaceRoad(partner, RoadTiers.Avenue);
         if (pairIt) m_GridData.SetRoadPair(cell, side);         // avenue cells already there (a junction, an old single lane) keep theirs
-        GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
+        ReportSpent(cost, cell);
         AudioController.Play(upgraded ? SfxId.RoadUpgrade : SfxId.RoadLay, m_GridSystem.CellToWorld(cell));
     }
 
@@ -558,7 +691,7 @@ public sealed class PlacementController : MonoBehaviour
             m_FreshHighway.Add(cell);
             if (!m_HighwayTwoWay && m_HighwayHeading != RoadLayout.None) m_GridData.SetRoadDirection(cell, m_HighwayHeading);
         }
-        GameEvents.RaiseMoneySpent(cost, m_GridSystem.CellToWorld(cell));
+        ReportSpent(cost, cell);
         AudioController.Play(existing != 0 ? SfxId.RoadUpgrade : SfxId.RoadLay, m_GridSystem.CellToWorld(cell));
     }
 
@@ -772,7 +905,8 @@ public sealed class PlacementController : MonoBehaviour
             : 0f;
     }
 
-    public void DemolishAt(Vector2Int cell)
+    // deferBuildings (a demolish drag): a placed building is only collected, for FlushPendingDemolish on release.
+    public void DemolishAt(Vector2Int cell, bool deferBuildings = false)
     {
         if (!m_GridData.InBounds(cell)) return;
 
@@ -800,6 +934,11 @@ public sealed class PlacementController : MonoBehaviour
 
         int occupantId = m_GridData.GetOccupant(cell);
         if (!m_Buildings.TryGetValue(occupantId, out BuildingInstance instance)) return;
+        if (deferBuildings)
+        {
+            if (!m_PendingDemolish.Contains(occupantId)) m_PendingDemolish.Add(occupantId);
+            return;
+        }
         if (GameSettings.ConfirmDemolish && GameFlow.Instance != null)
         {
             int occupant = occupantId;
@@ -827,6 +966,11 @@ public sealed class PlacementController : MonoBehaviour
     {
         SetHint(string.Empty, true);
         UpdatePreview();
+        if (m_LineStart.HasValue)
+        {
+            UpdateLineGhost();
+            return;
+        }
         if (m_Ghost == null) return;
 
         if (m_Mode == Mode.None || IsPointerOverUI())
@@ -943,22 +1087,24 @@ public sealed class PlacementController : MonoBehaviour
             case Mode.Demolish:
             {
                 BuildingInstance building = GetBuildingAt(cell);
-                if (m_GridData.IsRoad(cell)) SetHint("Demolish road", true);
-                else if (building != null) SetHint($"Demolish {building.Definition.DisplayName} (no refund)", true);
-                else if (m_GridData.GetBuildingLevel(cell) > 0) SetHint("Demolish grown building", true);
-                else SetHint(string.Empty, false);   // nothing here: red ghost, no label
+                int pending = m_PendingDemolish.Count;
+                string onRelease = pending == 0 ? string.Empty : $"{pending} building{(pending == 1 ? "" : "s")} on release";
+                string release = pending == 0 ? string.Empty : "  — " + onRelease;
+                if (building != null && m_PendingDemolish.Contains(building.OccupantId)) SetHint($"{building.Definition.DisplayName} goes on release{(pending > 1 ? $" ({pending} buildings)" : "")}", true);
+                else if (m_GridData.IsRoad(cell)) SetHint("Demolish road — hold to clear a path" + release, true);
+                else if (building != null) SetHint($"Demolish {building.Definition.DisplayName} (no refund)" + release, true);
+                else if (m_GridData.GetBuildingLevel(cell) > 0) SetHint("Demolish grown building" + release, true);
+                else SetHint(onRelease, pending > 0);   // nothing here: red ghost, no label
                 break;
             }
 
             case Mode.Pipe:
             {
                 int cost = m_GameManager.Balance.PipeCost;
-                bool dragging = m_InputReader.ConfirmHeld;
-                if (dragging ? m_PipeErasing : m_GridData.IsPipe(cell)) SetHint(m_GridData.IsPipe(cell) ? "Remove pipe" : "Drag to remove pipes", true);
+                if (m_GridData.IsPipe(cell)) SetHint("Remove pipe — drag a line to remove pipes", true);
                 else if (m_GridData.IsRoad(cell)) SetHint("Roads carry water already", false);
-                else if (m_GridData.IsPipe(cell)) SetHint("Pipe", true);
                 else if (!economy.CanAfford(cost)) SetHint($"Need ${cost:N0}", false);
-                else SetHint($"Pipe  ${cost:N0}  — drag to lay", true);
+                else SetHint($"Pipe  ${cost:N0}  — drag a line", true);
                 break;
             }
 
@@ -974,6 +1120,98 @@ public sealed class PlacementController : MonoBehaviour
                 }
                 break;
         }
+    }
+
+    // What laying one cell of a line would do, without doing it (the same rules as TryPlaceRoad / LayAvenuePair /
+    // TryPipe): false when the cell is blocked; cost 0 when there is nothing to pay (that road or better already there,
+    // a free avenue junction, a pipe already laid or a road, which carries water anyway).
+    private bool LineCellPlan(Vector2Int cell, byte heading, bool erasing, out int cost)
+    {
+        cost = 0;
+        if (m_Mode == Mode.Pipe)
+        {
+            if (!erasing && !m_GridData.IsRoad(cell) && !m_GridData.IsPipe(cell)) cost = m_GameManager.Balance.PipeCost;
+            return true;
+        }
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        byte tier = ActiveRoadTier;
+        if (tier == RoadTiers.Avenue)
+        {
+            byte side = AvenueSide(heading);
+            if (RoadLayout.CheckPair(m_GridData, cell, side, RoadTiers.Avenue) != RoadLayout.LaneProblem.None) return false;
+            if (m_GridData.GetRoadPair(cell) == side || RoadLayout.IsCrossing(m_GridData, cell, side)) return true;
+            cost = PairCost(cell, side);
+            return true;
+        }
+        byte existing = m_GridData.GetRoadTier(cell);
+        if (existing != 0)
+        {
+            cost = existing < tier ? tiers.UpgradeCost(existing, tier) : 0;
+            return true;
+        }
+        if (!m_GridData.CanPlace(cell, Vector2Int.one, 0)) return false;
+        cost = tiers.Cost(tier);
+        return true;
+    }
+
+    // The line being dragged: one rectangle over the run (two cells wide for an Avenue), the total and what is in the way.
+    private void UpdateLineGhost()
+    {
+        Vector2Int start = m_LineStart.Value;
+        int length = RoadLayout.StraightRun(m_GridData, start, m_LineEnd, out byte heading);
+        bool avenue = m_Mode == Mode.Road && ActiveRoadTier == RoadTiers.Avenue;
+        byte laneHeading = heading != RoadLayout.None ? heading : m_AvenueHeading;
+        bool erasing = m_Mode == Mode.Pipe && m_GridData.IsPipe(start);
+
+        int total = 0, blocked = 0, work = 0;
+        foreach (Vector2Int cell in RoadLayout.RunCells(start, heading, length))
+        {
+            if (erasing)
+            {
+                if (m_GridData.IsPipe(cell)) work++;
+                continue;
+            }
+            if (!LineCellPlan(cell, avenue ? laneHeading : heading, false, out int cost)) blocked++;
+            else if (cost > 0) { total += cost; work++; }
+        }
+        LineHint(length + 1, total, blocked, work, erasing);
+
+        if (m_Ghost == null) return;
+        Vector2Int end = start + RoadLayout.Offset(heading) * length;
+        Vector2Int min = Vector2Int.Min(start, end);
+        Vector2Int max = Vector2Int.Max(start, end);
+        if (avenue)
+        {
+            Vector2Int offset = RoadLayout.Offset(AvenueSide(laneHeading));
+            min = Vector2Int.Min(min, min + offset);
+            max = Vector2Int.Max(max, max + offset);
+        }
+        Vector3 centre = (m_GridSystem.CellToWorld(min) + m_GridSystem.CellToWorld(max)) * 0.5f;
+        m_Ghost.Show(centre, max - min + Vector2Int.one, CursorHintValid);
+    }
+
+    // "Paved road ×12  $180", "… — $45 short", "(3 blocked)"; red when nothing would be built or it is unaffordable.
+    private void LineHint(int cells, int total, int blocked, int work, bool erasing)
+    {
+        if (erasing)
+        {
+            SetHint(work > 0 ? $"Remove {work} pipe{(work == 1 ? "" : "s")}" : "No pipes to remove", work > 0);
+            return;
+        }
+        RoadTiers tiers = m_GameManager.Simulation.RoadTiers;
+        byte tier = ActiveRoadTier;
+        string name = m_Mode == Mode.Pipe ? "Pipe" : tiers.DisplayName(tier);
+        string note = string.Empty;
+        if (m_Mode == Mode.Road && tier == RoadTiers.Highway) note = m_HighwayTwoWay ? "  two-way" : "  one-way along the drag";
+        if (blocked > 0) note += $"  ({blocked} blocked)";
+        if (work == 0)
+        {
+            SetHint(blocked == cells ? "Blocked" : $"Already {(m_Mode == Mode.Pipe ? "laid" : name)}", false);
+            return;
+        }
+        float money = m_GameManager.Economy.Money;
+        if (total > money) SetHint($"{name} ×{cells}  ${total:N0} — ${total - money:N0} short{note}", false);
+        else SetHint($"{name} ×{cells}  ${total:N0}{note}", true);
     }
 
     // The Avenue tool's hint: the pair's price, or why the two lanes do not fit.
