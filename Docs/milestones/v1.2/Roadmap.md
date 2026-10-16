@@ -22,7 +22,7 @@ milestone's screenshots and the release regression run on final numbers. The low
 
 | # | Milestone | Feedback items | Sim / baseline | Save | Size |
 |---|---|---|---|---|---|
-| **M27** | [Drag tools](M27.md) | 1 straight road lines · 2 demolish drag | none | none | M |
+| **M27** | [Drag tools](M27.md) — **done (2026-10-16)** | 1 straight road lines · 2 demolish drag | none | none | M |
 | M28 | [Web saves](M28.md) | 3 browser saves survive a refresh | none (desktop path unchanged) | none (same files) | S–M |
 | M29 | [Age pacing](M29.md) | 4 more RP to advance | research only: re-record `AgeBalanceTests` timings | none | S |
 | M30 | [Low-density look](M30.md) | 5 small homes, markets / shops, farmland | Low industry (farms) pollutes less: density timelines re-recorded; age-less baseline unchanged (it zones Medium) | none | L |
@@ -35,4 +35,4 @@ milestone's screenshots and the release regression run on final numbers. The low
 | Web host | **https://jpm20000.com/** — the game page is `projects/city-game/play/` on the site (its own `index.html`, stable path) | — |
 | Save format | No milestone bumps `SaveData.CurrentVersion` (none adds persisted state) | — |
 | Age-less baseline | Untouched by every milestone (M29 only rescales content; M30 is art) | — |
-| Drivers | Every driver that drags on the map is updated in M27 (straight segments), re-run in M31 | — |
+| Drivers | Every driver that drags on the map is updated in M27 (straight segments), re-run in M31 (M27: all already dragged straight rows; none changed) | — |

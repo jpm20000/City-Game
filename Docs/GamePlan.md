@@ -789,7 +789,7 @@ New City switches) are **M20 — Camera & toolbar** ([`milestones/v1.1/M20.md`](
 
 ### Version 1.2 — M27–M31 (plan, 2026-10-16)
 
-The second update, from player feedback; order and shared decisions in [`milestones/v1.2/Roadmap.md`](milestones/v1.2/Roadmap.md): **M27 — Drag tools** (straight-line road / avenue / highway drags built on release, held demolish), **M28 — Web saves** (browser saves were never flushed to IndexedDB: `autoSyncPersistentDataPath` is off in the generated page), **M29 — Age pacing** (higher advance costs), **M30 — Low-density look** (small homes, markets and one-storey shops, farmland, every age), **M31 — Release 1.2**. Not started.
+The second update, from player feedback; order and shared decisions in [`milestones/v1.2/Roadmap.md`](milestones/v1.2/Roadmap.md): **M27 — Drag tools** (straight-line road / avenue / highway drags built on release, held demolish), **M28 — Web saves** (browser saves were never flushed to IndexedDB: `autoSyncPersistentDataPath` is off in the generated page), **M29 — Age pacing** (higher advance costs), **M30 — Low-density look** (small homes, markets and one-storey shops, farmland, every age), **M31 — Release 1.2**. **M27 done (2026-10-16):** roads (every tier) and pipes lay a straight line built on release with a priced preview, Esc / right click drops it, Demolish is held and asks once for the placed buildings it passed (see §13 Placement, *Drag tools*); `DragToolsDriver` 43 checks, every earlier driver re-run green, EditMode 502 passed. **Next: M28 — Web saves.**
 
 ## 13. Systems reference (as built, M0–M19)
 
