@@ -62,13 +62,14 @@ public static class BuildingKitGenerator
                 array.arraySize = slotPrefabs.Count;
                 for (int i = 0; i < slotPrefabs.Count; i++) array.GetArrayElementAtIndex(i).objectReferenceValue = slotPrefabs[i];
             }
-            // Own Low / High art (M23): the Modern age only; other ages draw the Medium look lower / taller.
+            // Own Low (M30: every age) and High (M23: the Modern age) art; a missing slot draws the Medium look lower / taller.
             foreach (Density density in new[] { Density.Low, Density.High })
             {
                 KitSpec[] densitySpecs = KitDesigns.ForDensity(age, density);
                 if (densitySpecs == null) continue;
                 for (int slot = 0; slot < densitySpecs.Length; slot++)
                 {
+                    if (densitySpecs[slot] == null) continue;
                     int zone = slot / 3, level = slot % 3 + 1;
                     var slotPrefabs = new List<GameObject>();
                     for (int v = 0; v < Variants; v++)

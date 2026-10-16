@@ -163,10 +163,21 @@ public sealed class ArtContractTests
         "m_ResidentialHigh", "m_CommercialHigh", "m_IndustrialHigh",
     };
 
-    // M23d: the Modern age has its own Low and High homes and shops (three variants each, on the Kit material); the
-    // other ages and industry fall back to the Medium look drawn lower / taller.
+    // Which Low / High tables hold their own kit art (three variants each, on the Kit material); the rest fall back to
+    // the Medium look drawn lower / taller. M23d: Modern High homes and shops. M30: Low homes in every age (30c); the
+    // Modern Low shops are still the M23 ones.
+    private static bool HasOwnArt(bool modern, string table)
+    {
+        if (table == "m_ResidentialLow") return true;
+        if (table == "m_CommercialLow") return modern;
+        if (table.EndsWith("High")) return modern && !table.StartsWith("m_Industrial");
+        return false;
+    }
+
+    private const int OwnArtPrefabs = 4 * 9 + 9 + 18;     // Low homes x 4 ages, Modern Low shops, Modern High homes + shops
+
     [Test]
-    public void Modern_HasOwnLowAndHighArt_OtherSlotsFallBack()
+    public void OwnLowAndHighArt_FillTheExpectedTables_OtherSlotsFallBack()
     {
         var kit = AssetDatabase.LoadAssetAtPath<Material>("Assets/_Game/Art/Kit/Kit.mat");
         int own = 0;
@@ -178,7 +189,7 @@ public sealed class ArtContractTests
             foreach (string table in AllTables)
             {
                 if (!table.EndsWith("Low") && !table.EndsWith("High")) continue;
-                bool expected = modern && !table.StartsWith("m_Industrial");
+                bool expected = HasOwnArt(modern, table);
                 SerializedProperty levels = so.FindProperty(table);
                 for (int level = 0; level < 3; level++)
                 {
@@ -195,7 +206,7 @@ public sealed class ArtContractTests
                 }
             }
         }
-        Assert.AreEqual(36, own, "Modern: R and C x Low and High x 3 levels x 3 variants");
+        Assert.AreEqual(OwnArtPrefabs, own);
     }
 
     [Test]

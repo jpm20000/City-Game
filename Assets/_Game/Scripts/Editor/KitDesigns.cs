@@ -200,20 +200,67 @@ public static class KitDesigns
         S(s => { s.W = .92f; s.D = .76f; s.Floors = 1; s.FloorH = .62f; s.Wall = new[] { "iron", "soot", "brickdark" }; s.RoofCol = new[] { "tin", "slate2", "roofgrey" }; s.Rise = .16f; s.AlongX = true; s.Win = "win_cool"; s.Cols = 5; s.SideCols = 3; s.Stacks = new[] { -.7f, .55f }; s.StackR = .06f; s.StackH = 1.75f; s.StackCol = "soot"; s.FlipV2 = false; }),
     };
 
-    // Low and High blocks (M23): residential and commercial, levels 1-3 (slot = zone * 3 + level - 1, zone 0 R, 1 C).
-    // Only the Modern age has its own; the other ages draw the Medium look lower / taller (GrowthVisuals).
+    // Low and High blocks (M23): levels 1-3 per zone (slot = zone * 3 + level - 1, zone 0 R, 1 C, 2 I); a null slot is
+    // left to the Medium look drawn lower / taller (GrowthVisuals). Low: every age (M30); High: the Modern age only.
     public static KitSpec[] ForDensity(string age, Density density)
     {
-        if (age != "modern") return null;
-        return density == Density.Low ? ModernLow() : density == Density.High ? ModernHigh() : null;
+        if (density == Density.Low) return Low(age);
+        return density == Density.High && age == "modern" ? ModernHigh() : null;
     }
 
-    // Garden flats and low shops: pitched roofs, one or two storeys.
-    private static KitSpec[] ModernLow() => new[]
+    // Low density (M30): small homes that get nicer by level. Shops and farms follow in 30d / 30e; until then the Modern
+    // age keeps its M23 low shops.
+    private static KitSpec[] Low(string age)
     {
-        S(s => { s.W = .52f; s.D = .46f; s.Floors = 1; s.FloorH = .30f; s.Wall = new[] { "white", "cream", "concrete" }; s.Roof = KitRoof.Gable; s.RoofCol = new[] { "roofgrey", "shingle2", "slate" }; s.Rise = .16f; s.Win = "win_cool"; s.Cols = 2; s.Chimneys = 1; s.ChimneyH = .05f; s.Solar = false; }),
-        S(s => { s.W = .60f; s.D = .50f; s.Floors = 2; s.FloorH = .29f; s.Wall = new[] { "cream", "white", "brickyellow" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "terracotta2", "slate" }; s.Rise = .18f; s.Win = "win_cool"; s.Cols = 3; s.Balcony = true; s.Carport = true; }),
-        S(s => { s.W = .72f; s.D = .54f; s.Floors = 2; s.FloorH = .33f; s.Wall = new[] { "white", "concrete", "cream" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "slate", "roofgrey", "terracotta2" }; s.Rise = .20f; s.AlongX = true; s.Win = "win_cool"; s.Cols = 4; s.SideCols = 2; s.Balcony = true; s.Cornice = true; }),
+        KitSpec[] homes = age switch
+        {
+            "medieval" => MedievalLowHomes(),
+            "renaissance" => RenaissanceLowHomes(),
+            "industrial" => IndustrialLowHomes(),
+            _ => ModernLowHomes(),
+        };
+        if (age != "modern") return homes;
+        var all = new KitSpec[6];
+        homes.CopyTo(all, 0);
+        ModernLowShops().CopyTo(all, 3);
+        return all;
+    }
+
+    // Medieval: a crofter's cottage with a kitchen patch, a cottage in a wattle-fenced garden, a jettied house with a porch.
+    private static KitSpec[] MedievalLowHomes() => new[]
+    {
+        S(s => { s.W = .40f; s.D = .36f; s.BodyZ = .04f; s.Floors = 1; s.FloorH = .22f; s.Wall = new[] { "daub", "daub2", "stone" }; s.RoofCol = new[] { "thatch", "thatch2", "thatch" }; s.Rise = .20f; s.Timber = true; s.Cols = 1; s.Chimneys = 1; s.ChimneyH = .05f; s.FieldCover = .28f; s.Rows = 3; s.Crops = new[] { "crop", "crop2", "soil2" }; }),
+        S(s => { s.W = .50f; s.D = .40f; s.BodyZ = -.06f; s.Floors = 1; s.FloorH = .26f; s.Wall = new[] { "daub", "cream", "daub2" }; s.RoofCol = new[] { "thatch", "shingle", "thatch2" }; s.Rise = .24f; s.Timber = true; s.Cols = 2; s.Chimneys = 1; s.ChimneyH = .06f; s.Ground = "lawn"; s.Border = "woodlight"; s.BorderH = .035f; }),
+        S(s => { s.W = .62f; s.D = .44f; s.BodyZ = -.08f; s.Floors = 2; s.FloorH = .25f; s.Wall = new[] { "cream", "daub", "daub2" }; s.RoofCol = new[] { "shingle", "thatch", "shingle2" }; s.Rise = .24f; s.AlongX = true; s.Jetty = true; s.Timber = true; s.Cols = 2; s.Chimneys = 2; s.Porch = true; s.Ground = "lawn"; s.Border = "hedge"; s.BorderH = .05f; }),
+    };
+
+    // Renaissance: an ochre cottage, a hipped house behind a low stone wall, a two-storey villa with a balcony and porch.
+    private static KitSpec[] RenaissanceLowHomes() => new[]
+    {
+        S(s => { s.W = .42f; s.D = .38f; s.BodyZ = .02f; s.Floors = 1; s.FloorH = .26f; s.Wall = new[] { "ochre", "sand", "rose" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "terracotta", "terracotta2", "terracotta" }; s.Rise = .18f; s.Cols = 1; s.Chimneys = 1; s.ChimneyH = .06f; s.FieldCover = .25f; s.Rows = 3; s.Crops = new[] { "crop2", "crop", "wheat" }; }),
+        S(s => { s.W = .52f; s.D = .42f; s.BodyZ = -.07f; s.Floors = 1; s.FloorH = .30f; s.Wall = new[] { "sand", "ochre", "cream" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "terracotta", "terracotta2", "terracotta" }; s.Rise = .20f; s.Cols = 2; s.Chimneys = 1; s.Ground = "lawn"; s.Border = "stone"; s.BorderH = .05f; }),
+        S(s => { s.W = .62f; s.D = .46f; s.BodyZ = -.08f; s.Floors = 2; s.FloorH = .30f; s.Wall = new[] { "sand", "rose", "ochre" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "terracotta2", "terracotta", "terracotta2" }; s.Rise = .20f; s.Cols = 2; s.Balcony = true; s.Cornice = true; s.Chimneys = 2; s.Porch = true; s.Ground = "lawn"; s.Border = "hedge"; s.BorderH = .05f; }),
+    };
+
+    // Industrial: a brick cottage, a two-up two-down behind railings, a slate-roofed villa with a porch and a hedge.
+    private static KitSpec[] IndustrialLowHomes() => new[]
+    {
+        S(s => { s.W = .40f; s.D = .38f; s.BodyZ = .02f; s.Floors = 1; s.FloorH = .27f; s.Wall = new[] { "brickred", "brickyellow", "brickdark" }; s.RoofCol = new[] { "slate", "slate2", "slate" }; s.Rise = .18f; s.Cols = 1; s.Chimneys = 1; s.ChimneyH = .07f; s.ChimneyCol = "brickdark"; s.Ground = "soil2"; }),
+        S(s => { s.W = .48f; s.D = .40f; s.BodyZ = -.07f; s.Floors = 2; s.FloorH = .26f; s.Wall = new[] { "brickred", "brickyellow", "brickdark" }; s.RoofCol = new[] { "slate", "slate2", "slate" }; s.Rise = .18f; s.AlongX = true; s.Cols = 2; s.Chimneys = 2; s.ChimneyCol = "brickdark"; s.Ground = "lawn"; s.Border = "iron"; s.BorderH = .04f; s.FlipV2 = false; }),
+        S(s => { s.W = .64f; s.D = .46f; s.BodyZ = -.08f; s.Floors = 2; s.FloorH = .30f; s.Wall = new[] { "brickyellow", "brickred", "cream" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "slate", "slate2", "slate" }; s.Rise = .20f; s.Cols = 3; s.Cornice = true; s.Chimneys = 2; s.ChimneyCol = "brickdark"; s.Porch = true; s.Ground = "lawn"; s.Border = "hedge"; s.BorderH = .05f; }),
+    };
+
+    // Modern: a rendered bungalow, a hipped bungalow with a carport and a hedge, a two-storey family house with a porch.
+    private static KitSpec[] ModernLowHomes() => new[]
+    {
+        S(s => { s.W = .46f; s.D = .38f; s.BodyZ = .02f; s.Floors = 1; s.FloorH = .27f; s.Wall = new[] { "white", "cream", "concrete" }; s.RoofCol = new[] { "roofgrey", "shingle2", "slate" }; s.Rise = .14f; s.Win = "win_cool"; s.Cols = 2; s.Ground = "lawn"; }),
+        S(s => { s.W = .52f; s.D = .42f; s.BodyX = -.06f; s.BodyZ = -.06f; s.Floors = 1; s.FloorH = .29f; s.Wall = new[] { "cream", "white", "brickyellow" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "terracotta2", "slate" }; s.Rise = .16f; s.Win = "win_cool"; s.Cols = 3; s.Carport = true; s.Ground = "lawn"; s.Border = "hedge"; s.BorderH = .05f; }),
+        S(s => { s.W = .62f; s.D = .46f; s.BodyZ = -.08f; s.Floors = 2; s.FloorH = .29f; s.Wall = new[] { "white", "concrete", "cream" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "slate", "roofgrey", "terracotta2" }; s.Rise = .18f; s.AlongX = true; s.Win = "win_cool"; s.Cols = 3; s.SideCols = 2; s.Balcony = true; s.Porch = true; s.Ground = "lawn"; s.Border = "woodlight"; s.BorderH = .04f; }),
+    };
+
+    // The M23 Modern low shops (kept until 30d replaces them with markets).
+    private static KitSpec[] ModernLowShops() => new[]
+    {
         S(s => { s.W = .66f; s.D = .52f; s.Floors = 1; s.FloorH = .34f; s.Wall = new[] { "cream", "white", "sand" }; s.Roof = KitRoof.Lean; s.RoofCol = new[] { "roofgrey", "slate", "roofgreen" }; s.Rise = .09f; s.Win = "glassteal"; s.Cols = 3; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awngreen", "awnwhite" }; }),
         S(s => { s.W = .72f; s.D = .56f; s.Floors = 2; s.FloorH = .31f; s.Wall = new[] { "white", "cream", "concrete" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "slate", "roofgreen" }; s.Rise = .14f; s.Win = "glassteal"; s.Cols = 4; s.Sign = "signteal"; s.Awning = new[] { "awnblue", "awnteal", "awnwhite" }; }),
         S(s => { s.W = .80f; s.D = .60f; s.Floors = 2; s.FloorH = .34f; s.Wall = new[] { "concrete", "white", "sand" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "slate", "concrete2" }; s.Rise = .12f; s.AlongX = true; s.Win = "glassteal"; s.Cols = 5; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awnblue", "awngreen" }; s.Cornice = true; }),

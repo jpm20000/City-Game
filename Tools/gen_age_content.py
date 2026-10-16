@@ -313,6 +313,10 @@ VISUALS = [
 def color(c):
     return "{r: %s, g: %s, b: %s, a: %s}" % tuple(c)
 
+DENSITY_TABLES = ["m_ResidentialLow", "m_CommercialLow", "m_IndustrialLow",
+                  "m_ResidentialHigh", "m_CommercialHigh", "m_IndustrialHigh"]
+DENSITY_PLAIN = ((0, 0, 0, 0), 0, (0, 0, 0, 0), 1)
+
 # M18a: Unity owns the Prefabs slots (the building kit generator / hand-made art fill them); this script owns
 # tints, roofs and heights. Before rewriting a set it reads the existing Prefabs blocks and writes them back.
 def read_prefabs(path):
@@ -353,6 +357,9 @@ for asset, age_id, residential, commercial, industrial in VISUALS:
     kept = read_prefabs(path)
     text += (styles("m_Residential", residential, kept) + styles("m_Commercial", commercial, kept)
              + styles("m_Industrial", industrial, kept))
+    # Low / High tables (M23; Low art in every age since M30): plain styles, the kit generator's prefabs kept.
+    for field in DENSITY_TABLES:
+        text += styles(field, [DENSITY_PLAIN] * 3, kept)
     write(path, text, guid("visuals_" + age_id))
 
 print("ages", len(AGES), "techs", len(TECHS), "ordinances", len(ORDINANCES), "events", len(EVENTS), "road tiers", len(ROAD_TIERS), "visual sets", len(VISUALS))
