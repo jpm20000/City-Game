@@ -69,6 +69,18 @@ public static class GoodsDriver
 
     private static bool Shown(string name) => Btn(name) != null && Btn(name).activeInHierarchy;
 
+    // A random event can come up while days are skipped (disasters are on); its popup covers the HUD. Answer it with the
+    // last choice, which is always free (M31: one came up in the 25-day skip after M29 / M30 changed the days).
+    private static IEnumerator AnswerEvent()
+    {
+        EventPopup popup = Object.FindAnyObjectByType<EventPopup>();
+        if (popup == null || !popup.IsOpen) yield break;
+        Button[] choices = popup.GetComponentsInChildren<Button>();
+        Log("event popup open: answering it with its free choice");
+        yield return ClickUi(choices[choices.Length - 1].gameObject);
+        yield return Frames(6);
+    }
+
     private static GameObject BtnWithText(string text, GameObject root = null)
     {
         foreach (Button b in (root != null ? root : GameObject.Find("UI")).GetComponentsInChildren<Button>())
@@ -325,6 +337,7 @@ public static class GoodsDriver
                 Check(now != GrowthBlocker.NoGoods, $"the home is no longer held by goods: {now}");
             }
             Check(game.Simulation.Goods.Stock > 0f, $"a stock builds up: {game.Simulation.Goods.Stock:F0}");
+            yield return AnswerEvent();
             yield return ClickUi(Btn("BudgetButton"));
             yield return Frames(6);
             ledger = TextContaining("Income +$");
