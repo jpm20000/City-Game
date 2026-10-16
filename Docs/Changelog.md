@@ -1,6 +1,6 @@
 # Chronopolis changelog
 
-## 1.3.0 (not released yet)
+## 1.3.0
 
 A new look for the interface. Saves from 1.2.0 load unchanged; nothing in the simulation changed.
 
