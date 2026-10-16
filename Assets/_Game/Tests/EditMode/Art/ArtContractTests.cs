@@ -9,7 +9,7 @@ using UnityEngine;
 // visual sets in Assembly-CSharp, which test assemblies can't reference, so both are reached by name.
 public sealed class ArtContractTests
 {
-    private static MethodInfo s_Validate;
+    private static MethodInfo s_Validate, s_ValidateIn;
     private readonly List<GameObject> m_Made = new();
 
     [SetUp]
@@ -19,6 +19,8 @@ public sealed class ArtContractTests
         Assert.IsNotNull(type, "ArtContract not found in Assembly-CSharp-Editor");
         s_Validate = type.GetMethod("Validate", BindingFlags.Public | BindingFlags.Static);
         Assert.IsNotNull(s_Validate, "ArtContract.Validate");
+        s_ValidateIn = type.GetMethod("ValidateIn", BindingFlags.Public | BindingFlags.Static);
+        Assert.IsNotNull(s_ValidateIn, "ArtContract.ValidateIn");
     }
 
     [TearDown]
@@ -31,6 +33,11 @@ public sealed class ArtContractTests
     private static bool Validate(GameObject prefab, int level, List<string> errors)
     {
         return (bool)s_Validate.Invoke(null, new object[] { prefab, level, errors });
+    }
+
+    private static bool ValidateIn(string table, GameObject prefab, int level, List<string> errors)
+    {
+        return (bool)s_ValidateIn.Invoke(null, new object[] { table, prefab, level, errors });
     }
 
     // A one-cube building: footprint 0.6 x 0.6, height `height`, on layer 9 with a root collider.
@@ -82,6 +89,21 @@ public sealed class ArtContractTests
         errors.Clear();
         Assert.IsFalse(Validate(Make(2.5f), 2, errors));
         StringAssert.Contains("height", string.Join(";", errors));
+    }
+
+    // M30: Low tables take fields, stalls and one-storey shops (L1 from 0.03, L2 0.15, L3 0.25 cells); Medium does not.
+    [Test]
+    public void LowTables_AllowLowerBuildings()
+    {
+        var errors = new List<string>();
+        Assert.IsTrue(ValidateIn("m_IndustrialLow", Make(0.05f, footprint: 0.9f), 1, errors), string.Join("; ", errors));
+        Assert.IsTrue(ValidateIn("m_CommercialLow", Make(0.3f), 3, errors), string.Join("; ", errors));
+        Assert.IsFalse(ValidateIn("m_Industrial", Make(0.05f, footprint: 0.9f), 1, errors));
+        errors.Clear();
+        Assert.IsFalse(ValidateIn("m_CommercialLow", Make(0.2f), 3, errors));
+        StringAssert.Contains("height", string.Join(";", errors));
+        errors.Clear();
+        Assert.IsFalse(ValidateIn("m_ResidentialLow", Make(2.5f), 2, errors), "the maximum is the same for every table");
     }
 
     [Test]
@@ -198,7 +220,7 @@ public sealed class ArtContractTests
                         slots++;
                         var prefab = prefabs.GetArrayElementAtIndex(p).objectReferenceValue as GameObject;
                         var slotErrors = new List<string>();
-                        if (!Validate(prefab, level + 1, slotErrors))
+                        if (!ValidateIn(zone, prefab, level + 1, slotErrors))
                         {
                             foreach (string error in slotErrors) errors.Add($"{set.name} {zone} L{level + 1}: {error}");
                         }

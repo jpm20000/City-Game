@@ -19,6 +19,9 @@ public sealed class KitMeshBuilder
 
     public int VertexCount => m_Vertices.Count;
 
+    // Added to every vertex (M30: a house standing on part of its plot is drawn at its own offset).
+    public Vector3 Offset;
+
     // Quad given in any order that walks the outline; the winding is fixed so it faces `outward`.
     public void Quad(Vector3 a, Vector3 b, Vector3 c, Vector3 d, int swatch, Vector3 outward)
     {
@@ -34,7 +37,7 @@ public sealed class KitMeshBuilder
         normal.Normalize();
         int i = m_Vertices.Count;
         Vector2 uv = m_SwatchUv(swatch);
-        m_Vertices.Add(a); m_Vertices.Add(b); m_Vertices.Add(c); m_Vertices.Add(d);
+        m_Vertices.Add(a + Offset); m_Vertices.Add(b + Offset); m_Vertices.Add(c + Offset); m_Vertices.Add(d + Offset);
         for (int k = 0; k < 4; k++) { m_Normals.Add(normal); m_Uvs.Add(uv); }
         m_Triangles.Add(i); m_Triangles.Add(i + 1); m_Triangles.Add(i + 2);
         m_Triangles.Add(i); m_Triangles.Add(i + 2); m_Triangles.Add(i + 3);
@@ -52,7 +55,7 @@ public sealed class KitMeshBuilder
         normal.Normalize();
         int i = m_Vertices.Count;
         Vector2 uv = m_SwatchUv(swatch);
-        m_Vertices.Add(a); m_Vertices.Add(b); m_Vertices.Add(c);
+        m_Vertices.Add(a + Offset); m_Vertices.Add(b + Offset); m_Vertices.Add(c + Offset);
         for (int k = 0; k < 3; k++) { m_Normals.Add(normal); m_Uvs.Add(uv); }
         m_Triangles.Add(i); m_Triangles.Add(i + 1); m_Triangles.Add(i + 2);
     }

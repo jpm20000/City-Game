@@ -55,7 +55,7 @@ public static class BuildingKitGenerator
                     prefabs++;
 
                     var errors = new List<string>();
-                    if (!ArtContract.Validate(prefab, level, errors)) problems.AddRange(errors);
+                    if (!ArtContract.ValidateIn(s_ZoneFields[zone], prefab, level, errors)) problems.AddRange(errors);
                 }
 
                 SerializedProperty array = so.FindProperty(s_ZoneFields[zone]).GetArrayElementAtIndex(level - 1).FindPropertyRelative("Prefabs");
@@ -83,7 +83,7 @@ public static class BuildingKitGenerator
                         prefabs++;
 
                         var errors = new List<string>();
-                        if (!ArtContract.Validate(prefab, level, errors)) problems.AddRange(errors);
+                        if (!ArtContract.ValidateIn(s_ZoneFields[zone] + density, prefab, level, errors)) problems.AddRange(errors);
                     }
 
                     SerializedProperty table = so.FindProperty(s_ZoneFields[zone] + density);
@@ -252,8 +252,11 @@ public static class BuildingKitGenerator
         renderer.sharedMaterial = material;
         renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         var collider = root.AddComponent<BoxCollider>();
-        collider.center = mesh.bounds.center;
-        collider.size = mesh.bounds.size;
+        // A flat field still needs something to click (M30): the collider is at least 0.08 tall.
+        Vector3 size = mesh.bounds.size, center = mesh.bounds.center;
+        if (size.y < 0.08f) { center.y = mesh.bounds.min.y + 0.04f; size.y = 0.08f; }
+        collider.center = center;
+        collider.size = size;
         GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, path);
         Object.DestroyImmediate(root);
         return prefab;
@@ -268,8 +271,19 @@ public static class BuildingKitGenerator
 
     private static string Pick(string[] names, int variant) => names[variant % names.Length];
 
+    // One variant of a spec as a mesh, without saving anything (previews, M30).
+    public static Mesh BuildMesh(KitSpec spec, int variant)
+    {
+        var builder = new KitMeshBuilder(KitPalette.Uv);
+        Compose(builder, spec, variant);
+        return builder.ToMesh();
+    }
+
     private static void Compose(KitMeshBuilder m, KitSpec s, int v)
     {
+        Lot(m, s, v);
+        if (s.NoBody) return;
+        m.Offset = new Vector3(s.BodyX, 0f, s.BodyZ);
         float w = Mathf.Min(s.W * s_WidthScale[v], 0.90f), d = Mathf.Min(s.D * s_DepthScale[v], 0.84f);
         float x0 = -w / 2f, x1 = w / 2f, z0 = -d / 2f, z1 = d / 2f;
         float fh = s.FloorH, wallH = s.Floors * fh;
@@ -281,7 +295,11 @@ public static class BuildingKitGenerator
 
         // Body (towers with a setback narrow above 60% of their height).
         float wx0 = x0, wx1 = x1, wz0 = z0, wz1 = z1;      // plan of the top storey (roof, rooftop gear)
-        if (s.Setback)
+        if (s.Open)
+        {
+            OpenHall(m, s, x0, x1, z0, z1, wallH);
+        }
+        else if (s.Setback)
         {
             int lowerFloors = Mathf.Max(1, Mathf.RoundToInt(s.Floors * 0.6f));
             float inset = 0.06f;
@@ -302,8 +320,11 @@ public static class BuildingKitGenerator
             m.Box(new Vector3(x0, 0f, z0), new Vector3(x1, wallH, z1), wall, s.Roof == KitRoof.Flat || s.Roof == KitRoof.SawTooth ? roofCol : wall);
         }
 
-        // Windows, doors, trim
-        if (!s.Setback)
+        // Windows, doors, trim (an open hall has none)
+        if (s.Open)
+        {
+        }
+        else if (!s.Setback)
         {
             if (s.Ribbon) Ribbons(m, s, win, wx0, wx1, wz0, wz1, 0, s.Floors, fh);
             else WindowsAndDoors(m, s, win, dark, wx0, wx1, wz0, wz1, x0, x1, z1, fh, jet);
@@ -312,7 +333,8 @@ public static class BuildingKitGenerator
         {
             WindowsAndDoors(m, s, win, dark, x0, x1, z0, z1, x0, x1, z1, fh, 0f, groundOnly: true);
         }
-        if (s.Timber) Beams(m, timber, wx0, wx1, wz0, wz1, s.Floors, fh, jet);
+        if (s.Timber && !s.Open) Beams(m, timber, wx0, wx1, wz0, wz1, s.Floors, fh, jet);
+        if (s.Porch) Porch(m, C("woodlight"), roofCol, z1, fh);
         if (s.Balcony && s.Floors >= 2) m.Box(new Vector3(-0.15f, fh * 1f, wz1), new Vector3(0.15f, fh * 1f + 0.025f, wz1 + 0.07f), cream, cream);
         if (s.Cornice)
         {
@@ -418,6 +440,148 @@ public static class BuildingKitGenerator
             float top = wallH + s.Rise * 0.7f;
             m.Box(new Vector3(-0.02f, top - 0.03f, z1 - 0.01f), new Vector3(0.02f, top + 0.01f, z1 + 0.14f), C("timber"));
             m.Box(new Vector3(-0.012f, top - 0.14f, z1 + 0.12f), new Vector3(0.012f, top - 0.03f, z1 + 0.14f), C("iron"));
+        }
+    }
+
+    // ---- low-density lots (M30) ----------------------------------------------------------------------------
+
+    private const float Plot = 0.46f;       // half the plot: the cell less a little margin
+
+    // Everything on the plot outside the body: the ground slab, fields, the border, silos, a windpump and free stalls.
+    private static void Lot(KitMeshBuilder m, KitSpec s, int v)
+    {
+        m.Offset = Vector3.zero;
+        if (s.Ground != null) m.Box(new Vector3(-Plot, 0f, -Plot), new Vector3(Plot, 0.008f, Plot), C(s.Ground));
+        if (s.FieldCover > 0f) Fields(m, s, v);
+        if (s.Border != null) Border(m, s);
+        for (int i = 0; i < s.Silos; i++)
+        {
+            float cx = 0.30f - i * 0.17f, cz = -0.30f, r = 0.075f;
+            m.Cylinder(cx, cz, r, 0f, s.SiloH, r, 10, C(s.SiloCol));
+            m.Cylinder(cx, cz, r, s.SiloH, s.SiloH + 0.07f, 0f, 10, C("roofgrey"));
+        }
+        if (s.Windpump) Windpump(m, -0.30f, -0.30f);
+        if (s.Stalls > 0 && s.NoBody) Stalls(m, s, v, -0.34f, 0.34f, -0.20f, 0.30f, canopies: true);
+    }
+
+    // Two fields side by side from the back of the plot, each with its own crop; crop rows run toward the street on the
+    // left field and across it on the right one, so neighbouring farms do not line up into one stripe.
+    private static void Fields(KitMeshBuilder m, KitSpec s, int v)
+    {
+        float zBack = -Plot, zFront = -Plot + 2f * Plot * Mathf.Clamp01(s.FieldCover);
+        int soil = C("soil");
+        for (int f = 0; f < 2; f++)
+        {
+            float fx0 = f == 0 ? -Plot : 0.01f, fx1 = f == 0 ? -0.01f : Plot;
+            string crop = s.Crops[(v + f * 2) % s.Crops.Length];
+            if (crop == "pasture")
+            {
+                m.Box(new Vector3(fx0, 0f, zBack), new Vector3(fx1, 0.012f, zFront), C(crop));
+                continue;
+            }
+            m.Box(new Vector3(fx0, 0f, zBack), new Vector3(fx1, 0.006f, zFront), soil);
+            int rows = Mathf.Max(1, s.Rows);
+            bool alongZ = f == 0;
+            float a0 = alongZ ? fx0 : zBack, a1 = alongZ ? fx1 : zFront;
+            float step = (a1 - a0) / rows, gap = step * 0.3f;
+            for (int r = 0; r < rows; r++)
+            {
+                float lo = a0 + r * step + gap * 0.5f, hi = a0 + (r + 1) * step - gap * 0.5f;
+                if (alongZ) m.Box(new Vector3(lo, 0f, zBack + 0.01f), new Vector3(hi, 0.03f, zFront - 0.01f), C(crop));
+                else m.Box(new Vector3(fx0 + 0.01f, 0f, lo), new Vector3(fx1 - 0.01f, 0.03f, hi), C(crop));
+            }
+        }
+    }
+
+    // A low fence or hedge round the plot, with a gate gap in the middle of the front.
+    private static void Border(KitMeshBuilder m, KitSpec s)
+    {
+        int col = C(s.Border);
+        float t = 0.018f, h = s.BorderH, gate = 0.09f;
+        m.Box(new Vector3(-Plot, 0f, -Plot), new Vector3(Plot, h, -Plot + t), col);
+        m.Box(new Vector3(-Plot, 0f, -Plot), new Vector3(-Plot + t, h, Plot), col);
+        m.Box(new Vector3(Plot - t, 0f, -Plot), new Vector3(Plot, h, Plot), col);
+        m.Box(new Vector3(-Plot, 0f, Plot - t), new Vector3(-gate, h, Plot), col);
+        m.Box(new Vector3(gate, 0f, Plot - t), new Vector3(Plot, h, Plot), col);
+    }
+
+    // Stalls in up to two rows inside x0..x1, z0..z1: a counter and a crate each, and (outside a hall) four posts and a
+    // two-sided canopy.
+    private static void Stalls(KitMeshBuilder m, KitSpec s, int v, float x0, float x1, float z0, float z1, bool canopies)
+    {
+        int rows = s.Stalls > 3 ? 2 : 1, perRow = Mathf.CeilToInt(s.Stalls / (float)rows);
+        float cellW = (x1 - x0) / perRow, cellD = (z1 - z0) / rows;
+        int wood = C("woodlight"), post = C("timber"), dark = C("dark");
+        int n = 0;
+        for (int r = 0; r < rows; r++)
+        {
+            for (int c = 0; c < perRow && n < s.Stalls; c++, n++)
+            {
+                float cx = x0 + cellW * (c + 0.5f), cz = z1 - cellD * (r + 0.5f);
+                float hw = Mathf.Min(0.10f, cellW * 0.42f), hd = Mathf.Min(0.07f, cellD * 0.4f);
+                m.Box(new Vector3(cx - hw, 0f, cz - hd * 0.3f), new Vector3(cx + hw, 0.07f, cz + hd), wood, C(Pick(s.StallCol, v + n + 1)));
+                m.Box(new Vector3(cx - hw * 0.6f, 0f, cz - hd), new Vector3(cx - hw * 0.1f, 0.04f, cz - hd * 0.4f), wood, dark);
+                if (!canopies) continue;
+                float top = 0.17f, p = 0.008f;
+                foreach (float px in new[] { cx - hw, cx + hw - p * 2f })
+                {
+                    foreach (float pz in new[] { cz - hd, cz + hd - p * 2f })
+                    {
+                        m.Box(new Vector3(px, 0f, pz), new Vector3(px + p * 2f, top, pz + p * 2f), post);
+                    }
+                }
+                int canopy = C(Pick(s.StallCol, v + n));
+                Vector3 a = new(cx - hw - 0.015f, top + 0.03f, cz - hd - 0.015f), b = new(cx + hw + 0.015f, top + 0.03f, cz - hd - 0.015f);
+                Vector3 c2 = new(cx + hw + 0.015f, top, cz + hd + 0.03f), d = new(cx - hw - 0.015f, top, cz + hd + 0.03f);
+                m.Quad(a, b, c2, d, canopy, new Vector3(0f, 1f, 0.3f));
+                m.Quad(a, b, c2, d, canopy, new Vector3(0f, -1f, -0.3f));
+            }
+        }
+    }
+
+    // A covered market: a paved floor, posts along the front and back and a beam round the top; the roof is drawn by
+    // the caller; counters inside.
+    private static void OpenHall(KitMeshBuilder m, KitSpec s, float x0, float x1, float z0, float z1, float wallH)
+    {
+        int post = C(s.Timber ? "timber" : Pick(s.Wall, 0));
+        m.Box(new Vector3(x0, 0f, z0), new Vector3(x1, 0.012f, z1), C("path"));
+        int bays = Mathf.Max(2, s.Cols);
+        float p = 0.022f;
+        for (int i = 0; i <= bays; i++)
+        {
+            float x = Mathf.Lerp(x0, x1 - p, i / (float)bays);
+            m.Box(new Vector3(x, 0f, z1 - p), new Vector3(x + p, wallH, z1), post);
+            m.Box(new Vector3(x, 0f, z0), new Vector3(x + p, wallH, z0 + p), post);
+        }
+        m.Box(new Vector3(x0, wallH - 0.03f, z0), new Vector3(x1, wallH, z1), post, post);
+        if (s.Stalls > 0) Stalls(m, s, 0, x0 + 0.05f, x1 - 0.05f, z0 + 0.05f, z1 - 0.05f, canopies: false);
+    }
+
+    // A small roofed porch on two posts over the front door.
+    private static void Porch(KitMeshBuilder m, int post, int roof, float z1, float fh)
+    {
+        float hw = 0.11f, reach = 0.09f, top = Mathf.Min(fh * 0.8f, 0.22f), p = 0.012f;
+        m.Box(new Vector3(-hw, 0f, z1), new Vector3(hw, 0.015f, z1 + reach), C("path"));
+        m.Box(new Vector3(-hw, 0f, z1 + reach - p), new Vector3(-hw + p, top, z1 + reach), post);
+        m.Box(new Vector3(hw - p, 0f, z1 + reach - p), new Vector3(hw, top, z1 + reach), post);
+        m.Quad(new Vector3(-hw - 0.02f, top + 0.04f, z1), new Vector3(hw + 0.02f, top + 0.04f, z1),
+            new Vector3(hw + 0.02f, top, z1 + reach + 0.02f), new Vector3(-hw - 0.02f, top, z1 + reach + 0.02f), roof, new Vector3(0f, 1f, 1f));
+    }
+
+    // An iron windpump: a tapering tower and a vaned wheel facing the street.
+    private static void Windpump(KitMeshBuilder m, float cx, float cz)
+    {
+        int iron = C("iron"), tin = C("tin");
+        const float top = 0.62f;
+        m.Cylinder(cx, cz, 0.05f, 0f, top, 0.012f, 4, iron);
+        Vector3 hub = new(cx, top, cz + 0.03f);
+        for (int i = 0; i < 8; i++)
+        {
+            float a = i * Mathf.PI / 4f;
+            Vector3 dir = new(Mathf.Cos(a), Mathf.Sin(a), 0f), side = new(-dir.y, dir.x, 0f);
+            Vector3 inner = hub + dir * 0.03f, outer = hub + dir * 0.13f;
+            m.Quad(inner - side * 0.01f, inner + side * 0.01f, outer + side * 0.025f, outer - side * 0.025f, tin, Vector3.forward);
+            m.Quad(inner - side * 0.01f, inner + side * 0.01f, outer + side * 0.025f, outer - side * 0.025f, tin, Vector3.back);
         }
     }
 

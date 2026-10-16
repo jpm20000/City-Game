@@ -46,6 +46,10 @@ public static class KitPalette
         new("dark", .10f, .10f, .12f), new("clock", .95f, .93f, .85f, .50f, .48f, .40f),
         // vehicle lights (M18f, appended: earlier indices never move)
         new("headlight", .95f, .95f, .80f, 1.00f, .96f, .75f), new("taillight", .65f, .08f, .08f, .90f, .10f, .10f),
+        // low-density lots (M30, appended): soil, crops, gardens, hedges
+        new("soil", .40f, .29f, .19f), new("soil2", .50f, .37f, .24f), new("wheat", .86f, .73f, .36f), new("crop", .42f, .60f, .26f),
+        new("crop2", .62f, .70f, .30f), new("pasture", .47f, .64f, .32f), new("lawn", .40f, .58f, .29f), new("hedge", .23f, .40f, .20f),
+        new("path", .72f, .66f, .54f), new("glassroof", .55f, .75f, .78f, .20f, .30f, .32f),
     };
 
     private static readonly Dictionary<string, int> s_Index = BuildIndex();
@@ -111,6 +115,24 @@ public sealed class KitSpec
     public bool TowerCone;
     public bool Setback;                            // towers: the upper half is narrower
     public bool FlipV2 = true;                      // variant c turns the ridge
+
+    // Low-density lots (M30). The plot is the whole cell (+-0.46); the body may stand on part of it.
+    public bool NoBody;                             // nothing but the lot: fields or open stalls
+    public float BodyX, BodyZ;                      // body offset from the cell centre (+Z = the street)
+    public string Ground;                           // a slab under the whole plot (garden lawn, market paving, yard)
+    public string Border;                           // fence / hedge round the plot, a gap in the front for the gate
+    public float BorderH = 0.04f;
+    public float FieldCover;                        // fields from the back of the plot: fraction of its depth (0 = none)
+    public string[] Crops = { "wheat", "crop", "soil2", "pasture" };    // crop colours; each variant starts elsewhere
+    public int Rows = 4;                            // crop rows per field ("pasture" is a plain slab)
+    public int Stalls;                              // open stalls (counter, posts, canopy) on the lot or under an Open roof
+    public string[] StallCol = { "awnred", "awnteal", "awnblue", "awngreen" };
+    public bool Open;                               // a roof on posts, no walls (covered market)
+    public int Silos;
+    public float SiloH = 0.5f;
+    public string SiloCol = "concrete";
+    public bool Porch;                              // a roofed porch on posts over the front door
+    public bool Windpump;
 }
 
 public static class KitDesigns

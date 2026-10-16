@@ -28,6 +28,10 @@ public static class ArtContract
     // profiles (0.4-2.2 x the age's height scale and the +-15% jitter) so any age's art fits.
     private static readonly float[] s_MinHeight = { 0.15f, 0.40f, 0.60f };
     private static readonly float[] s_MaxHeight = { 1.20f, 2.00f, 3.40f };
+    // Low tables (M30): fields, market stalls and one-storey shops are lower than any Medium block.
+    private static readonly float[] s_MinHeightLow = { 0.03f, 0.15f, 0.25f };
+
+    public static bool IsLowTable(string table) => table != null && table.EndsWith("Low");
 
     // Placeable buildings (M25) follow a different contract from grown blocks: BuildingInstance.ApplyTransform scales the
     // whole prefab to footprint x Definition.Height and stands it at height / 2, so the prefab is modelled as a UNIT
@@ -88,7 +92,10 @@ public static class ArtContract
         return errors.Count == before;
     }
 
-    public static bool Validate(GameObject prefab, int level, List<string> errors)
+    public static bool Validate(GameObject prefab, int level, List<string> errors) => ValidateIn("m_Residential", prefab, level, errors);
+
+    // The contract for a prefab in one table of an AgeVisualSet (Tables): Low tables allow lower buildings (M30).
+    public static bool ValidateIn(string table, GameObject prefab, int level, List<string> errors)
     {
         int before = errors.Count;
         string name = prefab != null ? prefab.name : "(null)";
@@ -131,9 +138,10 @@ public static class ArtContract
                 errors.Add($"{name}: lowest point at y = {bounds.min.y:F2}, the pivot must be at ground level");
             }
             int i = Mathf.Clamp(level, 1, 3) - 1;
-            if (bounds.max.y < s_MinHeight[i] || bounds.max.y > s_MaxHeight[i])
+            float min = IsLowTable(table) ? s_MinHeightLow[i] : s_MinHeight[i];
+            if (bounds.max.y < min || bounds.max.y > s_MaxHeight[i])
             {
-                errors.Add($"{name}: height {bounds.max.y:F2} outside {s_MinHeight[i]:F2}..{s_MaxHeight[i]:F2} for level {level}");
+                errors.Add($"{name}: height {bounds.max.y:F2} outside {min:F2}..{s_MaxHeight[i]:F2} for level {level}");
             }
         }
 
@@ -185,7 +193,7 @@ public static class ArtContract
                         var prefab = prefabs.GetArrayElementAtIndex(p).objectReferenceValue as GameObject;
                         checkedPrefabs++;
                         var slotErrors = new List<string>();
-                        if (!Validate(prefab, level + 1, slotErrors))
+                        if (!ValidateIn(zone, prefab, level + 1, slotErrors))
                         {
                             foreach (string error in slotErrors) errors.Add($"{set.name} {zone} L{level + 1}: {error}");
                         }
