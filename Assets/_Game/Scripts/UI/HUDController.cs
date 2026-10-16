@@ -148,11 +148,15 @@ public sealed class HUDController : MonoBehaviour
 
     // (M32d) Fits the HUD to its bar art, whose ornamented ends take 85 px a side and whose blue band is only 40 px
     // tall (y 19-59 of 76): the happiness meter gives up 80 px of width (UiTheme.PaintHudBar tightens the spacing for
-    // the rest); the speed buttons and the daily income hang below the bar on small framed tabs (their objects stay where
-    // they are, so names and paths are unchanged); the other readouts shrink to the band. Runs before CreateIcons so
-    // the icons are sized to the fitted fonts. Without the art the HUD is left as it was.
+    // the rest); the speed buttons, the daily income and the research bar (at the happiness bar's size) hang below the
+    // bar on small framed tabs, and the R / C / I / G demand bars on a tab at the top right under Settings (their objects
+    // stay where they are, so names and paths are unchanged; the selection panel moves down below that tab); the other
+    // readouts shrink to the band. Runs before CreateIcons so the icons are sized to the fitted fonts. Without the art
+    // the HUD is left as it was.
     private const float HudBand = 40f;
     private const float TabGap = 33f;       // from the HUD's middle to the bar art's bottom edge
+    private const float TabPadX = 8f, TabPadY = 6f;
+    private RectTransform m_DemandGroup, m_DemandTab;
 
     private void FitHudBar()
     {
@@ -172,31 +176,103 @@ public sealed class HUDController : MonoBehaviour
         if (m_PauseButton != null && m_PauseButton.transform.parent is RectTransform speed && speed.parent != transform)
             HangBelow(speed, new Vector2(4 * 52f + 3 * 6f, 28f));
         if (m_CashFlowText != null) HangBelow(m_CashFlowText.rectTransform, new Vector2(170f, 22f));
+        if (m_ResearchMeter != null && m_ResearchMeter.transform.parent != transform)
+        {
+            var research = (RectTransform)m_ResearchMeter.transform;
+            float width = m_HappinessMeter != null ? ((RectTransform)m_HappinessMeter.transform).sizeDelta.x : 140f;
+            HangBelow(research, new Vector2(width, 12f));
+            if (m_ResearchMeter.GetComponent<LayoutElement>() is LayoutElement bar) bar.minWidth = bar.preferredWidth = width;
+            UiTheme.PaintMeter(research.GetComponent<Image>(), research.Find("Fill")?.GetComponent<Image>());  // re-inset the fill
+        }
+        if (m_ResidentialDemand != null && m_ResidentialDemand.transform.parent?.parent is RectTransform demand && demand.parent == transform)
+        {
+            // Top right, its right edge under the Settings button's (the HUD's right padding), from the bar art's bottom edge.
+            m_DemandGroup = demand;
+            float right = GetComponent<HorizontalLayoutGroup>() is HorizontalLayoutGroup row ? row.padding.right : 0f;
+            float height = 0f;
+            foreach (Transform column in demand) height = Mathf.Max(height, ColumnHeight(column));
+            m_DemandTab = HangBelow(demand, new Vector2(DemandWidth(), height), new Vector2(1f, 0f), new Vector2(-right, 38f - TabGap), 1f);
+            var layout = demand.GetComponent<HorizontalLayoutGroup>();
+            if (layout != null) layout.childAlignment = TextAnchor.UpperRight;
+            if (FindAnyObjectByType<SelectionPanel>() is SelectionPanel selection && selection.transform is RectTransform panel)
+            {
+                float below = 76f - (38f - TabGap) + height + 2f * TabPadY + 8f;   // the tab's bottom, plus a gap
+                if (-panel.anchoredPosition.y < below) panel.anchoredPosition = new Vector2(panel.anchoredPosition.x, -below);
+            }
+        }
         foreach (Transform child in transform) FitToBand((RectTransform)child, HudBand);
+        // With the demand bars on their tab the bar has room to spare: spread it between the groups.
+        if (GetComponent<HorizontalLayoutGroup>() is HorizontalLayoutGroup groups) groups.childForceExpandWidth = true;
+    }
+
+    // A demand column's height from its rows' fixed heights (the layout hasn't run yet in Start).
+    private static float ColumnHeight(Transform column)
+    {
+        float height = 0f;
+        int rows = 0;
+        foreach (Transform child in column)
+        {
+            if (!child.gameObject.activeSelf || child.GetComponent<LayoutElement>() is not LayoutElement row || row.ignoreLayout) continue;
+            height += Mathf.Max(row.preferredHeight, row.minHeight);
+            rows++;
+        }
+        float spacing = column.GetComponent<VerticalLayoutGroup>() is VerticalLayoutGroup v ? v.spacing : 0f;
+        return height + spacing * Mathf.Max(0, rows - 1);
+    }
+
+    // The demand row's width: its shown columns (the goods column comes and goes).
+    private float DemandWidth()
+    {
+        var layout = m_DemandGroup.GetComponent<HorizontalLayoutGroup>();
+        float width = 0f;
+        int shown = 0;
+        foreach (Transform column in m_DemandGroup)
+        {
+            if (!column.gameObject.activeSelf) continue;
+            width += LayoutUtility.GetPreferredWidth((RectTransform)column);
+            shown++;
+        }
+        return width + (layout != null ? layout.spacing * Mathf.Max(0, shown - 1) : 0f);
+    }
+
+    // Keeps the hanging demand tab as wide as its shown columns.
+    private void SizeDemandTab()
+    {
+        if (m_DemandTab == null) return;
+        float width = DemandWidth();
+        if (Mathf.Approximately(width, m_DemandGroup.sizeDelta.x)) return;
+        m_DemandGroup.sizeDelta = new Vector2(width, m_DemandGroup.sizeDelta.y);
+        m_DemandTab.sizeDelta = new Vector2(width + 2f * TabPadX, m_DemandTab.sizeDelta.y);
     }
 
     // Takes item out of its group's layout and puts it on a framed tab hanging below the bar, left-aligned with the
     // group. The group sits centred on the HUD's middle, so the tab is placed from the group's middle.
-    private static void HangBelow(RectTransform item, Vector2 size)
+    private static RectTransform HangBelow(RectTransform item, Vector2 size) =>
+        HangBelow(item, size, new Vector2(0f, 0.5f), new Vector2(0f, -TabGap), 0f);
+
+    // The general case: the tab's top corner at `corner` from `anchor` in the item's parent; side 0 = the tab runs right
+    // of the corner, 1 = left of it. Returns the tab (a framed plate drawn under the item).
+    private static RectTransform HangBelow(RectTransform item, Vector2 size, Vector2 anchor, Vector2 corner, float side)
     {
-        var group = (RectTransform)item.parent;
-        if (group == null) return;
-        const float padX = 8f, padY = 6f;
+        var parent = (RectTransform)item.parent;
         var plate = new GameObject("Tab", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
-        plate.transform.SetParent(group, false);
+        plate.transform.SetParent(parent, false);
         plate.transform.SetSiblingIndex(item.GetSiblingIndex());
         plate.GetComponent<LayoutElement>().ignoreLayout = true;
         UiTheme.PaintPanel(plate.GetComponent<Image>(), UiKit.PanelColor);
-        Place((RectTransform)plate.transform, new Vector2(-padX, -TabGap), size + new Vector2(2f * padX, 2f * padY));
+        float outward = side > 0.5f ? TabPadX : -TabPadX;
+        var tab = (RectTransform)plate.transform;
+        Place(tab, anchor, side, corner + new Vector2(outward, 0f), size + new Vector2(2f * TabPadX, 2f * TabPadY));
         (item.GetComponent<LayoutElement>() ?? item.gameObject.AddComponent<LayoutElement>()).ignoreLayout = true;
-        Place(item, new Vector2(0f, -TabGap - padY), size);
+        Place(item, anchor, side, corner + new Vector2(0f, -TabPadY), size);
+        return tab;
     }
 
-    private static void Place(RectTransform rect, Vector2 topLeft, Vector2 size)
+    private static void Place(RectTransform rect, Vector2 anchor, float side, Vector2 corner, Vector2 size)
     {
-        rect.anchorMin = rect.anchorMax = new Vector2(0f, 0.5f);
-        rect.pivot = new Vector2(0f, 1f);
-        rect.anchoredPosition = topLeft;
+        rect.anchorMin = rect.anchorMax = anchor;
+        rect.pivot = new Vector2(side, 1f);
+        rect.anchoredPosition = corner;
         rect.sizeDelta = size;
     }
 
@@ -206,6 +282,7 @@ public sealed class HUDController : MonoBehaviour
     private static void FitToBand(RectTransform group, float band)
     {
         if (!group.gameObject.activeSelf || group.GetComponentInChildren<Selectable>(true) != null) return;
+        if (group.GetComponent<LayoutElement>() is LayoutElement hung && hung.ignoreLayout) return;      // on a tab
         if (group.GetComponent<HorizontalLayoutGroup>() != null)
         {
             foreach (Transform child in group) FitToBand((RectTransform)child, band);
@@ -309,6 +386,7 @@ public sealed class HUDController : MonoBehaviour
         if (m_GoodsGroup == null) return;
         bool active = m_GameManager != null && m_GameManager.Simulation != null && m_GameManager.Simulation.GoodsActive;
         m_GoodsGroup.SetActive(active);
+        SizeDemandTab();
         if (!active) return;
         float supply = m_GameManager.Simulation.GoodsSupply();
         m_GoodsMeter.SetValue(supply);
