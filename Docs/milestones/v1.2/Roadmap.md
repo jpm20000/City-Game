@@ -26,7 +26,7 @@ milestone's screenshots and the release regression run on final numbers. The low
 | M28 | [Web saves](M28.md) — **done (2026-10-16)** | 3 browser saves survive a refresh | none (desktop path unchanged) | none (same files) | S–M |
 | M29 | [Age pacing](M29.md) — **done (2026-10-16)**, advances 2,000 / 12,000 / 40,000 RP | 4 more RP to advance | research only: re-record `AgeBalanceTests` timings | none | S |
 | M30 | [Low-density look](M30.md) — **done (2026-10-16)** | 5 small homes, markets / shops, farmland | Low industry (farms) pollutes less: density timelines re-recorded; age-less baseline unchanged (it zones Medium) | none | L |
-| M31 | [Release 1.2](M31.md) | — | none | — | S |
+| M31 | [Release 1.2](M31.md) — **done (2026-10-16)**, 1.2.0 built | — | none | — | S |
 
 ## Cross-milestone decisions (answered 2026-10-16)
 | Topic | Decision | Alternative (not taken) |

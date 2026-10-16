@@ -50,7 +50,7 @@ The profile stays active and the target stays WebGL after a build. In a `RunComm
 - **The first web build after a Windows session drew no buildings again** (the sampler mismatch above) in M28; the second build was fine. Always look at the title showcase, and build twice when it is empty.
 
 ## Not checked
-Cleared browser data and private windows (they lose browser saves by design: Export), performance and memory on a large city, mobile browsers, high-DPI sharpness (a page setting), the live site with the 1.2 build (M31). Do not claim them without a browser test.
+Cleared browser data and private windows (they lose browser saves by design: Export), performance and memory on a large city, mobile browsers, high-DPI sharpness (a page setting), the live site with the 1.2 build (the owner uploads it; M31 built and checked it locally only). Do not claim them without a browser test.
 
 ## Browser caching
 After uploading a new build, a stale `.wasm` / `.data` can still be served (browser cache, CDN, Unity's IndexedDB data cache): test in a private window with the cache disabled, or compare the served size of the `.wasm` with the file on disk. A fix that is "not working" in the browser was a stale file the first time.
