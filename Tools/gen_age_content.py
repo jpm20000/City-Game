@@ -205,10 +205,12 @@ TECHS = [(a, b, c, d, e, f, g, desc + (" Enables the %s ordinance." % ORDINANCE_
 
 # M21a / M21e: research is slow. The tables above hold the 1.0 base costs; these scales (by the age of the tech, and by the
 # age being advanced into) are applied when the assets are written. Every tech costs 12x its 1.0 price (asked for 10-15x:
-# research completed too quickly); the advance costs went x2 into Industrial and x2.5 into Modern in M21a. The guided
+# research completed too quickly); the advance costs went x2 into Industrial and x2.5 into Modern in M21a, and in M29 (more RP to advance, asked) to
+# 2,000 / 12,000 / 40,000 RP: x8 into the Renaissance, x10 into Industrial, x40/3 into Modern (the 6,000 / 15,000 first
+# proposed, and 22,000 for Modern, left the later ages no longer: cities reach them bigger and research faster; see M29.md). The guided
 # tutorial city researches 12x faster (BalanceConfig.TutorialResearchBoost) so its steps stay quick.
 TECH_COST_SCALE = [12.0, 12.0, 12.0, 12.0]
-ADVANCE_COST_SCALE = [1.0, 1.0, 2.0, 2.5]
+ADVANCE_COST_SCALE = [1.0, 8.0, 10.0, 40.0 / 3.0]
 def scaled(cost, scale): return int(round(cost * scale / 5.0)) * 5
 
 tech_guid = {t[1]: guid("tech_" + t[1]) for t in TECHS}

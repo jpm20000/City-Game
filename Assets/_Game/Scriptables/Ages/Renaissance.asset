@@ -27,7 +27,7 @@ MonoBehaviour:
   m_TechsToAdvance: 5
   m_RequiredTechs: []
   m_PopulationToEnter: 120
-  m_AdvanceCost: 250
+  m_AdvanceCost: 2000
   m_StartingTechs: []
   m_StartingMoney: 30000
   m_ZoneNames:

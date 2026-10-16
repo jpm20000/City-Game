@@ -3,9 +3,11 @@ using UnityEditor;
 using UnityEngine;
 
 // M11g: the shipped content played by EngagedCity (see there for the player model). Targets
-// (GamePlan §12): with engaged play 120-260 in-game days in the Medieval age and 100-320 in each later one (M21e: every
-// tech costs 12x its 1.0 price, and Electricity and Waterworks are Renaissance techs the Industrial age requires), no age where the city stalls, and an economy that pays for itself. Measured, from a
-// Medieval start: Medieval 199 days, Renaissance 168, Industrial 192, Modern reached on day 559 (1.0: 86 / 62 / 63, day 211).
+// (GamePlan §12): with engaged play 180-340 in-game days in the Medieval age and 100-380 in each later one (M21e: every
+// tech costs 12x its 1.0 price, and Electricity and Waterworks are Renaissance techs the Industrial age requires; M29: the
+// advances cost 2,000 / 12,000 / 40,000 RP), no age where the city stalls, and an economy that pays for itself. Measured, from a
+// Medieval start with the budget player: Medieval 255 days, Renaissance 198, Industrial 233, Modern reached on day 686; without it
+// 255 / 207 / 277, day 739 (1.1: 199 / 168 / 192, day 559 and 199 / 181 / 253, day 633; 1.0: 86 / 62 / 63, day 211).
 public sealed class AgeBalanceTests
 {
     private BalanceConfig m_Config;
@@ -36,7 +38,7 @@ public sealed class AgeBalanceTests
         for (int i = 1; i < city.AgeEntries.Count; i++)
         {
             int span = city.AgeEntries[i].day - city.AgeEntries[i - 1].day;
-            Assert.That(span, i == 1 ? Is.InRange(120, 260) : Is.InRange(100, 320), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
+            Assert.That(span, i == 1 ? Is.InRange(180, 340) : Is.InRange(100, 380), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
         }
         // 0.40, not 0.55 (M21e): techs cost 12x, so the city outgrows its services while the next tech is being researched
         // (Renaissance: crime / fire / health / traffic; measured low 0.41).
@@ -46,8 +48,8 @@ public sealed class AgeBalanceTests
 
     // M23e: the same targets with the density player. Gated = what the toolbar allows (Low in the Medieval age, Medium
     // from the Renaissance, repainted when it opens); Mixed = also High homes and shops in alternate blocks once High
-    // opens. Measured: Gated 236 / 143 / 210 days, Modern on day 589 (2516 pop); Mixed 236 / 143 / 203, day 582 (2624 pop);
-    // the Off run is the baseline above (199 / 181 / 253, day 633).
+    // opens. Measured (M29): Gated 311 / 187 / 268 days, Modern on day 766 (3144 pop); Mixed 311 / 187 / 272, day 770 (2989 pop);
+    // the Off run is the baseline above (255 / 207 / 277, day 739). (M23e: Gated 236 / 143 / 210, day 589; Mixed day 582.)
     [TestCase(1)]
     [TestCase(2)]
     public void FromMedieval_WithDensity_EachAgeTakes45To90Days_AndReachesModern(int mode)
@@ -60,9 +62,11 @@ public sealed class AgeBalanceTests
         for (int i = 1; i < city.AgeEntries.Count; i++)
         {
             int span = city.AgeEntries[i].day - city.AgeEntries[i - 1].day;
-            Assert.That(span, i == 1 ? Is.InRange(120, 260) : Is.InRange(100, 320), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
+            Assert.That(span, i == 1 ? Is.InRange(180, 340) : Is.InRange(100, 380), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
         }
-        Assert.GreaterOrEqual(city.MinHappiness, 0.40f);
+        // 0.38, not 0.40 (M29): the bigger city that reaches the Industrial age dips to 0.39 for one day as it enters (power,
+        // water and the Industrial pollution scale arrive together) and is back over 0.40 the day after.
+        Assert.GreaterOrEqual(city.MinHappiness, 0.38f);
         Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
     }
 
@@ -102,13 +106,15 @@ public sealed class AgeBalanceTests
         for (int i = 1; i < city.AgeEntries.Count; i++)
         {
             int span = city.AgeEntries[i].day - city.AgeEntries[i - 1].day;
-            Assert.That(span, i == 1 ? Is.InRange(120, 260) : Is.InRange(100, 320), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
+            Assert.That(span, i == 1 ? Is.InRange(180, 340) : Is.InRange(100, 380), $"days spent in {city.Ages[city.AgeEntries[i - 1].age].Id}");
         }
         // 0.52, not 0.55: events and hazards add trajectory noise (seed 2 without the budget player dipped to 0.545 on a
         // pollution / power-capacity stall, not on a hazard; see Docs/milestones/v1.0/M17.md 17f; M21a: seed 3 with the
         // budget player dips to 0.528 now that research runs slower and the Industrial stretch is longer).
         // M21e: 0.38 (the six seeds reach 0.41-0.44); see the first test for why it is low with 12x tech costs.
-        Assert.GreaterOrEqual(city.MinHappiness, 0.38f);
+        // M29: 0.35 (the six seeds reach Modern on day 846-920): a Renaissance of 310-347 days (the 12,000 RP advance) gives the plague more time; seed 2 without the budget
+        // player catches an outbreak late in it (plague term -0.15, low 0.365) and recovers within ten days.
+        Assert.GreaterOrEqual(city.MinHappiness, 0.35f);
         Assert.GreaterOrEqual(city.MinMoney, 0f, "never in debt");
     }
 
