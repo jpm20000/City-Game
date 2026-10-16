@@ -7,6 +7,9 @@ description: Run a UI-only play-through of City Game in Play mode with a virtual
 
 Every action goes through Input System events, so the EventSystem, `InputReader` actions, hover states, placement validation and UI wiring are all exercised. Only the checks read game state. The template **`PlaythroughDriver.cs`** (next to this file) is the M11g ages play-through; copy it into a `Unity_RunCommand`, set `LogPath` to the scratchpad, and edit the scenario in `Run()`.
 
+## Committed drivers (`Assets/_Game/Scripts/Editor/Playthrough/`, the current templates)
+`FinishDriver` (whole front end), `ControlsDriver`, `TutorialDriver`, `CameraToolbarDriver` (camera, toolbar groups, Views flyout), `RepairIconDriver` (status icons), `RoadLayoutDriver` (paired avenues, one-way highways), `DensityDriver`, `GoodsDriver` (goods meter / view / shortage / ledger / save), `CustomAssetsDriver` (Build menu, custom building), `Release11Driver` (the 1.1 loop from the title), `DragToolsDriver` (straight road / pipe lines, demolish drag), `LowDensityDriver` (Low art per zone, the Farm panel). Start one with `FindAnyObjectByType<GameManager>().StartCoroutine(XDriver.Run(log, ...))` after entering Play mode; `PlaythroughDriver.cs` next to this file is the older M11g one.
+
 ## Setup (all inside the driver)
 1. Enter Play mode in one RunCommand; start the driver in the next. The driver sets `Application.runInBackground = true` (only ever in Play mode).
 2. By default device input doesn't reach game actions in an unfocused Editor. Set (in memory only — there is no settings asset) `InputSystem.settings.editorInputBehaviorInPlayMode = AllDeviceInputAlwaysGoesToGameView` and `backgroundBehavior = IgnoreFocus`.
