@@ -160,6 +160,49 @@ public sealed class RoadLayoutTests
         Assert.AreEqual(RoadLayout.None, RoadLayout.HeadingOf(A, A));
     }
 
+    // --- straight drags (M27a) ---
+
+    [Test]
+    public void StraightRun_FollowsTheLongerAxis_XWinsATie()
+    {
+        Assert.AreEqual(4, RoadLayout.StraightRun(A, A + new Vector2Int(4, 2), out byte heading));
+        Assert.AreEqual(RoadLayout.East, heading);
+        Assert.AreEqual(3, RoadLayout.StraightRun(A, A + new Vector2Int(-1, 3), out heading));
+        Assert.AreEqual(RoadLayout.North, heading);
+        Assert.AreEqual(2, RoadLayout.StraightRun(A, A + new Vector2Int(-2, 2), out heading), "a tie runs along x");
+        Assert.AreEqual(RoadLayout.West, heading);
+        Assert.AreEqual(3, RoadLayout.StraightRun(A, A + new Vector2Int(1, -3), out heading));
+        Assert.AreEqual(RoadLayout.South, heading);
+    }
+
+    [Test]
+    public void StraightRun_OnTheStartCellIsOneCell()
+    {
+        Assert.AreEqual(0, RoadLayout.StraightRun(A, A, out byte heading));
+        Assert.AreEqual(RoadLayout.None, heading);
+        CollectionAssert.AreEqual(new[] { A }, RoadLayout.RunCells(A, heading, 0));
+    }
+
+    [Test]
+    public void RunCells_StartAtTheStartCellAndStepAlongTheHeading()
+    {
+        int length = RoadLayout.StraightRun(A, A + new Vector2Int(-3, 1), out byte heading);
+        CollectionAssert.AreEqual(new[] { A, A + Vector2Int.left, A + Vector2Int.left * 2, A + Vector2Int.left * 3 },
+            RoadLayout.RunCells(A, heading, length));
+    }
+
+    [Test]
+    public void StraightRun_OnAGridStopsAtTheMapEdge()
+    {
+        var grid = new GridData(8, 8);
+        Assert.AreEqual(4, RoadLayout.StraightRun(grid, A, new Vector2Int(20, 4), out byte heading), "x 3..7");
+        Assert.AreEqual(RoadLayout.East, heading);
+        Assert.AreEqual(3, RoadLayout.StraightRun(grid, A, new Vector2Int(3, -5), out heading), "y 3..0");
+        Assert.AreEqual(RoadLayout.South, heading);
+        Assert.AreEqual(2, RoadLayout.StraightRun(grid, A, A + new Vector2Int(2, 0), out _), "inside the map: unclipped");
+        Assert.AreEqual(0, RoadLayout.StraightRun(grid, new Vector2Int(-1, -1), A, out _), "off-map start");
+    }
+
     // --- GridData: avenue pairs ---
 
     private static GridData Avenues(params Vector2Int[] cells)

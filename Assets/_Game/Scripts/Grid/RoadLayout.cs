@@ -154,6 +154,32 @@ public static class RoadLayout
         return d.y > 0 ? North : South;
     }
 
+    // A straight drag (M27): from `start` towards `cursor` along the larger of |dx|, |dy| (x wins a tie, as in HeadingOf).
+    // Returns the steps past the start cell (the run has length + 1 cells); heading None and 0 on the start cell.
+    public static int StraightRun(Vector2Int start, Vector2Int cursor, out byte heading)
+    {
+        heading = HeadingOf(start, cursor);
+        Vector2Int d = cursor - start;
+        return heading == None ? 0 : IsVertical(heading) ? Mathf.Abs(d.y) : Mathf.Abs(d.x);
+    }
+
+    // The same, clipped so every cell of the run is on the map (0 when the start cell is off it).
+    public static int StraightRun(GridData grid, Vector2Int start, Vector2Int cursor, out byte heading)
+    {
+        int length = StraightRun(start, cursor, out heading);
+        if (!grid.InBounds(start)) return 0;
+        Vector2Int step = Offset(heading);
+        while (length > 0 && !grid.InBounds(start + step * length)) length--;
+        return length;
+    }
+
+    // The cells of a run in order from the start cell.
+    public static IEnumerable<Vector2Int> RunCells(Vector2Int start, byte heading, int length)
+    {
+        Vector2Int step = Offset(heading);
+        for (int i = 0; i <= length; i++) yield return start + step * i;
+    }
+
     // The run of one-way highway cells the selected one belongs to, following the flow (forward through the cell it
     // points at, backward through every cell that points at it), so a bend stays in the stretch. Empty when the cell is
     // not a one-way highway.
