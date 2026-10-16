@@ -238,7 +238,13 @@ Top left: pointer arrow. Top right: build / place. Bottom left: demolish. Bottom
 ## After generating (what the processing script does)
 
 - Drop the PNGs into the untracked `Data/ui_raw/<kind>/`, named after the sheet, for example
-  `tools_1.png` with a matching `tools_1.txt` listing the cell names row by row.
+  `tools_1.png` with a matching `tools_1.txt` listing the cell names row by row (`-` skips a cell; a first line
+  `grid 3 3` overrides the grid for a sheet laid out differently). Kinds: `hud`, `tools`, `buildings`, `controls`,
+  `cursors`, `buttons`, `frames`, `hudbar`, `meters`, `backgrounds`, `events`, `logo`. Building icons are named by
+  the building's `Id` (`water_tower`). Then run `python Tools/gen_ui_art.py` (needs `pip install pillow`).
+- A new frame, button, HUD bar or meter needs its border measured once (source px where the corner ornaments end) in
+  the script's `SLICED` table; the shipped sizes differ a little from the table above where the art isn't the asked
+  shape (M32b: frames 251 x 244 border 37-40, buttons 117 x 96, HUD bar 1596 x 228 ends 254, meter 235 x 30).
 - The script slices grids into cells, keys out the green background if used, trims and recentres on the same
   margin, and resizes to the ship size (Lanczos), then writes `Assets/_Game/Art/UI/<kind>/<name>.png`.
 - Frames, buttons, bars and meters are resized as a whole; the 9-slice / 3-slice borders are the ship-px borders in
