@@ -86,7 +86,7 @@ public sealed class BudgetPanel : MonoBehaviour
         rootRect.pivot = new Vector2(0.5f, 1f);
         rootRect.anchoredPosition = Vector2.zero;
         rootRect.sizeDelta = Vector2.zero;
-        m_Root.GetComponent<Image>().color = PanelColor;
+        UiTheme.PaintPanel(m_Root.GetComponent<Image>(), PanelColor);
         var layout = m_Root.GetComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(12, 12, 10, 12);
         layout.spacing = 6f;
@@ -229,7 +229,7 @@ public sealed class BudgetPanel : MonoBehaviour
         m_Tab = tab;
         for (int i = 0; i < m_TabButtons.Count; i++)
         {
-            m_TabButtons[i].GetComponent<Image>().color = i == (int)tab ? ActiveColor : ButtonColor;
+            UiKit.PaintButtonOn(m_TabButtons[i], i == (int)tab, ActiveColor, ButtonColor);
         }
 
         for (int i = m_Content.childCount - 1; i >= 0; i--)
@@ -345,13 +345,13 @@ public sealed class BudgetPanel : MonoBehaviour
             if (unlocked)
             {
                 Text(row, CostText(ordinance), 14, MutedColor);
-                MakeButton(row, enacted ? "Repeal" : "Enact", () =>
+                UiKit.PaintButtonOn(MakeButton(row, enacted ? "Repeal" : "Enact", () =>
                 {
                     if (tech.IsEnacted(captured)) tech.Repeal(captured);
                     else tech.Enact(captured);
                     m_Game.NotifyBudgetChanged();
                     SelectTab(Tab.Ordinances);
-                }, 76f).GetComponent<Image>().color = enacted ? ActiveColor : ButtonColor;
+                }, 76f), enacted, ActiveColor, ButtonColor);
                 Text(m_Content, ordinance.Description, 13, MutedColor);
             }
             else
@@ -431,6 +431,7 @@ public sealed class BudgetPanel : MonoBehaviour
                 : Color.white;
         }
         var slider = go.GetComponent<Slider>();
+        if (UiTheme.Current.SliderTrackSprite != null) UiTheme.PaintSlider(slider, new Color(0.30f, 0.55f, 0.95f));
         slider.wholeNumbers = true;
         slider.minValue = Mathf.Round(config.FundingMin / config.FundingStep);
         slider.maxValue = Mathf.Round(config.FundingMax / config.FundingStep);

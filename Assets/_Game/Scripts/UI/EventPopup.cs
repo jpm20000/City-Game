@@ -52,7 +52,7 @@ public sealed class EventPopup : MonoBehaviour
         panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.sizeDelta = new Vector2(PanelWidth, 0f);
-        panel.GetComponent<Image>().color = PanelColor;
+        UiTheme.PaintPanel(panel.GetComponent<Image>(), PanelColor, window: true);
         var layout = panel.GetComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(20, 20, 16, 16);
         layout.spacing = 10f;
@@ -179,7 +179,7 @@ public sealed class EventPopup : MonoBehaviour
         {
             bool can = events.CanChoose(i);
             m_Buttons[i].interactable = can;
-            m_Buttons[i].GetComponent<Image>().color = can ? ButtonColor : DisabledColor;
+            UiTheme.PaintButton(m_Buttons[i].GetComponent<Image>(), UiTheme.ButtonLook.Normal, can ? ButtonColor : DisabledColor);
         }
     }
 
@@ -187,9 +187,9 @@ public sealed class EventPopup : MonoBehaviour
     {
         var go = new GameObject(choice.Label + "Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
         go.transform.SetParent(m_Choices, false);
-        go.GetComponent<Image>().color = ButtonColor;
         go.GetComponent<LayoutElement>().minHeight = 56f;
         var button = go.GetComponent<Button>();
+        UiTheme.PaintButton(go.GetComponent<Image>(), UiTheme.ButtonLook.Normal, ButtonColor);
         button.onClick.AddListener(onClick);
 
         float price = choice.PriceAt(population);

@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 8071211978337987734}
   - component: {fileID: 7763420594553086287}
   - component: {fileID: 1840517378276198774}
+  - component: {fileID: 776190363721396216}
   m_Layer: 5
   m_Name: Panel
   m_TagString: Untagged
@@ -121,6 +122,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
   m_HorizontalFit: 0
   m_VerticalFit: 2
+--- !u!114 &776190363721396216
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2347031448480499953}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 0
 --- !u!1 &2908390919236865032
 GameObject:
   m_ObjectHideFlags: 0
@@ -805,6 +819,7 @@ GameObject:
   - component: {fileID: 6779831607512990992}
   - component: {fileID: 357271134733369256}
   - component: {fileID: 3049397265556622711}
+  - component: {fileID: 2176023157713415065}
   m_Layer: 5
   m_Name: KeepButton
   m_TagString: Untagged
@@ -936,6 +951,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &2176023157713415065
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7184701265909011904}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3
 --- !u!1 &8717360631498150648
 GameObject:
   m_ObjectHideFlags: 0
@@ -1109,6 +1137,7 @@ GameObject:
   - component: {fileID: 615811587493512692}
   - component: {fileID: 2192553654834452381}
   - component: {fileID: 7301017091985650791}
+  - component: {fileID: 8167707774100774463}
   m_Layer: 5
   m_Name: Close
   m_TagString: Untagged
@@ -1240,6 +1269,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &8167707774100774463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8889473567112086957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3
 --- !u!1 &8926592383609020197
 GameObject:
   m_ObjectHideFlags: 0
@@ -1253,6 +1295,7 @@ GameObject:
   - component: {fileID: 257803846452982729}
   - component: {fileID: 5847791888020045800}
   - component: {fileID: 2409123812257268680}
+  - component: {fileID: 6330757247083428366}
   m_Layer: 5
   m_Name: ActionButton
   m_TagString: Untagged
@@ -1384,3 +1427,16 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &6330757247083428366
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8926592383609020197}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3

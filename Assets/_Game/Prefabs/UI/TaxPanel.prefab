@@ -300,6 +300,7 @@ GameObject:
   - component: {fileID: 232682774400177140}
   - component: {fileID: 7054357667075130779}
   - component: {fileID: 7404939158735059441}
+  - component: {fileID: 6879037682222755492}
   m_Layer: 5
   m_Name: Panel
   m_TagString: Untagged
@@ -409,6 +410,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
   m_HorizontalFit: 0
   m_VerticalFit: 2
+--- !u!114 &6879037682222755492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1074154992533399162}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 0
 --- !u!1 &1101054405716185587
 GameObject:
   m_ObjectHideFlags: 0
@@ -709,6 +723,7 @@ GameObject:
   - component: {fileID: 1407440563706049952}
   - component: {fileID: 4401751830571795188}
   - component: {fileID: 4048685238490096342}
+  - component: {fileID: 4441120690900030297}
   m_Layer: 5
   m_Name: Slider
   m_TagString: Untagged
@@ -811,6 +826,19 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &4441120690900030297
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1985958072702481716}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 5
 --- !u!1 &2017188435690684248
 GameObject:
   m_ObjectHideFlags: 0
@@ -2372,6 +2400,7 @@ GameObject:
   - component: {fileID: 2363562968466698154}
   - component: {fileID: 1832526871941606574}
   - component: {fileID: 6022907869255408620}
+  - component: {fileID: 2744997319951168997}
   m_Layer: 5
   m_Name: Close
   m_TagString: Untagged
@@ -2503,6 +2532,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &2744997319951168997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6068407410322085207}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3
 --- !u!1 &6118250107169623229
 GameObject:
   m_ObjectHideFlags: 0
@@ -2962,6 +3004,7 @@ GameObject:
   - component: {fileID: 5229267696918141454}
   - component: {fileID: 9040618094465112325}
   - component: {fileID: 3386672391474803747}
+  - component: {fileID: 3460456441999050406}
   m_Layer: 5
   m_Name: Slider
   m_TagString: Untagged
@@ -3064,6 +3107,19 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &3460456441999050406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8108573040033508964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 5
 --- !u!1 &8146482685271611705
 GameObject:
   m_ObjectHideFlags: 0
@@ -3261,6 +3317,7 @@ GameObject:
   - component: {fileID: 7917530939027995389}
   - component: {fileID: 3878794315908400413}
   - component: {fileID: 4921690869581753315}
+  - component: {fileID: 6767605603846218421}
   m_Layer: 5
   m_Name: Slider
   m_TagString: Untagged
@@ -3363,6 +3420,19 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6767605603846218421
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8556175130558510704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 5
 --- !u!1 &8996609832235827941
 GameObject:
   m_ObjectHideFlags: 0

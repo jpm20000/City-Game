@@ -286,7 +286,7 @@ public sealed class TutorialCard
         rect.pivot = new Vector2(0f, 0.5f);
         rect.anchoredPosition = new Vector2(16f, 40f);
         rect.sizeDelta = new Vector2(310f, 0f);
-        m_Root.GetComponent<Image>().color = UiKit.PanelColor;
+        UiTheme.PaintPanel(m_Root.GetComponent<Image>(), UiKit.PanelColor);
         var layout = m_Root.GetComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(14, 14, 10, 12);
         layout.spacing = 6f;

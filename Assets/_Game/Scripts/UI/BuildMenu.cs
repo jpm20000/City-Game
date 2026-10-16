@@ -294,14 +294,14 @@ public sealed class BuildMenu
     {
         foreach (KeyValuePair<string, Button> pair in m_GroupButtons)
         {
-            pair.Value.GetComponent<Image>().color = pair.Key == m_Group ? UiKit.AccentColor : UiKit.ButtonColor;
+            UiKit.PaintButtonOn(pair.Value, pair.Key == m_Group);
         }
         string ageLabel = "Any age";
         GameManager game = UnityEngine.Object.FindAnyObjectByType<GameManager>();
         if (m_Age >= 0 && game != null && game.Ages != null && game.Ages.IsValidIndex(m_Age)) ageLabel = game.Ages[m_Age].DisplayName;
         UiKit.SetLabel(m_AgeButton, ageLabel);
-        m_AgeButton.GetComponent<Image>().color = m_Age >= 0 ? UiKit.AccentColor : UiKit.ButtonColor;
-        m_CustomButton.GetComponent<Image>().color = m_CustomOnly ? UiKit.AccentColor : UiKit.ButtonColor;
+        UiKit.PaintButtonOn(m_AgeButton, m_Age >= 0);
+        UiKit.PaintButtonOn(m_CustomButton, m_CustomOnly);
         UiKit.SetLabel(m_CustomButton, m_CustomOnly ? "Custom only: on" : "Custom only");
         UiKit.SetLabel(m_LockedButton, m_ShowLocked ? "Locked: shown" : "Locked: hidden");
         int unlocked = 0;

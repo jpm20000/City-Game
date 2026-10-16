@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 3257933961414314803}
   - component: {fileID: 8663621664714040456}
   - component: {fileID: 615415323984426824}
+  - component: {fileID: 8827545929730150877}
   m_Layer: 5
   m_Name: CursorHint
   m_TagString: Untagged
@@ -118,6 +119,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
   m_HorizontalFit: 2
   m_VerticalFit: 2
+--- !u!114 &8827545929730150877
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2226544820063637322}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 0
 --- !u!1 &3856837104170858585
 GameObject:
   m_ObjectHideFlags: 0
@@ -132,6 +146,7 @@ GameObject:
   - component: {fileID: 1066594589568665312}
   - component: {fileID: 2105822235413142306}
   - component: {fileID: 1852007428331281441}
+  - component: {fileID: 2292983428221830355}
   m_Layer: 5
   m_Name: Toast
   m_TagString: Untagged
@@ -249,6 +264,19 @@ CanvasGroup:
   m_Interactable: 0
   m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
+--- !u!114 &2292983428221830355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3856837104170858585}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 0
 --- !u!1 &4204580263774115911
 GameObject:
   m_ObjectHideFlags: 0
@@ -701,6 +729,7 @@ MonoBehaviour:
   m_ToastDuration: 2.5
   m_FadeDuration: 0.4
   m_PopulationMilestones: 3200000064000000fa000000f4010000e8030000d0070000i
+  m_WellNudgePopulation: 10
   m_Banner: {fileID: 4327999228694634763}
   m_BannerText: {fileID: 8860145814271992781}
 --- !u!114 &6469427542114901997

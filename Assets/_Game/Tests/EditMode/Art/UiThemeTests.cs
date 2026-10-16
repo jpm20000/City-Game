@@ -6,8 +6,9 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // M32a: the UI theme. UiTheme lives in Assembly-CSharp, which this assembly can't reference, so it is reached by name
-// (like ArtContractTests). The asset must equal the code defaults (a missing asset is then the same look), and Paint
-// must leave a widget flat without a sprite and slice a bordered one.
+// (like ArtContractTests). The asset's palette must equal the code defaults (a missing asset is then the same colours;
+// since M32d the asset also carries the art, which the code defaults leave out: the flat look), and Paint must leave a
+// widget flat without a sprite and slice a bordered one. M32d: the button and panel painters with the shipped art.
 public sealed class UiThemeTests
 {
     private const string ThemePath = "Assets/_Game/Resources/UiTheme.asset";
@@ -27,7 +28,7 @@ public sealed class UiThemeTests
     }
 
     [Test]
-    public void Asset_EqualsTheCodeDefaults()
+    public void AssetPalette_EqualsTheCodeDefaults_AndTheDefaultsHaveNoArt()
     {
         var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(ThemePath);
         Assert.IsNotNull(asset, ThemePath);
@@ -50,7 +51,7 @@ public sealed class UiThemeTests
                     Assert.That(Vector4.Distance(e, a), Is.LessThan(1e-4f), $"{property.name}: asset {a}, code {e}");
                 }
                 else if (property.propertyType == SerializedPropertyType.ObjectReference)
-                    Assert.AreEqual(property.objectReferenceValue, other.objectReferenceValue, property.name);
+                    Assert.IsNull(property.objectReferenceValue, $"{property.name}: the code default has no art");
                 compared++;
             }
             Assert.Greater(compared, 10, "palette and sprite slots compared");
@@ -104,6 +105,82 @@ public sealed class UiThemeTests
             UnityEngine.Object.DestroyImmediate(bordered);
             UnityEngine.Object.DestroyImmediate(plain);
             UnityEngine.Object.DestroyImmediate(texture);
+        }
+    }
+
+    private static object Call(string method, params object[] args)
+    {
+        foreach (MethodInfo m in ThemeType().GetMethods(BindingFlags.Public | BindingFlags.Static))
+            if (m.Name == method && m.GetParameters().Length == args.Length) return m.Invoke(null, args);
+        Assert.Fail($"UiTheme.{method} with {args.Length} parameters");
+        return null;
+    }
+
+    private static Sprite ThemeSprite(string slot)
+    {
+        var theme = AssetDatabase.LoadAssetAtPath<ScriptableObject>(ThemePath);
+        return (Sprite)ThemeType().GetField(slot).GetValue(theme);
+    }
+
+    // M32d: with the shipped button art a button is drawn from it (sliced, untinted) and shows hover / press / disabled
+    // by sprite swap; the on look is the active art; a choice button's disabled (selected) state is the active art.
+    [Test]
+    public void PaintButton_UsesTheButtonArt_WithSpriteSwapStates()
+    {
+        Sprite normal = ThemeSprite("ButtonSprite"), active = ThemeSprite("ButtonActiveSprite");
+        Sprite pressed = ThemeSprite("ButtonPressedSprite"), disabled = ThemeSprite("ButtonDisabledSprite");
+        Assert.IsNotNull(normal, "the theme has button art (CityBuilder > Sync UI Art)");
+        var go = new GameObject("Button", typeof(RectTransform), typeof(Image), typeof(Button));
+        try
+        {
+            var image = go.GetComponent<Image>();
+            var button = go.GetComponent<Button>();
+            button.targetGraphic = image;
+            Type look = ThemeType().GetNestedType("ButtonLook");
+            Call("PaintButton", image, Enum.Parse(look, "Normal"), Color.red, null);
+            Assert.AreSame(normal, image.sprite);
+            Assert.AreEqual(Image.Type.Sliced, image.type);
+            Assert.AreEqual(Color.white, image.color, "full-colour art is not tinted");
+            Assert.AreEqual(Selectable.Transition.SpriteSwap, button.transition);
+            Assert.AreSame(active, button.spriteState.highlightedSprite);
+            Assert.AreSame(pressed, button.spriteState.pressedSprite);
+            Assert.AreSame(disabled, button.spriteState.disabledSprite);
+            Call("PaintButton", image, Enum.Parse(look, "Active"), Color.red, null);
+            Assert.AreSame(active, image.sprite);
+            Call("SelectedWhenDisabled", button);
+            Assert.AreSame(active, button.spriteState.disabledSprite, "a choice button's selected (disabled) state is the active art");
+            Call("PaintButton", image, Enum.Parse(look, "Normal"), Color.red, null);
+            Assert.AreSame(active, button.spriteState.disabledSprite, "repainting keeps it");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+    }
+
+    // M32d: a framed panel is drawn from the panel art and its layout padding clears the frame.
+    [Test]
+    public void PaintPanel_UsesTheFrame_AndRaisesTheLayoutPadding()
+    {
+        Sprite frame = ThemeSprite("PanelSprite");
+        Assert.IsNotNull(frame, "the theme has panel art");
+        var go = new GameObject("Panel", typeof(RectTransform), typeof(Image), typeof(VerticalLayoutGroup));
+        try
+        {
+            var image = go.GetComponent<Image>();
+            var layout = go.GetComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(4, 30, 2, 2);
+            Call("PaintPanel", image, Color.blue, false);
+            Assert.AreSame(frame, image.sprite);
+            Assert.AreEqual(Color.white, image.color);
+            int min = (int)ThemeType().GetField("FramePadding").GetValue(null);
+            Assert.GreaterOrEqual(layout.padding.left, min);
+            Assert.GreaterOrEqual(layout.padding.top, min);
+            Assert.AreEqual(30, layout.padding.right, "a bigger padding is kept");
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(go);
         }
     }
 }

@@ -118,6 +118,14 @@ public sealed class UiArtImporter : AssetPostprocessor
         SerializedProperty list = themeObject.FindProperty(nameof(UiTheme.Icons));
         list.arraySize = icons.Count;
         for (int i = 0; i < icons.Count; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = icons[i];
+        // (M32d) The widget slots, by sprite name; a missing sprite empties its slot (the flat look).
+        int widgets = 0;
+        foreach (var (slot, file) in WidgetSlots)
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(Root + file + ".png");
+            themeObject.FindProperty(slot).objectReferenceValue = sprite;
+            if (sprite != null) widgets++;
+        }
         themeObject.ApplyModifiedProperties();
 
         int buildings = 0;
@@ -133,8 +141,27 @@ public sealed class UiArtImporter : AssetPostprocessor
             buildings++;
         }
         AssetDatabase.SaveAssets();
-        Debug.Log($"Sync UI Art: {icons.Count} theme icons, {buildings} building icons set.");
+        Debug.Log($"Sync UI Art: {icons.Count} theme icons, {widgets} widget sprites, {buildings} building icons set.");
     }
+
+    // (M32d) Theme sprite slot -> Art/UI file. No field art was made, so FieldSprite stays empty (flat fields).
+    public static readonly (string slot, string file)[] WidgetSlots =
+    {
+        (nameof(UiTheme.WindowSprite), "frames/frame_window"),
+        (nameof(UiTheme.PanelSprite), "frames/frame_panel"),
+        (nameof(UiTheme.HudBarSprite), "hudbar/hud_bar"),
+        (nameof(UiTheme.ButtonSprite), "buttons/button_normal"),
+        (nameof(UiTheme.ButtonActiveSprite), "buttons/button_hover"),
+        (nameof(UiTheme.ButtonPressedSprite), "buttons/button_pressed"),
+        (nameof(UiTheme.ButtonDisabledSprite), "buttons/button_disabled"),
+        (nameof(UiTheme.MeterTrackSprite), "meters/meter_track"),
+        (nameof(UiTheme.MeterFillSprite), "meters/meter_fill"),
+        (nameof(UiTheme.SliderTrackSprite), "meters/meter_track"),
+        (nameof(UiTheme.SliderFillSprite), "meters/meter_fill"),
+        (nameof(UiTheme.SliderHandleSprite), "controls/slider_handle"),
+        (nameof(UiTheme.ToggleBoxSprite), "controls/toggle_box"),
+        (nameof(UiTheme.ToggleTickSprite), "controls/toggle_tick"),
+    };
 
     // The json changed on its own (a border tweak): re-import the sprites whose border no longer matches.
     private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)

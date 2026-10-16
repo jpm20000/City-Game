@@ -159,6 +159,7 @@ GameObject:
   - component: {fileID: 115254886804081299}
   - component: {fileID: 8358113633763917485}
   - component: {fileID: 6824650379370929995}
+  - component: {fileID: 8647738082912491745}
   m_Layer: 5
   m_Name: Speed2
   m_TagString: Untagged
@@ -290,6 +291,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &8647738082912491745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 291171743040890543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 4
 --- !u!1 &293347961970051453
 GameObject:
   m_ObjectHideFlags: 0
@@ -440,6 +454,7 @@ GameObject:
   - component: {fileID: 3394311516899528184}
   - component: {fileID: 7636220737881751069}
   - component: {fileID: 911755224184981354}
+  - component: {fileID: 3071370069505300110}
   m_Layer: 5
   m_Name: Speed4
   m_TagString: Untagged
@@ -571,6 +586,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &3071370069505300110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 395738781254511041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 4
 --- !u!1 &433578359564133703
 GameObject:
   m_ObjectHideFlags: 0
@@ -584,6 +612,7 @@ GameObject:
   - component: {fileID: 245574386894613881}
   - component: {fileID: 7149891643627654700}
   - component: {fileID: 3529036554352097551}
+  - component: {fileID: 443387747476314530}
   m_Layer: 5
   m_Name: ResearchButton
   m_TagString: Untagged
@@ -715,6 +744,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &443387747476314530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 433578359564133703}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3
 --- !u!1 &516688733246799126
 GameObject:
   m_ObjectHideFlags: 0
@@ -1940,6 +1982,7 @@ GameObject:
   - component: {fileID: 2430550777189730144}
   - component: {fileID: 6633367557189157284}
   - component: {fileID: 1726824893683770638}
+  - component: {fileID: 8916651597994806252}
   m_Layer: 5
   m_Name: NewButton
   m_TagString: Untagged
@@ -2071,6 +2114,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &8916651597994806252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1710993981289617621}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3
 --- !u!1 &2080827686391435224
 GameObject:
   m_ObjectHideFlags: 0
@@ -2310,6 +2366,7 @@ GameObject:
   - component: {fileID: 9138279235576651154}
   - component: {fileID: 8186381495936717914}
   - component: {fileID: 1622718232958235053}
+  - component: {fileID: 3530857427794592334}
   m_Layer: 5
   m_Name: LoadButton
   m_TagString: Untagged
@@ -2441,6 +2498,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &3530857427794592334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2399755830927582052}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3
 --- !u!1 &2448750518064822015
 GameObject:
   m_ObjectHideFlags: 0
@@ -2455,6 +2525,7 @@ GameObject:
   - component: {fileID: 3833998154599138014}
   - component: {fileID: 8680310925302739378}
   - component: {fileID: 6331552256383600247}
+  - component: {fileID: 8626902957544790142}
   m_Layer: 5
   m_Name: HUD
   m_TagString: Untagged
@@ -2609,6 +2680,19 @@ MonoBehaviour:
   m_SaveButton: {fileID: 8178639018032174164}
   m_LoadButton: {fileID: 8186381495936717914}
   m_NewButton: {fileID: 6633367557189157284}
+--- !u!114 &8626902957544790142
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2448750518064822015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 2
 --- !u!1 &2512861617437630390
 GameObject:
   m_ObjectHideFlags: 0
@@ -3826,6 +3910,7 @@ GameObject:
   - component: {fileID: 6032848182341858649}
   - component: {fileID: 1261925960020781046}
   - component: {fileID: 1663736656265415210}
+  - component: {fileID: 4082520061444917671}
   m_Layer: 5
   m_Name: Pause
   m_TagString: Untagged
@@ -3957,6 +4042,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &4082520061444917671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5170245110934700344}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 4
 --- !u!1 &5549446380440109839
 GameObject:
   m_ObjectHideFlags: 0
@@ -5085,6 +5183,7 @@ GameObject:
   - component: {fileID: 5659360687165536421}
   - component: {fileID: 8178639018032174164}
   - component: {fileID: 6437152720944499988}
+  - component: {fileID: 6468934460930759693}
   m_Layer: 5
   m_Name: SaveButton
   m_TagString: Untagged
@@ -5216,6 +5315,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &6468934460930759693
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7219042432898613300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3
 --- !u!1 &7258617453407093031
 GameObject:
   m_ObjectHideFlags: 0
@@ -5229,6 +5341,7 @@ GameObject:
   - component: {fileID: 4800420143258569616}
   - component: {fileID: 8503139425327667831}
   - component: {fileID: 5497508027268256382}
+  - component: {fileID: 1335559042501741400}
   m_Layer: 5
   m_Name: Speed1
   m_TagString: Untagged
@@ -5360,6 +5473,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &1335559042501741400
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7258617453407093031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 4
 --- !u!1 &7311506131588332516
 GameObject:
   m_ObjectHideFlags: 0
@@ -6177,6 +6303,7 @@ GameObject:
   - component: {fileID: 6392933657152453614}
   - component: {fileID: 4790706854759076642}
   - component: {fileID: 1605871800811995209}
+  - component: {fileID: 8696548410142548683}
   m_Layer: 5
   m_Name: Tooltip
   m_TagString: Untagged
@@ -6304,6 +6431,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.ContentSizeFitter
   m_HorizontalFit: 0
   m_VerticalFit: 2
+--- !u!114 &8696548410142548683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7776230239825570936}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 0
 --- !u!1 &7820177945617702373
 GameObject:
   m_ObjectHideFlags: 0
@@ -7066,6 +7206,7 @@ GameObject:
   - component: {fileID: 6053140090694579985}
   - component: {fileID: 8204762786316500530}
   - component: {fileID: 5509610266071665144}
+  - component: {fileID: 4698232954440772589}
   m_Layer: 5
   m_Name: TaxesButton
   m_TagString: Untagged
@@ -7197,3 +7338,16 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &4698232954440772589
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8592016331810247023}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 3

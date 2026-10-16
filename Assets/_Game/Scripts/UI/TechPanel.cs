@@ -204,28 +204,36 @@ public sealed class TechPanel : MonoBehaviour
     {
         string cost;
         Color color;
+        var look = UiTheme.ButtonLook.Normal;      // (M32d) with the button art: which art, and a tint for done / queued
+        Color? tint = null;
         float alpha = 1f;
         int queueIndex = QueueIndex(tech, t);
 
         if (tech.IsResearched(t))
         {
             color = m_DoneColor;
+            look = UiTheme.ButtonLook.Pressed;
+            tint = new Color(0.70f, 1f, 0.75f);
             cost = "Researched";
             alpha = 0.75f;
         }
         else if (tech.Active != null && tech.Active.Tech == t)
         {
             color = m_ActiveColor;
+            look = UiTheme.ButtonLook.Active;
             cost = $"{Mathf.Min(tech.Progress, t.Cost):N0} / {t.Cost:N0} RP";
         }
         else if (queueIndex >= 0)
         {
             color = m_QueuedColor;
+            look = UiTheme.ButtonLook.Active;
+            tint = new Color(0.72f, 0.72f, 0.80f);
             cost = $"Queued #{queueIndex + 1}  ·  {t.Cost:N0} RP";
         }
         else if (t.Age > tech.CurrentAge)
         {
             color = m_LockedColor;
+            look = UiTheme.ButtonLook.Disabled;
             cost = "Later age";
             alpha = 0.45f;
         }
@@ -237,11 +245,12 @@ public sealed class TechPanel : MonoBehaviour
         else
         {
             color = m_LockedColor;
+            look = UiTheme.ButtonLook.Disabled;
             cost = "Needs " + MissingPrerequisites(tech, t);
             alpha = 0.55f;
         }
 
-        button.SetBackground(color);
+        button.SetBackground(color, look, tint);
         if (button.Label != null) button.Label.alpha = alpha;
         if (button.Cost != null)
         {

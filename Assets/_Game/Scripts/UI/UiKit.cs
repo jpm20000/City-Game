@@ -51,7 +51,8 @@ public static class UiKit
     {
         var go = new GameObject(label + "Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
         go.transform.SetParent(parent, false);
-        UiTheme.Paint(go.GetComponent<Image>(), UiTheme.Current.ButtonSprite, color ?? ButtonColor);
+        Color flat = color ?? ButtonColor;
+        UiTheme.PaintButton(go.GetComponent<Image>(), LookOf(flat), flat);
         var element = go.GetComponent<LayoutElement>();
         if (width > 0f) element.preferredWidth = width;
         var button = go.GetComponent<Button>();
@@ -64,6 +65,20 @@ public static class UiKit
         rect.offsetMin = rect.offsetMax = Vector2.zero;
         Object.Destroy(text.GetComponent<LayoutElement>());
         return button;
+    }
+
+    // (M32d) The button art for a palette colour: Accent = on / primary, Disabled = greyed, anything else normal.
+    public static UiTheme.ButtonLook LookOf(Color color) =>
+        color == AccentColor ? UiTheme.ButtonLook.Active
+        : color == DisabledColor ? UiTheme.ButtonLook.Disabled
+        : UiTheme.ButtonLook.Normal;
+
+    // An on / off (tab, switch, choice) button: the active art or Accent when on, the normal art or `off` when not.
+    public static void PaintButtonOn(Component button, bool on, Color? onFlat = null, Color? offFlat = null)
+    {
+        if (button == null) return;
+        UiTheme.PaintButton(button.GetComponent<Image>(), on ? UiTheme.ButtonLook.Active : UiTheme.ButtonLook.Normal,
+            on ? onFlat ?? AccentColor : offFlat ?? ButtonColor);
     }
 
     public static void SetLabel(Button button, string label)
@@ -134,7 +149,7 @@ public static class UiKit
         panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.sizeDelta = new Vector2(width, 0f);
-        UiTheme.Paint(panel.GetComponent<Image>(), UiTheme.Current.WindowSprite, PanelColor);
+        UiTheme.PaintPanel(panel.GetComponent<Image>(), PanelColor, window: true);
         var layout = panel.GetComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(20, 20, 16, 18);
         layout.spacing = 10f;
@@ -158,14 +173,8 @@ public static class UiKit
         var element = go.AddComponent<LayoutElement>();
         element.flexibleWidth = 1f;
         element.minHeight = 20f;
-        UiTheme theme = UiTheme.Current;
-        foreach (Image image in go.GetComponentsInChildren<Image>())
-        {
-            if (image.name == "Background") UiTheme.Paint(image, theme.SliderTrackSprite, theme.Track);
-            else if (image.name == "Fill") UiTheme.Paint(image, theme.SliderFillSprite, AccentColor);
-            else UiTheme.Paint(image, theme.SliderHandleSprite, theme.Handle);
-        }
         var slider = go.GetComponent<Slider>();
+        UiTheme.PaintSlider(slider, AccentColor);
         slider.minValue = min;
         slider.maxValue = max;
         slider.SetValueWithoutNotify(value);
@@ -196,10 +205,12 @@ public static class UiKit
         boxRect.pivot = new Vector2(0f, 0.5f);
         boxRect.anchoredPosition = new Vector2(2f, 0f);
         boxRect.sizeDelta = new Vector2(20f, 20f);
-        UiTheme.Paint(box.GetComponent<Image>(), UiTheme.Current.ToggleBoxSprite, UiTheme.Current.Field);
+        bool boxArt = UiTheme.Current.ToggleBoxSprite != null;
+        UiTheme.Paint(box.GetComponent<Image>(), UiTheme.Current.ToggleBoxSprite, boxArt ? Color.white : UiTheme.Current.Field);
         var outline = box.GetComponent<Outline>();
         outline.effectColor = MutedColor;
         outline.effectDistance = new Vector2(1.5f, -1.5f);
+        outline.enabled = !boxArt;      // the box art has its own rim
 
         var tick = new GameObject("Tick", typeof(RectTransform), typeof(Image));
         tick.transform.SetParent(box.transform, false);
@@ -208,7 +219,8 @@ public static class UiKit
         tickRect.anchorMax = Vector2.one;
         tickRect.offsetMin = new Vector2(4f, 4f);
         tickRect.offsetMax = new Vector2(-4f, -4f);
-        UiTheme.Paint(tick.GetComponent<Image>(), UiTheme.Current.ToggleTickSprite, AccentColor);
+        UiTheme.Paint(tick.GetComponent<Image>(), UiTheme.Current.ToggleTickSprite, UiTheme.Current.ToggleTickSprite != null ? Color.white : AccentColor);
+        tick.GetComponent<Image>().preserveAspect = true;
         tick.GetComponent<Image>().raycastTarget = false;
 
         TMP_Text label = Text(go.transform, text, fontSize, BodyColor);
@@ -251,7 +263,7 @@ public static class UiKit
         public void Refresh()
         {
             bool on = m_Get();
-            Button.GetComponent<Image>().color = on ? AccentColor : ButtonColor;
+            PaintButtonOn(Button, on);
             SetLabel(Button, on ? "On" : "Off");
         }
 

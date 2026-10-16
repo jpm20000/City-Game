@@ -151,6 +151,33 @@ public sealed class UiArtTests
 
     private static readonly string[] ThemeIconKinds = { "hud", "tools", "controls" };
 
+    // M32d: the theme's widget slots hold their art (CityBuilder > Sync UI Art); no field art was made.
+    private static readonly (string slot, string file)[] WidgetSlots =
+    {
+        ("WindowSprite", "frames/frame_window"), ("PanelSprite", "frames/frame_panel"), ("HudBarSprite", "hudbar/hud_bar"),
+        ("ButtonSprite", "buttons/button_normal"), ("ButtonActiveSprite", "buttons/button_hover"),
+        ("ButtonPressedSprite", "buttons/button_pressed"), ("ButtonDisabledSprite", "buttons/button_disabled"),
+        ("MeterTrackSprite", "meters/meter_track"), ("MeterFillSprite", "meters/meter_fill"),
+        ("SliderTrackSprite", "meters/meter_track"), ("SliderFillSprite", "meters/meter_fill"),
+        ("SliderHandleSprite", "controls/slider_handle"), ("ToggleBoxSprite", "controls/toggle_box"),
+        ("ToggleTickSprite", "controls/toggle_tick"), ("FieldSprite", null),
+    };
+
+    [Test]
+    public void Theme_WidgetSlots_HoldTheirArt()
+    {
+        var theme = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/_Game/Resources/UiTheme.asset");
+        var so = new SerializedObject(theme);
+        foreach (var (slot, file) in WidgetSlots)
+        {
+            SerializedProperty property = so.FindProperty(slot);
+            Assert.IsNotNull(property, $"UiTheme.{slot}");
+            Sprite expected = file == null ? null : AssetDatabase.LoadAssetAtPath<Sprite>($"{Root}{file}.png");
+            if (file != null) Assert.IsNotNull(expected, file);
+            Assert.AreSame(expected, property.objectReferenceValue, $"{slot} (run CityBuilder > Sync UI Art)");
+        }
+    }
+
     [Test]
     public void SmallSprites_ArePackedInTheUiAtlas_AndBigPicturesAreNot()
     {

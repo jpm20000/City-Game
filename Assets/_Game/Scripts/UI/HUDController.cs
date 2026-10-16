@@ -98,6 +98,7 @@ public sealed class HUDController : MonoBehaviour
         BindSpeedButton(m_Speed2Button, GameSpeed.x2);
         BindSpeedButton(m_Speed4Button, GameSpeed.x4);
         CreateIcons();
+        FitHudBar();
 
         if (m_GameManager == null || m_GameManager.Simulation == null) return;
 
@@ -147,6 +148,23 @@ public sealed class HUDController : MonoBehaviour
 
     // An icon at the left of a readout, sized to its font; the text moves over by a left margin (which TMP counts in
     // its preferred width, so the layout group makes room). Null when the theme has no such icon.
+    // (M32d) The HUD bar art's ornamented ends take 85 px a side, which the full bar doesn't have: the happiness meter
+    // gives up 80 of them (UiTheme.PaintHudBar tightens the spacing for the rest).
+    private void FitHudBar()
+    {
+        if (UiTheme.Current.HudBarSprite == null || m_HappinessMeter == null) return;
+        Transform group = m_HappinessMeter.transform.parent;
+        if (group == null || group.GetComponent<LayoutElement>() is not LayoutElement element || element.preferredWidth <= 0f) return;
+        element.preferredWidth -= 80f;
+        var meter = (RectTransform)m_HappinessMeter.transform;
+        meter.sizeDelta = new Vector2(Mathf.Min(meter.sizeDelta.x, element.preferredWidth), meter.sizeDelta.y);
+        if (meter.GetComponent<LayoutElement>() is LayoutElement own)
+        {
+            if (own.minWidth > element.preferredWidth) own.minWidth = element.preferredWidth;
+            if (own.preferredWidth > element.preferredWidth) own.preferredWidth = element.preferredWidth;
+        }
+    }
+
     private static Image AddIcon(TMP_Text text, string name)
     {
         Sprite sprite = UiTheme.Icon(name);

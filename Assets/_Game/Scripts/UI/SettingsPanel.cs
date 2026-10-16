@@ -92,7 +92,7 @@ public sealed class SettingsPanel
         m_Tab = tab;
         for (int i = 0; i < m_TabButtons.Count; i++)
         {
-            m_TabButtons[i].GetComponent<Image>().color = m_TabIds[i] == tab ? UiKit.AccentColor : UiKit.ButtonColor;
+            UiKit.PaintButtonOn(m_TabButtons[i], m_TabIds[i] == tab);
         }
 
         foreach (Transform child in m_Content)
@@ -213,7 +213,7 @@ public sealed class SettingsPanel
             key = UiKit.MakeButton(row, KeyBindings.Label(entry), () =>
             {
                 UiKit.SetLabel(key, "Press a key…");
-                key.GetComponent<Image>().color = UiKit.AccentColor;
+                UiKit.PaintButtonOn(key, true);
                 m_Status = "Press the new key, or Esc to cancel.";
                 KeyBindings.Rebind(captured, message =>
                 {

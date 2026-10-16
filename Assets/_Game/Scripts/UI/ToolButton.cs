@@ -52,13 +52,15 @@ public sealed class ToolButton : MonoBehaviour, IPointerEnterHandler, IPointerEx
 
     public void SetActive(bool active)
     {
-        if (m_Background != null) m_Background.color = active ? m_ActiveColor : m_NormalColor;
+        UiTheme.PaintButton(m_Background, active ? UiTheme.ButtonLook.Active : UiTheme.ButtonLook.Normal,
+            active ? m_ActiveColor : m_NormalColor);
     }
 
-    // For buttons with more states than active / inactive (the tech panel).
-    public void SetBackground(Color color)
+    // For buttons with more states than active / inactive (the tech panel): the flat colour, or with the button art
+    // the look and an optional tint (M32d).
+    public void SetBackground(Color color, UiTheme.ButtonLook look = UiTheme.ButtonLook.Normal, Color? tint = null)
     {
-        if (m_Background != null) m_Background.color = color;
+        UiTheme.PaintButton(m_Background, look, color, tint);
     }
 
     public TMP_Text Label => m_Label;

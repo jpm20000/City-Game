@@ -48,7 +48,7 @@ public sealed class GoodsTooltip : MonoBehaviour, IPointerEnterHandler, IPointer
         rect.anchoredPosition = new Vector2(24f, -8f);
         rect.sizeDelta = new Vector2(330f, 0f);
         var image = m_Root.GetComponent<Image>();
-        image.color = UiKit.PanelColor;
+        UiTheme.PaintPanel(image, UiKit.PanelColor);
         image.raycastTarget = false;
         var layout = m_Root.GetComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(12, 12, 10, 10);

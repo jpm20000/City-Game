@@ -23,14 +23,21 @@ MonoBehaviour:
   Field: {r: 0.06, g: 0.07, b: 0.1, a: 1}
   Track: {r: 0.2, g: 0.23, b: 0.28, a: 1}
   Handle: {r: 1, g: 1, b: 1, a: 1}
-  WindowSprite: {fileID: 0}
-  ButtonSprite: {fileID: 0}
+  WindowSprite: {fileID: 21300000, guid: 9d56d6643eda4da4490660ec4243899a, type: 3}
+  PanelSprite: {fileID: 21300000, guid: 413d7903ad7502b438c1ab96e605ac15, type: 3}
+  HudBarSprite: {fileID: 21300000, guid: 0eb8d32c6e44e9840bfcd5c2028138be, type: 3}
+  ButtonSprite: {fileID: 21300000, guid: 1c9897991ad898346adff68b31779b4e, type: 3}
+  ButtonActiveSprite: {fileID: 21300000, guid: 54e40a9a20c224a4fb8e6a4024a8bfe7, type: 3}
+  ButtonPressedSprite: {fileID: 21300000, guid: d93a3140767bccc489040ea1d8162aad, type: 3}
+  ButtonDisabledSprite: {fileID: 21300000, guid: 857ef8d3997582d4799d9caa8c77bda7, type: 3}
   FieldSprite: {fileID: 0}
-  SliderTrackSprite: {fileID: 0}
-  SliderFillSprite: {fileID: 0}
-  SliderHandleSprite: {fileID: 0}
-  ToggleBoxSprite: {fileID: 0}
-  ToggleTickSprite: {fileID: 0}
+  MeterTrackSprite: {fileID: 21300000, guid: 50e089b78a26c8447abf780cbd305e10, type: 3}
+  MeterFillSprite: {fileID: 21300000, guid: 22cd76cfee1dfb648a3b4c9e9acab32d, type: 3}
+  SliderTrackSprite: {fileID: 21300000, guid: 50e089b78a26c8447abf780cbd305e10, type: 3}
+  SliderFillSprite: {fileID: 21300000, guid: 22cd76cfee1dfb648a3b4c9e9acab32d, type: 3}
+  SliderHandleSprite: {fileID: 21300000, guid: a8e7cd80decdd8d4a8b9ed046d0fdf8d, type: 3}
+  ToggleBoxSprite: {fileID: 21300000, guid: 2464adc076c09b94abaf5f645f2bcc69, type: 3}
+  ToggleTickSprite: {fileID: 21300000, guid: aa4508bcbb5fe25449a21ca0730138b1, type: 3}
   Icons:
   - {fileID: 21300000, guid: 03a79478413ee48478ab48e1e051347d, type: 3}
   - {fileID: 21300000, guid: 117d922d97c903a43b77d4f2e7393e7b, type: 3}
