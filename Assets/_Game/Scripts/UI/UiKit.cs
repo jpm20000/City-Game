@@ -3,17 +3,18 @@ using UnityEngine;
 using UnityEngine.UI;
 
 // Small helpers for the panels and dialogs that are built in code (Budget, Sound, the event popup, M19's menus), so
-// each of them doesn't carry its own copy of the same few widgets.
+// each of them doesn't carry its own copy of the same few widgets. Colours, widget sprites and the font come from
+// UiTheme (M32a); with the default theme they are the flat pre-M32 look.
 public static class UiKit
 {
-    public static readonly Color PanelColor = new Color(0.10f, 0.12f, 0.16f, 0.97f);
-    public static readonly Color DimColor = new Color(0f, 0f, 0f, 0.55f);
-    public static readonly Color ButtonColor = new Color(0.24f, 0.27f, 0.33f);
-    public static readonly Color AccentColor = new Color(0.30f, 0.55f, 0.92f);
-    public static readonly Color DisabledColor = new Color(0.17f, 0.18f, 0.21f);
-    public static readonly Color TitleColor = new Color(0.95f, 0.80f, 0.35f);
-    public static readonly Color BodyColor = new Color(0.85f, 0.88f, 0.94f);
-    public static readonly Color MutedColor = new Color(0.60f, 0.64f, 0.70f);
+    public static Color PanelColor => UiTheme.Current.Panel;
+    public static Color DimColor => UiTheme.Current.Dim;
+    public static Color ButtonColor => UiTheme.Current.Button;
+    public static Color AccentColor => UiTheme.Current.Accent;
+    public static Color DisabledColor => UiTheme.Current.Disabled;
+    public static Color TitleColor => UiTheme.Current.Title;
+    public static Color BodyColor => UiTheme.Current.Body;
+    public static Color MutedColor => UiTheme.Current.Muted;
 
     public static RectTransform Row(Transform parent, float height)
     {
@@ -35,6 +36,7 @@ public static class UiKit
         var go = new GameObject("Text", typeof(RectTransform), typeof(TextMeshProUGUI), typeof(LayoutElement));
         go.transform.SetParent(parent, false);
         var tmp = go.GetComponent<TextMeshProUGUI>();
+        UiTheme.ApplyFont(tmp);
         tmp.text = text;
         tmp.fontSize = size;
         tmp.color = color;
@@ -49,7 +51,7 @@ public static class UiKit
     {
         var go = new GameObject(label + "Button", typeof(RectTransform), typeof(Image), typeof(Button), typeof(LayoutElement));
         go.transform.SetParent(parent, false);
-        go.GetComponent<Image>().color = color ?? ButtonColor;
+        UiTheme.Paint(go.GetComponent<Image>(), UiTheme.Current.ButtonSprite, color ?? ButtonColor);
         var element = go.GetComponent<LayoutElement>();
         if (width > 0f) element.preferredWidth = width;
         var button = go.GetComponent<Button>();
@@ -76,17 +78,19 @@ public static class UiKit
         GameObject go = TMP_DefaultControls.CreateInputField(new TMP_DefaultControls.Resources());
         go.name = "InputField";
         go.transform.SetParent(parent, false);
-        go.GetComponent<Image>().color = new Color(0.06f, 0.07f, 0.10f, 1f);
+        UiTheme.Paint(go.GetComponent<Image>(), UiTheme.Current.FieldSprite, UiTheme.Current.Field);
         var element = go.AddComponent<LayoutElement>();
         element.minHeight = 32f;
         element.flexibleWidth = 1f;
         var field = go.GetComponent<TMP_InputField>();
         field.characterLimit = maxLength;
         field.lineType = TMP_InputField.LineType.SingleLine;
+        UiTheme.ApplyFont(field.textComponent);
         field.textComponent.color = Color.white;
         field.textComponent.fontSize = 16;
         if (field.placeholder is TMP_Text hint)
         {
+            UiTheme.ApplyFont(hint);
             hint.text = placeholder;
             hint.fontSize = 16;
             hint.color = MutedColor;
@@ -130,7 +134,7 @@ public static class UiKit
         panelRect.anchorMin = panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.sizeDelta = new Vector2(width, 0f);
-        panel.GetComponent<Image>().color = PanelColor;
+        UiTheme.Paint(panel.GetComponent<Image>(), UiTheme.Current.WindowSprite, PanelColor);
         var layout = panel.GetComponent<VerticalLayoutGroup>();
         layout.padding = new RectOffset(20, 20, 16, 18);
         layout.spacing = 10f;
@@ -154,11 +158,12 @@ public static class UiKit
         var element = go.AddComponent<LayoutElement>();
         element.flexibleWidth = 1f;
         element.minHeight = 20f;
+        UiTheme theme = UiTheme.Current;
         foreach (Image image in go.GetComponentsInChildren<Image>())
         {
-            image.color = image.name == "Background" ? new Color(0.20f, 0.23f, 0.28f)
-                : image.name == "Fill" ? AccentColor
-                : Color.white;
+            if (image.name == "Background") UiTheme.Paint(image, theme.SliderTrackSprite, theme.Track);
+            else if (image.name == "Fill") UiTheme.Paint(image, theme.SliderFillSprite, AccentColor);
+            else UiTheme.Paint(image, theme.SliderHandleSprite, theme.Handle);
         }
         var slider = go.GetComponent<Slider>();
         slider.minValue = min;
@@ -191,7 +196,7 @@ public static class UiKit
         boxRect.pivot = new Vector2(0f, 0.5f);
         boxRect.anchoredPosition = new Vector2(2f, 0f);
         boxRect.sizeDelta = new Vector2(20f, 20f);
-        box.GetComponent<Image>().color = new Color(0.06f, 0.07f, 0.10f, 1f);
+        UiTheme.Paint(box.GetComponent<Image>(), UiTheme.Current.ToggleBoxSprite, UiTheme.Current.Field);
         var outline = box.GetComponent<Outline>();
         outline.effectColor = MutedColor;
         outline.effectDistance = new Vector2(1.5f, -1.5f);
@@ -203,7 +208,7 @@ public static class UiKit
         tickRect.anchorMax = Vector2.one;
         tickRect.offsetMin = new Vector2(4f, 4f);
         tickRect.offsetMax = new Vector2(-4f, -4f);
-        tick.GetComponent<Image>().color = AccentColor;
+        UiTheme.Paint(tick.GetComponent<Image>(), UiTheme.Current.ToggleTickSprite, AccentColor);
         tick.GetComponent<Image>().raycastTarget = false;
 
         TMP_Text label = Text(go.transform, text, fontSize, BodyColor);
