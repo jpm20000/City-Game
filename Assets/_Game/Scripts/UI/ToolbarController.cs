@@ -116,7 +116,7 @@ public sealed class ToolbarController : MonoBehaviour
         BindView(m_CoverageViewButton, "Parks", InfoOverlay.View.Coverage,
             "Park coverage view  [V]\nGreener homes get more happiness from nearby parks (up to 4 parks count). Light grey homes have none; dark grey buildings are jobs, which parks don't affect.");
         BindView(m_PollutionViewButton, "Pollution", InfoOverlay.View.Pollution,
-            "Pollution view  [V]\n<color=#B07AA8>Purple</color> haze = pollution from industry and power plants; dark buildings are the polluters. Polluted homes are unhappier and lower land value.");
+            "Pollution view  [V]\n<color=#B07AA8>Purple</color> haze = pollution from industry and power plants; dark buildings are the polluters (farms, Low-density industry, pollute little). Polluted homes are unhappier and lower land value.");
         BindView(m_LandValueViewButton, "Value", InfoOverlay.View.LandValue,
             "Land value view  [V]\n<color=#F2554A>Red</color> = low, <color=#59D966>green</color> = high. Parks and kept historic blocks raise it, pollution lowers it. Homes and shops need enough of it for level 3; darker, striped = held at level 2 by it.");
         CreateTrafficViewButton();
@@ -421,6 +421,7 @@ public sealed class ToolbarController : MonoBehaviour
         {
             case Density.Low:
                 return $"Low density\nA quieter block: {balance.DensityScale(ZoneType.Residential, Density.Low):0.#}x the homes or jobs, fewer trips and a little more land value around. " +
+                       $"Homes are small houses, shops are markets, and industry is farmland ({balance.LowDensityPollution:0.#}x a factory's pollution). " +
                        "Paint over a zone to change its density; a built block keeps its level.";
             case Density.High:
                 return $"High density\n{balance.DensityScale(ZoneType.Residential, Density.High):0.#}x the homes and shops ({balance.DensityScale(ZoneType.Industrial, Density.High):0.#}x for factories): " +

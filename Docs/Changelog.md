@@ -12,6 +12,10 @@ The second update, from player feedback. Saves from 1.1.0 load unchanged.
 - Saves and settings now survive a refresh, a new upload and a closed tab (they were lost before).
 - The Load panel can **Export** a save as a `.json` file and **Import** one back, to keep a copy outside the browser.
 
+**A new look for low density**
+- Low-density blocks have their own buildings in every age: **homes** are small houses that get nicer as they grow (a cottage, then a house in a fenced or hedged garden, then a larger house with a porch), **shops** are **markets** (open stalls, then a covered market) that become a single-storey shop, and **industry is farmland** (fields with a shed, a barn, then a barn with a rick, dovecote, windpump or silo).
+- Farms pollute far less than factories (0.3x), and the selection panel calls them Farms. The Medieval town, which is all low density, now looks like cottages, market stalls and fields.
+
 **Ages**
 - Advancing to the next age takes more research: **2,000 RP** to the Renaissance, **12,000** to the Industrial Age and **40,000** to the Modern Age (were 250 / 2,400 / 7,500). Each age lasts longer, and the advance is a goal to work towards.
 

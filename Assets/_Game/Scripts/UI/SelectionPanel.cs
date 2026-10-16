@@ -447,7 +447,7 @@ public sealed class SelectionPanel : MonoBehaviour
         int builtAge = grid.GetBuiltAge(cell);
         string unit = zone == ZoneType.Residential ? "Homes" : "Jobs";
 
-        m_Title.text = $"{ZoneName(zone)} building";
+        m_Title.text = IsFarm(grid, cell) ? "Farm" : $"{ZoneName(zone)} building";
         Line($"Level {level} / {maxLevel}");
         Line($"{unit}  {sim.Capacity.CapacityOf(grid, cell)}");
         Line(DensityLine(cell));
@@ -503,7 +503,10 @@ public sealed class SelectionPanel : MonoBehaviour
         Density density = grid.GetDensity(cell);
         switch (density)
         {
-            case Density.Low: return $"Density  <color=#73D9A0>Low</color>  ({balance.DensityScale(zone, density):0.#}x capacity, fewer trips, a little more land value)";
+            case Density.Low:
+                return zone == ZoneType.Industrial
+                    ? $"Density  <color=#73D9A0>Low</color>  (farmland: {balance.DensityScale(zone, density):0.#}x the jobs, {balance.LowDensityPollution:0.#}x a factory's pollution)"
+                    : $"Density  <color=#73D9A0>Low</color>  ({balance.DensityScale(zone, density):0.#}x capacity, fewer trips, a little more land value)";
             case Density.High:
                 return $"Density  <color=#E0627C>High</color>  ({balance.DensityScale(zone, density):0.#}x capacity, more traffic" +
                        $"{(zone == ZoneType.Industrial ? " and pollution" : string.Empty)}, needs power and water to start)";
@@ -568,7 +571,8 @@ public sealed class SelectionPanel : MonoBehaviour
         float emission = sim.Pollution.EmissionOf(cell);
         if (emission > 0f)
         {
-            Line($"<color=#B07AA8>Pollutes</color>  {emission:0.#} within {sim.Pollution.RadiusOf(cell)} cells");
+            Line($"<color=#B07AA8>Pollutes</color>  {emission:0.#} within {sim.Pollution.RadiusOf(cell)} cells" +
+                 (IsFarm(grid, cell) ? "  (a farm pollutes little)" : string.Empty));
         }
         float pollution = sim.Pollution.GetPollution(cell);
         if (pollution > 0.05f)
@@ -829,6 +833,12 @@ public sealed class SelectionPanel : MonoBehaviour
     private void Line(string text)
     {
         if (!string.IsNullOrEmpty(text)) m_Text.AppendLine(KeyBindings.Fill(text));
+    }
+
+    // Low-density industry is farmland (M30): its own art, a farm's name and far less pollution.
+    private static bool IsFarm(GridData grid, Vector2Int cell)
+    {
+        return grid.GetZone(cell) == ZoneType.Industrial && grid.GetDensity(cell) == Density.Low;
     }
 
     private static string ZoneName(ZoneType zone)
