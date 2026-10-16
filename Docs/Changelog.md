@@ -1,6 +1,6 @@
 # Chronopolis changelog
 
-## 1.2.0 (draft, unreleased)
+## 1.2.0
 
 The second update, from player feedback. Saves from 1.1.0 load unchanged.
 

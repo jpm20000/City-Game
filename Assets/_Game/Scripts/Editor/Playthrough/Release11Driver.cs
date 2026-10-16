@@ -149,7 +149,7 @@ public static class Release11Driver
 
             // --- the title shows the release version ---
             Check(flow.State == GameFlowState.MainMenu, "starts on the title");
-            Check(Application.version == "1.1.0", "the player version is 1.1.0: " + Application.version);
+            Check(Application.version == ReleaseBuild.Version, "the player version is " + ReleaseBuild.Version + ": " + Application.version);
             bool versionShown = GameObject.Find("UI/MainMenu").GetComponentsInChildren<TMP_Text>().Any(t => t.text == "v" + Application.version);
             Check(versionShown, "the title shows v" + Application.version);
 
