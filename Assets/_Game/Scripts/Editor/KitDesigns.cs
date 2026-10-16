@@ -208,22 +208,25 @@ public static class KitDesigns
         return density == Density.High && age == "modern" ? ModernHigh() : null;
     }
 
-    // Low density (M30): small homes that get nicer by level. Shops and farms follow in 30d / 30e; until then the Modern
-    // age keeps its M23 low shops.
+    // Low density (M30): small homes that get nicer by level, markets that become a shop. Farms follow in 30e.
     private static KitSpec[] Low(string age)
     {
-        KitSpec[] homes = age switch
+        var all = new List<KitSpec>();
+        all.AddRange(age switch
         {
             "medieval" => MedievalLowHomes(),
             "renaissance" => RenaissanceLowHomes(),
             "industrial" => IndustrialLowHomes(),
             _ => ModernLowHomes(),
-        };
-        if (age != "modern") return homes;
-        var all = new KitSpec[6];
-        homes.CopyTo(all, 0);
-        ModernLowShops().CopyTo(all, 3);
-        return all;
+        });
+        all.AddRange(age switch
+        {
+            "medieval" => MedievalLowShops(),
+            "renaissance" => RenaissanceLowShops(),
+            "industrial" => IndustrialLowShops(),
+            _ => ModernLowShops(),
+        });
+        return all.ToArray();
     }
 
     // Medieval: a crofter's cottage with a kitchen patch, a cottage in a wattle-fenced garden, a jettied house with a porch.
@@ -258,12 +261,34 @@ public static class KitDesigns
         S(s => { s.W = .62f; s.D = .46f; s.BodyZ = -.08f; s.Floors = 2; s.FloorH = .29f; s.Wall = new[] { "white", "concrete", "cream" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "slate", "roofgrey", "terracotta2" }; s.Rise = .18f; s.AlongX = true; s.Win = "win_cool"; s.Cols = 3; s.SideCols = 2; s.Balcony = true; s.Porch = true; s.Ground = "lawn"; s.Border = "woodlight"; s.BorderH = .04f; }),
     };
 
-    // The M23 Modern low shops (kept until 30d replaces them with markets).
+    // Shops (M30): L1 open stalls on the square, L2 a covered market (a roof on posts over several stalls), L3 a
+    // single-storey shop with an awning and a sign.
+    private static KitSpec[] MedievalLowShops() => new[]
+    {
+        S(s => { s.NoBody = true; s.Stalls = 2; s.Ground = "soil2"; s.StallCol = new[] { "awnred", "awnteal", "awngreen", "awnblue" }; }),
+        S(s => { s.W = .78f; s.D = .58f; s.Open = true; s.Timber = true; s.FloorH = .24f; s.Wall = new[] { "timber", "woodlight", "timber" }; s.RoofCol = new[] { "thatch", "shingle", "thatch2" }; s.Rise = .18f; s.AlongX = true; s.Cols = 3; s.Stalls = 4; s.Ground = "soil2"; s.FlipV2 = false; }),
+        S(s => { s.W = .62f; s.D = .46f; s.BodyZ = -.06f; s.Floors = 1; s.FloorH = .30f; s.Wall = new[] { "daub", "woodlight", "daub2" }; s.RoofCol = new[] { "shingle", "thatch2", "shingle2" }; s.Rise = .20f; s.AlongX = true; s.Timber = true; s.Cols = 2; s.Awning = new[] { "awnteal", "awnred", "awnblue" }; s.Sign = "signteal"; s.Ground = "path"; s.FlipV2 = false; }),
+    };
+
+    private static KitSpec[] RenaissanceLowShops() => new[]
+    {
+        S(s => { s.NoBody = true; s.Stalls = 3; s.Ground = "path"; s.StallCol = new[] { "awnred", "awnwhite", "awngreen", "awnteal" }; }),
+        S(s => { s.W = .80f; s.D = .60f; s.Open = true; s.FloorH = .28f; s.Wall = new[] { "stone", "sand", "stone" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "terracotta", "terracotta2", "terracotta" }; s.Rise = .16f; s.Cols = 3; s.Stalls = 4; s.Ground = "path"; }),
+        S(s => { s.W = .64f; s.D = .46f; s.BodyZ = -.06f; s.Floors = 1; s.FloorH = .34f; s.Wall = new[] { "sand", "ochre", "cream" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "terracotta", "terracotta2", "terracotta" }; s.Rise = .16f; s.Cornice = true; s.Cols = 3; s.Awning = new[] { "awnteal", "awnred", "awngreen" }; s.Sign = "signteal"; s.Ground = "path"; }),
+    };
+
+    private static KitSpec[] IndustrialLowShops() => new[]
+    {
+        S(s => { s.NoBody = true; s.Stalls = 3; s.Ground = "path"; s.StallCol = new[] { "awnblue", "awnred", "awnwhite", "awngreen" }; }),
+        S(s => { s.W = .82f; s.D = .62f; s.Open = true; s.FloorH = .30f; s.Wall = new[] { "iron", "iron", "soot" }; s.RoofCol = new[] { "glassroof", "tin", "slate" }; s.Rise = .18f; s.AlongX = true; s.Cols = 4; s.Stalls = 4; s.Ground = "stone"; s.FlipV2 = false; }),
+        S(s => { s.W = .64f; s.D = .48f; s.BodyZ = -.06f; s.Floors = 1; s.FloorH = .34f; s.Wall = new[] { "brickred", "brickyellow", "brickdark" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "slate2", "roofgrey", "slate" }; s.Cornice = true; s.Cols = 2; s.Awning = new[] { "awnblue", "awnteal", "awnred" }; s.Sign = "signteal"; s.Ground = "path"; }),
+    };
+
     private static KitSpec[] ModernLowShops() => new[]
     {
-        S(s => { s.W = .66f; s.D = .52f; s.Floors = 1; s.FloorH = .34f; s.Wall = new[] { "cream", "white", "sand" }; s.Roof = KitRoof.Lean; s.RoofCol = new[] { "roofgrey", "slate", "roofgreen" }; s.Rise = .09f; s.Win = "glassteal"; s.Cols = 3; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awngreen", "awnwhite" }; }),
-        S(s => { s.W = .72f; s.D = .56f; s.Floors = 2; s.FloorH = .31f; s.Wall = new[] { "white", "cream", "concrete" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "slate", "roofgreen" }; s.Rise = .14f; s.Win = "glassteal"; s.Cols = 4; s.Sign = "signteal"; s.Awning = new[] { "awnblue", "awnteal", "awnwhite" }; }),
-        S(s => { s.W = .80f; s.D = .60f; s.Floors = 2; s.FloorH = .34f; s.Wall = new[] { "concrete", "white", "sand" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "roofgrey", "slate", "concrete2" }; s.Rise = .12f; s.AlongX = true; s.Win = "glassteal"; s.Cols = 5; s.Sign = "signteal"; s.Awning = new[] { "awnteal", "awnblue", "awngreen" }; s.Cornice = true; }),
+        S(s => { s.NoBody = true; s.Stalls = 2; s.Ground = "concrete"; s.StallCol = new[] { "awnteal", "awnwhite", "awnblue", "awngreen" }; }),
+        S(s => { s.W = .82f; s.D = .62f; s.Open = true; s.FloorH = .30f; s.Wall = new[] { "steel", "steel", "concrete2" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "glassroof", "concrete2" }; s.Cols = 3; s.Stalls = 4; s.Ground = "concrete"; }),
+        S(s => { s.W = .70f; s.D = .50f; s.BodyZ = -.06f; s.Floors = 1; s.FloorH = .36f; s.Wall = new[] { "glassteal", "white", "glassdark" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "roofgrey", "concrete2", "roofgrey" }; s.Win = "glassteal"; s.Ribbon = true; s.Awning = new[] { "awnteal", "awnblue", "awnwhite" }; s.Sign = "signteal"; s.Ground = "concrete2"; }),
     };
 
     // Mid-rise and tall blocks: the Skyscraper (R3) is a slender stepped glass tower, the Office block (C3) a flat-topped glass box.
