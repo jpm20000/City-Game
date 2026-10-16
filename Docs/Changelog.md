@@ -1,5 +1,20 @@
 # Chronopolis changelog
 
+## 1.2.0 (draft, unreleased)
+
+The second update, from player feedback. Saves from 1.1.0 load unchanged.
+
+**Building and demolishing**
+- Roads, avenues, highways and pipes are laid in a **straight line**: press, drag along a row or column, release to build. The hint shows the total cost first; Esc or a right click drops the line.
+- **Hold Demolish** and sweep across the map to clear everything under the cursor; if it passed placed buildings, it asks once before removing them.
+
+**Browser version**
+- Saves and settings now survive a refresh, a new upload and a closed tab (they were lost before).
+- The Load panel can **Export** a save as a `.json` file and **Import** one back, to keep a copy outside the browser.
+
+**Ages**
+- Advancing to the next age takes more research: **2,000 RP** to the Renaissance, **12,000** to the Industrial Age and **40,000** to the Modern Age (were 250 / 2,400 / 7,500). Each age lasts longer, and the advance is a goal to work towards.
+
 ## 1.1.0
 
 The first update after 1.0.0, built from player feedback. Saves from 1.0.0 load and are upgraded on the next save.
