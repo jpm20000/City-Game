@@ -97,8 +97,8 @@ public sealed class HUDController : MonoBehaviour
         BindSpeedButton(m_Speed1Button, GameSpeed.x1);
         BindSpeedButton(m_Speed2Button, GameSpeed.x2);
         BindSpeedButton(m_Speed4Button, GameSpeed.x4);
-        CreateIcons();
         FitHudBar();
+        CreateIcons();
 
         if (m_GameManager == null || m_GameManager.Simulation == null) return;
 
@@ -146,25 +146,96 @@ public sealed class HUDController : MonoBehaviour
         IconButton(m_Speed4Button, UiIcons.Play3);
     }
 
-    // An icon at the left of a readout, sized to its font; the text moves over by a left margin (which TMP counts in
-    // its preferred width, so the layout group makes room). Null when the theme has no such icon.
-    // (M32d) The HUD bar art's ornamented ends take 85 px a side, which the full bar doesn't have: the happiness meter
-    // gives up 80 of them (UiTheme.PaintHudBar tightens the spacing for the rest).
+    // (M32d) Fits the HUD to its bar art, whose ornamented ends take 85 px a side and whose blue band is only 40 px
+    // tall (y 19-59 of 76): the happiness meter gives up 80 px of width (UiTheme.PaintHudBar tightens the spacing for
+    // the rest); the speed buttons and the daily income hang below the bar on small framed tabs (their objects stay where
+    // they are, so names and paths are unchanged); the other readouts shrink to the band. Runs before CreateIcons so
+    // the icons are sized to the fitted fonts. Without the art the HUD is left as it was.
+    private const float HudBand = 40f;
+    private const float TabGap = 33f;       // from the HUD's middle to the bar art's bottom edge
+
     private void FitHudBar()
     {
-        if (UiTheme.Current.HudBarSprite == null || m_HappinessMeter == null) return;
-        Transform group = m_HappinessMeter.transform.parent;
-        if (group == null || group.GetComponent<LayoutElement>() is not LayoutElement element || element.preferredWidth <= 0f) return;
-        element.preferredWidth -= 80f;
-        var meter = (RectTransform)m_HappinessMeter.transform;
-        meter.sizeDelta = new Vector2(Mathf.Min(meter.sizeDelta.x, element.preferredWidth), meter.sizeDelta.y);
-        if (meter.GetComponent<LayoutElement>() is LayoutElement own)
+        if (UiTheme.Current.HudBarSprite == null) return;
+        if (m_HappinessMeter != null && m_HappinessMeter.transform.parent is Transform group &&
+            group.GetComponent<LayoutElement>() is LayoutElement element && element.preferredWidth > 0f)
         {
-            if (own.minWidth > element.preferredWidth) own.minWidth = element.preferredWidth;
-            if (own.preferredWidth > element.preferredWidth) own.preferredWidth = element.preferredWidth;
+            element.preferredWidth -= 80f;
+            var meter = (RectTransform)m_HappinessMeter.transform;
+            meter.sizeDelta = new Vector2(Mathf.Min(meter.sizeDelta.x, element.preferredWidth), meter.sizeDelta.y);
+            if (meter.GetComponent<LayoutElement>() is LayoutElement own)
+            {
+                if (own.minWidth > element.preferredWidth) own.minWidth = element.preferredWidth;
+                if (own.preferredWidth > element.preferredWidth) own.preferredWidth = element.preferredWidth;
+            }
+        }
+        if (m_PauseButton != null && m_PauseButton.transform.parent is RectTransform speed && speed.parent != transform)
+            HangBelow(speed, new Vector2(4 * 52f + 3 * 6f, 28f));
+        if (m_CashFlowText != null) HangBelow(m_CashFlowText.rectTransform, new Vector2(170f, 22f));
+        foreach (Transform child in transform) FitToBand((RectTransform)child, HudBand);
+    }
+
+    // Takes item out of its group's layout and puts it on a framed tab hanging below the bar, left-aligned with the
+    // group. The group sits centred on the HUD's middle, so the tab is placed from the group's middle.
+    private static void HangBelow(RectTransform item, Vector2 size)
+    {
+        var group = (RectTransform)item.parent;
+        if (group == null) return;
+        const float padX = 8f, padY = 6f;
+        var plate = new GameObject("Tab", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        plate.transform.SetParent(group, false);
+        plate.transform.SetSiblingIndex(item.GetSiblingIndex());
+        plate.GetComponent<LayoutElement>().ignoreLayout = true;
+        UiTheme.PaintPanel(plate.GetComponent<Image>(), UiKit.PanelColor);
+        Place((RectTransform)plate.transform, new Vector2(-padX, -TabGap), size + new Vector2(2f * padX, 2f * padY));
+        (item.GetComponent<LayoutElement>() ?? item.gameObject.AddComponent<LayoutElement>()).ignoreLayout = true;
+        Place(item, new Vector2(0f, -TabGap - padY), size);
+    }
+
+    private static void Place(RectTransform rect, Vector2 topLeft, Vector2 size)
+    {
+        rect.anchorMin = rect.anchorMax = new Vector2(0f, 0.5f);
+        rect.pivot = new Vector2(0f, 1f);
+        rect.anchoredPosition = topLeft;
+        rect.sizeDelta = size;
+    }
+
+    // Shrinks a readout group taller than the band: its spacing first, then its children's heights and fonts in
+    // proportion (fonts no smaller than 10 pt). A row group fits each of its columns. Button columns are left alone
+    // (shrunk buttons would be too small to click).
+    private static void FitToBand(RectTransform group, float band)
+    {
+        if (!group.gameObject.activeSelf || group.GetComponentInChildren<Selectable>(true) != null) return;
+        if (group.GetComponent<HorizontalLayoutGroup>() != null)
+        {
+            foreach (Transform child in group) FitToBand((RectTransform)child, band);
+            return;
+        }
+        if (group.GetComponent<VerticalLayoutGroup>() is not VerticalLayoutGroup column) return;
+        var rows = new System.Collections.Generic.List<LayoutElement>();
+        float height = 0f;
+        foreach (Transform child in group)
+        {
+            if (!child.gameObject.activeSelf || child.GetComponent<LayoutElement>() is not LayoutElement row || row.ignoreLayout) continue;
+            if (row.preferredHeight <= 0f) return;      // a row without a fixed height: leave the group alone
+            rows.Add(row);
+            height += row.preferredHeight;
+        }
+        if (rows.Count == 0) return;
+        column.spacing = Mathf.Min(column.spacing, 1f);
+        float gaps = column.spacing * (rows.Count - 1);
+        if (height + gaps <= band) return;
+        float k = (band - gaps) / height;
+        foreach (LayoutElement row in rows)
+        {
+            row.preferredHeight *= k;
+            if (row.minHeight > 0f) row.minHeight *= k;
+            if (row.GetComponent<TMP_Text>() is TMP_Text text) text.fontSize = Mathf.Max(10f, text.fontSize * k);
         }
     }
 
+    // An icon at the left of a readout, sized to its font; the text moves over by a left margin (which TMP counts in
+    // its preferred width, so the layout group makes room). Null when the theme has no such icon.
     private static Image AddIcon(TMP_Text text, string name)
     {
         Sprite sprite = UiTheme.Icon(name);
