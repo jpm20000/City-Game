@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Text;
+using Unity.Profiling;
 using UnityEngine;
 
 // Development builds only: launch the player with -perfBenchmark to build a fully grown 96x96 city
@@ -20,6 +21,9 @@ public sealed class PerfBenchmark : MonoBehaviour
     private readonly FrameTiming[] m_Timing = new FrameTiming[1];
     private readonly StringBuilder m_Report = new();
     private int m_Shots;
+    // M32f: SetPass calls in the last measured frame (the UI's share is the idle row minus the "UI hidden" row). URP's
+    // SRP Batcher / GPU Resident Drawer leave the "Draw Calls Count" and "Batches Count" counters at 0, so they aren't read.
+    private ProfilerRecorder m_SetPass;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Boot()
@@ -33,6 +37,7 @@ public sealed class PerfBenchmark : MonoBehaviour
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = -1;
         Application.runInBackground = true;   // an unfocused player would otherwise stall
+        m_SetPass = ProfilerRecorder.StartNew(ProfilerCategory.Render, "SetPass Calls Count");
 
         GameManager gameManager = FindAnyObjectByType<GameManager>();
         SaveGameController saveGame = FindAnyObjectByType<SaveGameController>();
@@ -59,6 +64,7 @@ public sealed class PerfBenchmark : MonoBehaviour
         Camera camera = Camera.main;
         float startZoom = camera.orthographicSize;
         yield return RunScenarios(gameManager, $"default zoom ({startZoom:F0})");
+        yield return RunUi(gameManager);
 
         // Whole map on screen: the worst case for drawing.
         camera.orthographicSize = k_MapSize * 0.45f;
@@ -186,6 +192,26 @@ public sealed class PerfBenchmark : MonoBehaviour
         gameManager.Clock.SetSpeed(GameSpeed.Paused);
     }
 
+    // M32: the UI's cost, with its art. The same paused view with the screen-space canvases switched off.
+    private IEnumerator RunUi(GameManager gameManager)
+    {
+        gameManager.Clock.SetSpeed(GameSpeed.Paused);
+        var hidden = new System.Collections.Generic.List<Canvas>();
+        foreach (Canvas canvas in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+        {
+            if (!canvas.isRootCanvas || canvas.renderMode == RenderMode.WorldSpace || !canvas.enabled) continue;
+            canvas.enabled = false;
+            hidden.Add(canvas);
+        }
+        yield return Measure($"idle, paused, UI hidden ({hidden.Count} canvases)", null);
+        foreach (Canvas canvas in hidden) canvas.enabled = true;
+    }
+
+    private void OnDestroy()
+    {
+        m_SetPass.Dispose();
+    }
+
     // Proof of what was on screen while measuring.
     private IEnumerator Screenshot()
     {
@@ -217,7 +243,8 @@ public sealed class PerfBenchmark : MonoBehaviour
         float sum = 0f;
         foreach (float sample in m_Samples) sum += sample;
         m_Report.AppendLine($"{scenario}: frame avg {sum / k_Frames:F2} ms, median {m_Samples[k_Frames / 2]:F2}, p95 {m_Samples[k_Frames * 95 / 100]:F2}, max {m_Samples[k_Frames - 1]:F2}"
-            + $" | medians: main thread {m_CpuSamples[k_Frames / 2]:F2}, render thread {m_RenderSamples[k_Frames / 2]:F2}, GPU {m_GpuSamples[k_Frames / 2]:F2}");
+            + $" | medians: main thread {m_CpuSamples[k_Frames / 2]:F2}, render thread {m_RenderSamples[k_Frames / 2]:F2}, GPU {m_GpuSamples[k_Frames / 2]:F2}"
+            + (m_SetPass.Valid ? $" | SetPass {m_SetPass.LastValue}" : ""));
     }
 
     // M13: power and water fed in along the west edge (sim-only sources, no buildings drawn) and a

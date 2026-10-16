@@ -12,6 +12,19 @@ using UnityEngine.UI;
 public sealed class UiThemeTests
 {
     private const string ThemePath = "Assets/_Game/Resources/UiTheme.asset";
+    private int m_SkinAge;
+
+    // (M32f) The painters read the static age skin, which a Play session leaves set (no domain reload on leaving Play
+    // mode): every test paints with no age (-1, the art as drawn) and the skin is put back afterwards.
+    [SetUp]
+    public void ClearSkin()
+    {
+        m_SkinAge = (int)ThemeType().GetProperty("SkinAge").GetValue(null);
+        Call("SetSkinAge", -1);
+    }
+
+    [TearDown]
+    public void RestoreSkin() => Call("SetSkinAge", m_SkinAge);
 
     private static Type ThemeType()
     {

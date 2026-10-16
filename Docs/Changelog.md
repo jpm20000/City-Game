@@ -1,5 +1,19 @@
 # Chronopolis changelog
 
+## 1.3.0 (not released yet)
+
+A new look for the interface. Saves from 1.2.0 load unchanged; nothing in the simulation changed.
+
+**Artwork**
+- Icons on every toolbar tool, road, zone, building group, view and service building, and on the HUD readouts and speed buttons.
+- Framed panels, windows, tooltips and notifications; buttons with normal, highlighted, pressed and disabled art; new meters, sliders and checkboxes.
+- The top bar is a framed banner: the speed buttons, daily income and research bar hang below it, and the R / C / I / G demand bars sit under Settings.
+- Window and panel titles use the Cinzel typeface.
+- The frames and buttons take a tint for each age: bronze in the Medieval age, warm in the Renaissance, as drawn in the Industrial age and steel in the Modern age.
+
+**Fixes**
+- At a UI scale above 100% the top bar no longer runs its readouts into each other: it shrinks to fit the screen, like the toolbar.
+
 ## 1.2.0
 
 The second update, from player feedback. Saves from 1.1.0 load unchanged.

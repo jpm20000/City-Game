@@ -2,7 +2,7 @@
 
 ## Project
 - **Chronopolis** (J-man Studios), version **1.2.0**: isometric 2.5D city-builder with an abstract (statistical) simulation, four ages with research. Unity **6000.6.3f1**, URP 17.6.0, Linear, Windows + WebGL, new Input System only.
-- **Status: M0–M31 done, no milestone planned** (1.0 = M0–M19, 1.1 = M20–M26, 1.2 = M27–M31). Changelog: `Docs/Changelog.md`.
+- **Status: M0–M32 done, no milestone planned** (1.0 = M0–M19, 1.1 = M20–M26, 1.2 = M27–M31, 1.3 = M32 UI art, not released yet). Changelog: `Docs/Changelog.md`.
 - Where things are: design, roadmap (§12) and the per-system reference (§13, read the section for the system you touch and update it in the same commit) in `Docs/GamePlan.md`; each milestone's plan in `Docs/milestones/<version>/Mxx.md` (`v1.1/`, `v1.2/` have a `Roadmap.md`); procedures in skills (`.claude/skills/`: `milestone-workflow`, `unity-test-loop`, `unity-playmode-check`, `virtual-input-playthrough`, `scene-prefab-editing`, `perf-benchmark`, `webgl-build`, `balance-tuning`). Keep this file to conventions and standing rules.
 - Game code under `Assets/_Game/` (never `Assets/` root). Scene: `Assets/_Game/Scenes/Main.unity`.
 

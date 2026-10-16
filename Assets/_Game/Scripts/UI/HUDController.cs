@@ -158,6 +158,28 @@ public sealed class HUDController : MonoBehaviour
     private const float TabPadX = 8f, TabPadY = 6f;
     private RectTransform m_DemandGroup, m_DemandTab;
 
+    // (M32f) Like the toolbar: the HUD is laid out for the 1920-wide canvas, so on a narrower one (a UI scale above
+    // 100%: 1280 wide at 150%) it keeps that width and scales down to fit, its tabs with it, instead of its readouts
+    // running into each other. The selection panel follows the demand tab's scaled bottom.
+    private const float DesignWidth = 1920f;
+    private float m_FittedAvailable = -1f;
+    private RectTransform m_SelectionPanel;
+    private float m_SelectionTop, m_SelectionBelow;
+
+    private void LateUpdate()
+    {
+        var rect = (RectTransform)transform;
+        if (rect.parent is not RectTransform parent || rect.anchorMin.x != 0f || rect.anchorMax.x != 1f) return;
+        float available = parent.rect.width;
+        if (Mathf.Approximately(available, m_FittedAvailable)) return;
+        m_FittedAvailable = available;
+        float scale = available > 0f && available < DesignWidth ? available / DesignWidth : 1f;
+        rect.sizeDelta = new Vector2(scale < 1f ? DesignWidth - available : 0f, rect.sizeDelta.y);
+        rect.localScale = new Vector3(scale, scale, 1f);
+        if (m_SelectionPanel != null)
+            m_SelectionPanel.anchoredPosition = new Vector2(m_SelectionPanel.anchoredPosition.x, -Mathf.Max(m_SelectionTop, m_SelectionBelow * scale));
+    }
+
     private void FitHudBar()
     {
         if (UiTheme.Current.HudBarSprite == null) return;
@@ -196,8 +218,10 @@ public sealed class HUDController : MonoBehaviour
             if (layout != null) layout.childAlignment = TextAnchor.UpperRight;
             if (FindAnyObjectByType<SelectionPanel>() is SelectionPanel selection && selection.transform is RectTransform panel)
             {
-                float below = 76f - (38f - TabGap) + height + 2f * TabPadY + 8f;   // the tab's bottom, plus a gap
-                if (-panel.anchoredPosition.y < below) panel.anchoredPosition = new Vector2(panel.anchoredPosition.x, -below);
+                // The tab's bottom plus a gap; applied (times the HUD's scale) in LateUpdate.
+                m_SelectionPanel = panel;
+                m_SelectionTop = -panel.anchoredPosition.y;
+                m_SelectionBelow = 76f - (38f - TabGap) + height + 2f * TabPadY + 8f;
             }
         }
         foreach (Transform child in transform) FitToBand((RectTransform)child, HudBand);

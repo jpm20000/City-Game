@@ -72,6 +72,10 @@ End with `DONE, n failed checks`. Summarise what was exercised and every FAIL; d
 - The scenario here did not save, so the save slot was untouched; back it up first only if yours does.
 
 
+## Running every driver (M32f)
+- One RunCommand can queue a chain: an `EditorApplication.update` callback with phases (set `isPlaying = false`; once stopped for ~30 updates set `isPlaying = true`; once `Time.realtimeSinceStartup > 3` and a `GameManager` exists, `StartCoroutine(XDriver.Run(...))`; when that log contains `DONE`, the next job). The callback survives entering and leaving Play mode (no domain reload), so 12 drivers ran unattended, each in a fresh Play session; append progress to a chain log in the scratchpad and wait on it from a background shell loop. Don't edit scripts while it runs (a recompile drops the callback).
+- Statics survive leaving Play mode too: an EditMode test that reads a runtime static set during play (the M32e age skin) must reset it in `SetUp`.
+
 ## Notes from M19b (menus)
 - The HUD **New** button is hidden since M19b and **Load** is now **Menu**: start a New City by pressing Esc (nothing else open) and clicking the pause menu's `New cityButton` (`UI/PauseMenu/Panel/New cityButton`), and Load through `Load…` (`Load…Button`) and the browser's `Row_<name>` button. `PlaythroughDriver.cs` still has the older HUD paths: update them before reuse.
 - Menu windows are code-built under the `UI` canvas (`PauseMenu`, `SaveBrowser`, `ConfirmDialog`, `NewCityDialog`): find a button by its label inside the window (`<label>Button` names collide between windows, so search under one window root, see the 19b driver idea: `ButtonByLabel(root, "Load")`). Text fields: set `TMP_InputField.text` directly (typing through the virtual keyboard was not needed).
