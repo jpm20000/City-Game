@@ -128,6 +128,7 @@ public sealed class ToolbarController : MonoBehaviour
         CreateViewsFlyout();
         CreateRotateButtons();
         CreateBuildingButtons();
+        ApplyIcons();
 
         EscapeRouter.Register(this, EscapeRouter.Tool + 5, ToolbarFlyout.CloseOpen);
         m_Placement.ModeChanged += RefreshActive;
@@ -140,6 +141,34 @@ public sealed class ToolbarController : MonoBehaviour
         RefreshUnlocked();
         RefreshActive();
         RefreshAffordable(m_GameManager.Economy.Money);
+    }
+
+    // (M32c) Theme icons on the fixed tools, views and groups, after every copy is made (a copy of a button with an icon
+    // would carry the icon object without its ToolButton knowing). No sprite = text only, as before. Road buttons take
+    // theirs in SetupRoadButton (the tier changes), building buttons from BuildingDefinition.Icon.
+    private void ApplyIcons()
+    {
+        SetIcon(m_PipeButton, UiIcons.Pipe);
+        SetIcon(m_ResidentialButton, UiIcons.Residential);
+        SetIcon(m_CommercialButton, UiIcons.Commercial);
+        SetIcon(m_IndustrialButton, UiIcons.Industrial);
+        SetIcon(m_UnzoneButton, UiIcons.Unzone);
+        SetIcon(m_DemolishButton, UiIcons.Demolish);
+        SetIcon(m_ViewOffButton, UiIcons.ViewOff);
+        foreach (KeyValuePair<InfoOverlay.View, ToolButton> pair in m_ViewButtons) SetIcon(pair.Value, UiIcons.View(pair.Key));
+        RefreshViewsButtonIcon();
+    }
+
+    private static void SetIcon(ToolButton button, string icon)
+    {
+        if (button != null) button.SetIcon(UiTheme.Icon(icon));
+    }
+
+    // The Views button shows the shown view's icon (the crossed-out eye while off).
+    private void RefreshViewsButtonIcon()
+    {
+        if (m_ViewsButton == null || m_InfoOverlay == null) return;
+        SetIcon(m_ViewsButton, UiIcons.View(m_InfoOverlay.Shown));
     }
 
     private void OnDestroy()
@@ -235,6 +264,7 @@ public sealed class ToolbarController : MonoBehaviour
                 ToggleBuilding(captured);
                 owner.Flyout.Hide();
             });
+            button.SetIcon(def.Icon);
             m_BuildingButtons[def] = button;
             m_GroupOf[def] = group;
             group.Members.Add(def);
@@ -307,6 +337,7 @@ public sealed class ToolbarController : MonoBehaviour
         Group captured = group;
         Bind(group.Button, GroupName(id), string.Empty, Color.clear,
             $"{GroupName(id)}\n{GroupTooltip(id)} Click to choose a building.", () => OnGroupClicked(captured));
+        SetIcon(group.Button, UiIcons.Group(id));
 
         var dot = new GameObject("NewDot", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
         dot.transform.SetParent(group.Button.transform, false);
@@ -637,6 +668,7 @@ public sealed class ToolbarController : MonoBehaviour
         string tooltip = $"{name}{key}\n{blurb}\n${cost:N0} each, ${tiers.UpkeepPerDay(tier):0.##}/day upkeep, " +
             $"carries {tiers.Capacity(tier):N0} trips a day.";
         button.Setup(name, $"${cost}", Color.clear, tooltip);
+        SetIcon(button, UiIcons.Road(tier));
     }
 
     // Clicking the active road tool again turns it off; tier 0 is the street tool.
@@ -710,6 +742,7 @@ public sealed class ToolbarController : MonoBehaviour
         {
             m_ViewsButton.SetActive(view != InfoOverlay.View.Off);
             if (m_ViewsButton.Label != null) m_ViewsButton.Label.text = ViewLabel(view);
+            RefreshViewsButtonIcon();
         }
 
         foreach (KeyValuePair<BuildingDefinition, ToolButton> pair in m_BuildingButtons)

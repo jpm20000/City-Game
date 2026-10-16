@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: pumping_station
   m_DisplayName: Pumping Station
   m_Category: 3
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: bedfa3117a0c23546b68749c0f377003, type: 3}
   m_Prefab: {fileID: 3827619161766275863, guid: 5126508fd644c9b4e898a5813fd923a6, type: 3}
   m_Size: {x: 2, y: 2}
   m_Cost: 6000
@@ -34,3 +34,10 @@ MonoBehaviour:
   m_WaterSupply: 1500
   m_WaterRadius: 0
   m_ObsoleteAge: 
+  m_CivicKind: 0
+  m_CivicRadius: 0
+  m_CivicStrength: 0
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

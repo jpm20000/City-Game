@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: well
   m_DisplayName: Well
   m_Category: 3
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: 408a174e097a27e4a9f446b5d343bd5c, type: 3}
   m_Prefab: {fileID: 2277132676120223234, guid: 6e4278a95af9c844ea61fdcf12ebc0be, type: 3}
   m_Size: {x: 1, y: 1}
   m_Cost: 150
@@ -34,6 +34,10 @@ MonoBehaviour:
   m_WaterSupply: 0
   m_WaterRadius: 3
   m_ObsoleteAge: industrial
+  m_CivicKind: 0
+  m_CivicRadius: 0
+  m_CivicStrength: 0
   m_ToolbarGroup: 1
   m_LaterToolbarGroup: 5
   m_LaterGroupAge: industrial
+  m_IsCustom: 0

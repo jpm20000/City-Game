@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: watch_house
   m_DisplayName: Watch House
   m_Category: 2
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: 0743dcc8d0c7e114eab7fb22d7227f2d, type: 3}
   m_Prefab: {fileID: 2685074417999531673, guid: 30c094402dbf59cdabc601d135a3d78e, type: 3}
   m_Size: {x: 1, y: 1}
   m_Cost: 400
@@ -37,3 +37,7 @@ MonoBehaviour:
   m_CivicKind: 1
   m_CivicRadius: 4
   m_CivicStrength: 0.5
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

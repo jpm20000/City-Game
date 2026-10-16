@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: police_station
   m_DisplayName: Police Station
   m_Category: 2
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: 400e429d8a54f8945be15fb0c7be0db5, type: 3}
   m_Prefab: {fileID: 2192453646872605708, guid: f988690898615ac299abc6c5f1b4b41b, type: 3}
   m_Size: {x: 2, y: 2}
   m_Cost: 4000
@@ -37,3 +37,7 @@ MonoBehaviour:
   m_CivicKind: 1
   m_CivicRadius: 8
   m_CivicStrength: 1
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

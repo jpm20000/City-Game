@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: fountain
   m_DisplayName: Fountain
   m_Category: 2
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: 5f326cc7776140347a43659fd4d33e21, type: 3}
   m_Prefab: {fileID: 7943173577482391804, guid: 58f63bfec3a08064a9b09bbec1229db6, type: 3}
   m_Size: {x: 1, y: 1}
   m_Cost: 1200
@@ -34,6 +34,10 @@ MonoBehaviour:
   m_WaterSupply: 0
   m_WaterRadius: 5
   m_ObsoleteAge: 
+  m_CivicKind: 0
+  m_CivicRadius: 0
+  m_CivicStrength: 0
   m_ToolbarGroup: 1
   m_LaterToolbarGroup: 5
   m_LaterGroupAge: industrial
+  m_IsCustom: 0

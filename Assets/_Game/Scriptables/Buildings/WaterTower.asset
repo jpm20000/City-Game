@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: water_tower
   m_DisplayName: Water Tower
   m_Category: 3
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: 29e829a5a8478354aa0adcb04b8bc514, type: 3}
   m_Prefab: {fileID: 4101903692968096592, guid: 1ac6c89284721924fa6d2695fb56231f, type: 3}
   m_Size: {x: 1, y: 1}
   m_Cost: 1500
@@ -34,3 +34,10 @@ MonoBehaviour:
   m_WaterSupply: 500
   m_WaterRadius: 0
   m_ObsoleteAge: 
+  m_CivicKind: 0
+  m_CivicRadius: 0
+  m_CivicStrength: 0
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

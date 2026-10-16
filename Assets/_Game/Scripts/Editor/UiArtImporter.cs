@@ -92,6 +92,50 @@ public sealed class UiArtImporter : AssetPostprocessor
         importer.maxTextureSize = 2048;
     }
 
+    // (M32c) Puts the art where the game reads it: the theme's icon list gets every sprite in the icon folders below
+    // (found by name through UiIcons), and each building whose Id has Art/UI/buildings/<Id>.png gets it as its Icon.
+    // Run after Tools/gen_ui_art.py adds or renames sprites; UiArtTests fails until it has been.
+    public static readonly string[] ThemeIconKinds = { "hud", "tools", "controls" };
+
+    [MenuItem("CityBuilder/Sync UI Art")]
+    public static void SyncUiArt()
+    {
+        var theme = AssetDatabase.LoadAssetAtPath<UiTheme>("Assets/_Game/Resources/UiTheme.asset");
+        if (theme == null)
+        {
+            Debug.LogError("Sync UI Art: Assets/_Game/Resources/UiTheme.asset not found.");
+            return;
+        }
+        var icons = new List<Sprite>();
+        foreach (Entry entry in LoadManifest().Values)
+        {
+            if (Array.IndexOf(ThemeIconKinds, entry.kind) < 0) continue;
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{Root}{entry.kind}/{entry.name}.png");
+            if (sprite != null) icons.Add(sprite);
+        }
+        icons.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+        var themeObject = new SerializedObject(theme);
+        SerializedProperty list = themeObject.FindProperty(nameof(UiTheme.Icons));
+        list.arraySize = icons.Count;
+        for (int i = 0; i < icons.Count; i++) list.GetArrayElementAtIndex(i).objectReferenceValue = icons[i];
+        themeObject.ApplyModifiedProperties();
+
+        int buildings = 0;
+        foreach (string guid in AssetDatabase.FindAssets("t:BuildingDefinition", new[] { "Assets/_Game/Scriptables/Buildings" }))
+        {
+            var def = AssetDatabase.LoadAssetAtPath<BuildingDefinition>(AssetDatabase.GUIDToAssetPath(guid));
+            if (def == null || string.IsNullOrEmpty(def.Id)) continue;
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>($"{Root}buildings/{def.Id}.png");
+            if (sprite == null || def.Icon == sprite) continue;
+            var so = new SerializedObject(def);
+            so.FindProperty("m_Icon").objectReferenceValue = sprite;
+            so.ApplyModifiedProperties();
+            buildings++;
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log($"Sync UI Art: {icons.Count} theme icons, {buildings} building icons set.");
+    }
+
     // The json changed on its own (a border tweak): re-import the sprites whose border no longer matches.
     private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom)
     {

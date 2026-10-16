@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: constabulary
   m_DisplayName: Constabulary
   m_Category: 2
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: e6415c5e33d164242913443aa20e4e14, type: 3}
   m_Prefab: {fileID: 2408307118641842664, guid: 5c8a8fcdc05e56e5a111ca840f7d36b1, type: 3}
   m_Size: {x: 2, y: 1}
   m_Cost: 1500
@@ -37,3 +37,7 @@ MonoBehaviour:
   m_CivicKind: 1
   m_CivicRadius: 6
   m_CivicStrength: 0.75
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -39,11 +40,33 @@ public sealed class UiTheme : ScriptableObject
     public Sprite ToggleBoxSprite;
     public Sprite ToggleTickSprite;
 
+    [Header("Icons (M32c)")]
+    [Tooltip("HUD, tool, group and view icons, found by sprite name (UiIcons). Filled from Art/UI/hud, tools and controls by CityBuilder > Sync UI Art; a missing name is text only.")]
+    public Sprite[] Icons = new Sprite[0];
+
     [Header("Text")]
     [Tooltip("Empty = the TMP default font.")]
     public TMP_FontAsset Font;
 
     private static UiTheme s_Current;
+    private Dictionary<string, Sprite> m_IconsByName;
+
+    // The icon with that sprite name, or null (the caller then shows text only, as before M32).
+    public static Sprite Icon(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return null;
+        UiTheme theme = Current;
+        if (theme.m_IconsByName == null)
+        {
+            theme.m_IconsByName = new Dictionary<string, Sprite>();
+            if (theme.Icons != null)
+                foreach (Sprite sprite in theme.Icons)
+                    if (sprite != null) theme.m_IconsByName[sprite.name] = sprite;
+        }
+        return theme.m_IconsByName.TryGetValue(name, out Sprite icon) ? icon : null;
+    }
+
+    private void OnValidate() => m_IconsByName = null;
 
     public static UiTheme Current
     {

@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: medical_centre
   m_DisplayName: Medical Centre
   m_Category: 2
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: e7e9ac5acbfc9c742b7c5552e10e5a77, type: 3}
   m_Prefab: {fileID: 73651709940941452, guid: f00a389eb7eb5728be163e16f55a050b, type: 3}
   m_Size: {x: 3, y: 3}
   m_Cost: 10000
@@ -37,3 +37,7 @@ MonoBehaviour:
   m_CivicKind: 3
   m_CivicRadius: 11
   m_CivicStrength: 1
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

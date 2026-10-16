@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: park
   m_DisplayName: Park
   m_Category: 2
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: 5166f2333b48d224b80ccea63587aa02, type: 3}
   m_Prefab: {fileID: 9002983603229964168, guid: 43dbc3b3d3c18b2448525c0c499ab04c, type: 3}
   m_Size: {x: 2, y: 2}
   m_Cost: 500
@@ -29,3 +29,15 @@ MonoBehaviour:
   m_PowerSupply: 0
   m_RequiredTech: commons
   m_ResearchPerDay: 0
+  m_Pollution: 0
+  m_PollutionRadius: 0
+  m_WaterSupply: 0
+  m_WaterRadius: 0
+  m_ObsoleteAge: 
+  m_CivicKind: 0
+  m_CivicRadius: 0
+  m_CivicStrength: 0
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

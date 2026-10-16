@@ -51,6 +51,10 @@ public sealed class HUDController : MonoBehaviour
     [SerializeField] private UIMeter m_ResearchMeter;
     [SerializeField] private Color m_WarningColor = new Color(0.95f, 0.76f, 0.31f);
 
+    // (M32c) Theme icons before the readouts, made at runtime (no scene edit). A readout with an icon drops its word
+    // ("Pop", "Power", "Happiness"...); without the sprite it keeps the word, as before M32.
+    private Image m_CashFlowIcon, m_PopulationIcon, m_JobsIcon, m_HappinessIcon, m_PowerIcon, m_WaterIcon;
+
     private void OnEnable()
     {
         GameEvents.DateChanged += OnDateChanged;
@@ -93,6 +97,7 @@ public sealed class HUDController : MonoBehaviour
         BindSpeedButton(m_Speed1Button, GameSpeed.x1);
         BindSpeedButton(m_Speed2Button, GameSpeed.x2);
         BindSpeedButton(m_Speed4Button, GameSpeed.x4);
+        CreateIcons();
 
         if (m_GameManager == null || m_GameManager.Simulation == null) return;
 
@@ -121,6 +126,75 @@ public sealed class HUDController : MonoBehaviour
         OnGoodsChanged(m_GameManager.Simulation.Goods.Last);
         OnCityLoaded();
     }
+
+    private void CreateIcons()
+    {
+        AddIcon(m_DateText, UiIcons.Date);
+        AddIcon(m_MoneyText, UiIcons.Money);
+        m_CashFlowIcon = AddIcon(m_CashFlowText, UiIcons.IncomeUp);
+        m_PopulationIcon = AddIcon(m_PopulationText, UiIcons.Population);
+        m_JobsIcon = AddIcon(m_JobsText, UiIcons.Jobs);
+        m_HappinessIcon = AddIcon(m_HappinessText, UiIcons.Happy);
+        m_PowerIcon = AddIcon(m_PowerText, UiIcons.Power);
+        m_WaterIcon = AddIcon(m_WaterText, UiIcons.Water);
+        AddIcon(m_AgeText, UiIcons.Age);
+        AddIcon(m_ResearchText, UiIcons.Research);
+        IconButton(m_PauseButton, UiIcons.Pause);
+        IconButton(m_Speed1Button, UiIcons.Play1);
+        IconButton(m_Speed2Button, UiIcons.Play2);
+        IconButton(m_Speed4Button, UiIcons.Play3);
+    }
+
+    // An icon at the left of a readout, sized to its font; the text moves over by a left margin (which TMP counts in
+    // its preferred width, so the layout group makes room). Null when the theme has no such icon.
+    private static Image AddIcon(TMP_Text text, string name)
+    {
+        Sprite sprite = UiTheme.Icon(name);
+        if (text == null || sprite == null) return null;
+        float size = Mathf.Round(Mathf.Clamp(text.fontSize * 1.15f, 16f, 30f));
+        var go = new GameObject("Icon", typeof(RectTransform), typeof(Image), typeof(LayoutElement));
+        go.transform.SetParent(text.transform, false);
+        go.GetComponent<LayoutElement>().ignoreLayout = true;
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = new Vector2(size, size);
+        var image = go.GetComponent<Image>();
+        image.sprite = sprite;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+        Vector4 margin = text.margin;
+        text.margin = new Vector4(size + 5f, margin.y, margin.z, margin.w);
+        return image;
+    }
+
+    // The speed buttons show an icon instead of II / 1x / 2x / 4x.
+    private static void IconButton(Button button, string name)
+    {
+        Sprite sprite = UiTheme.Icon(name);
+        if (button == null || sprite == null) return;
+        TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+        if (label != null) label.gameObject.SetActive(false);
+        var go = new GameObject("Icon", typeof(RectTransform), typeof(Image));
+        go.transform.SetParent(button.transform, false);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.sizeDelta = new Vector2(20f, 20f);
+        var image = go.GetComponent<Image>();
+        image.sprite = sprite;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+    }
+
+    private static void SetIcon(Image image, string name)
+    {
+        if (image == null) return;
+        Sprite sprite = UiTheme.Icon(name);
+        if (sprite != null) image.sprite = sprite;
+    }
+
+    // The word before a readout, or nothing when its icon stands in for it.
+    private static string Word(Image icon, string word) => icon != null ? string.Empty : word + " ";
 
     // A copy of the industrial demand column labelled G, beside the three demand meters; hidden while goods are off.
     private void CreateGoodsMeter()
@@ -224,6 +298,7 @@ public sealed class HUDController : MonoBehaviour
         float net = income - expense;
         m_CashFlowText.text = $"{(net >= 0f ? "+" : "-")}${Mathf.Abs(net):N0} / day";
         m_CashFlowText.color = net >= 0f ? m_PositiveColor : m_NegativeColor;
+        SetIcon(m_CashFlowIcon, net >= 0f ? UiIcons.IncomeUp : UiIcons.IncomeDown);
     }
 
     private void OnPopulationChanged(int population, int jobs)
@@ -231,13 +306,17 @@ public sealed class HUDController : MonoBehaviour
         PopulationSystem stats = m_GameManager != null ? m_GameManager.Population : null;
         if (m_PopulationText != null)
         {
-            m_PopulationText.text = stats != null ? $"Pop {population:N0} / {stats.Housing:N0}" : $"Pop {population:N0}";
+            string pop = Word(m_PopulationIcon, "Pop");
+            m_PopulationText.text = stats != null ? $"{pop}{population:N0} / {stats.Housing:N0}" : $"{pop}{population:N0}";
         }
         if (m_JobsText != null)
         {
-            m_JobsText.text = stats != null ? $"Jobs {stats.Employed:N0} / {jobs:N0}" : $"Jobs {jobs:N0}";
+            string word = Word(m_JobsIcon, "Jobs");
+            m_JobsText.text = stats != null ? $"{word}{stats.Employed:N0} / {jobs:N0}" : $"{word}{jobs:N0}";
         }
     }
+
+    private const float HappyFrom = 0.6f;    // (M32c) the happy face from here; below the leaving threshold, the unhappy one
 
     private void OnHappinessChanged(float happiness)
     {
@@ -245,8 +324,9 @@ public sealed class HUDController : MonoBehaviour
         {
             // Below the threshold residents leave; flag it so the player hovers for the reasons.
             bool low = m_GameManager != null && m_GameManager.Balance != null && happiness < m_GameManager.Balance.LowHappinessThreshold;
-            m_HappinessText.text = $"Happiness {happiness:P0}";
+            m_HappinessText.text = $"{Word(m_HappinessIcon, "Happiness")}{happiness:P0}";
             m_HappinessText.color = low ? m_NegativeColor : Color.white;
+            SetIcon(m_HappinessIcon, low ? UiIcons.Unhappy : happiness < HappyFrom ? UiIcons.Neutral : UiIcons.Happy);
         }
         if (m_HappinessMeter != null) m_HappinessMeter.SetValue(happiness);
     }
@@ -257,7 +337,7 @@ public sealed class HUDController : MonoBehaviour
 
         if (supply == 0 && demand == 0)
         {
-            m_PowerText.text = "Power  —";
+            m_PowerText.text = m_PowerIcon != null ? "—" : "Power  —";
             m_PowerText.color = m_IdleColor;
         }
         else if (supply == 0)
@@ -267,7 +347,7 @@ public sealed class HUDController : MonoBehaviour
         }
         else
         {
-            m_PowerText.text = $"Power {demand:N0} / {supply:N0}";
+            m_PowerText.text = $"{Word(m_PowerIcon, "Power")}{demand:N0} / {supply:N0}";
             m_PowerText.color = unpoweredCells > 0 ? m_NegativeColor : Color.white;
         }
     }
@@ -279,12 +359,12 @@ public sealed class HUDController : MonoBehaviour
 
         if (status.Mode == WaterRule.Coverage)
         {
-            m_WaterText.text = status.GrownCells == 0 ? "Water  —" : $"Water {status.WateredShare:P0}";
+            m_WaterText.text = status.GrownCells == 0 ? (m_WaterIcon != null ? "—" : "Water  —") : $"{Word(m_WaterIcon, "Water")}{status.WateredShare:P0}";
             m_WaterText.color = status.GrownCells == 0 ? m_IdleColor : status.DryCells > 0 ? m_NegativeColor : Color.white;
         }
         else if (status.Supply == 0 && status.Demand == 0)
         {
-            m_WaterText.text = "Water  —";
+            m_WaterText.text = m_WaterIcon != null ? "—" : "Water  —";
             m_WaterText.color = m_IdleColor;
         }
         else if (status.Supply == 0)
@@ -294,7 +374,7 @@ public sealed class HUDController : MonoBehaviour
         }
         else
         {
-            m_WaterText.text = $"Water {status.Demand:N0} / {status.Supply:N0}";
+            m_WaterText.text = $"{Word(m_WaterIcon, "Water")}{status.Demand:N0} / {status.Supply:N0}";
             m_WaterText.color = status.DryCells > 0 ? m_NegativeColor : Color.white;
         }
     }

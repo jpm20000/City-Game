@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: academy
   m_DisplayName: Academy
   m_Category: 2
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: ae8fc2be7a216624fb6f4b9665729514, type: 3}
   m_Prefab: {fileID: 705062673555515169, guid: cb79f7993d98bad489d6e5e98681e8df, type: 3}
   m_Size: {x: 2, y: 2}
   m_Cost: 5000
@@ -37,3 +37,7 @@ MonoBehaviour:
   m_CivicKind: 4
   m_CivicRadius: 6
   m_CivicStrength: 0.6
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

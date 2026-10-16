@@ -15,7 +15,7 @@ MonoBehaviour:
   m_Id: research_lab
   m_DisplayName: Research Lab
   m_Category: 2
-  m_Icon: {fileID: 0}
+  m_Icon: {fileID: 21300000, guid: a41b638f8f81e6e41bfd46ffefefe132, type: 3}
   m_Prefab: {fileID: 1281796176025915936, guid: 16fbd50595b45bb0bb6820f197024ea7, type: 3}
   m_Size: {x: 2, y: 2}
   m_Cost: 10000
@@ -37,3 +37,7 @@ MonoBehaviour:
   m_CivicKind: 4
   m_CivicRadius: 8
   m_CivicStrength: 1
+  m_ToolbarGroup: 0
+  m_LaterToolbarGroup: 0
+  m_LaterGroupAge: 
+  m_IsCustom: 0

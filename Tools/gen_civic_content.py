@@ -272,13 +272,24 @@ def prefab(asset, slab_mat, parts):
     return root_go, g
 
 
+def icon_ref(bid):
+    """(M32c) The building's toolbar icon, Art/UI/buildings/<Id>.png from Tools/gen_ui_art.py, when it exists."""
+    meta = os.path.join(ROOT, "Art", "UI", "buildings", bid + ".png.meta")
+    if not os.path.exists(meta):
+        return "{fileID: 0}"
+    for line in open(meta):
+        if line.startswith("guid:"):
+            return "{fileID: 21300000, guid: %s, type: 3}" % line.split(":")[1].strip()
+    return "{fileID: 0}"
+
+
 def building_asset(asset, bid, display, line, tech, size, cost, upkeep, reach, strength, research, height, prefab_ref):
     text = ("%%YAML 1.1\n%%TAG !u! tag:unity3d.com,2011:\n--- !u!114 &11400000\nMonoBehaviour:\n"
             "  m_ObjectHideFlags: 0\n  m_CorrespondingSourceObject: {fileID: 0}\n  m_PrefabInstance: {fileID: 0}\n"
             "  m_PrefabAsset: {fileID: 0}\n  m_GameObject: {fileID: 0}\n  m_Enabled: 1\n  m_EditorHideFlags: 0\n"
             "  m_Script: {fileID: 11500000, guid: %s, type: 3}\n  m_Name: %s\n"
             "  m_EditorClassIdentifier: Assembly-CSharp::BuildingDefinition\n") % (GUID_BUILDING_DEF, asset)
-    text += "  m_Id: %s\n  m_DisplayName: %s\n  m_Category: 2\n  m_Icon: {fileID: 0}\n" % (bid, display)
+    text += "  m_Id: %s\n  m_DisplayName: %s\n  m_Category: 2\n  m_Icon: %s\n" % (bid, display, icon_ref(bid))
     text += "  m_Prefab: {fileID: %d, guid: %s, type: 3}\n" % prefab_ref
     text += "  m_Size: {x: %d, y: %d}\n  m_Cost: %d\n  m_UpkeepPerDay: %s\n" % (size[0], size[1], cost, num(upkeep))
     text += "  m_HousingCapacity: 0\n  m_JobsProvided: 0\n  m_HappinessEffect: 0\n  m_ZoneRestriction: 0\n"

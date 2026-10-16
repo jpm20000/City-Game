@@ -101,6 +101,56 @@ public sealed class UiArtTests
         Assert.Greater(checkedSprites, 0);
     }
 
+    // M32c: the theme holds every HUD / tool / control sprite (CityBuilder > Sync UI Art was run) and so every name the UI
+    // asks for (UiIcons.All, read by reflection).
+    [Test]
+    public void Theme_HoldsEveryIconSprite_AndEveryNameTheUiAsksFor()
+    {
+        var theme = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/_Game/Resources/UiTheme.asset");
+        Assert.IsNotNull(theme);
+        SerializedProperty list = new SerializedObject(theme).FindProperty("Icons");
+        Assert.IsNotNull(list, "UiTheme.Icons");
+        var names = new HashSet<string>();
+        for (int i = 0; i < list.arraySize; i++)
+        {
+            var sprite = list.GetArrayElementAtIndex(i).objectReferenceValue as Sprite;
+            Assert.IsNotNull(sprite, $"Icons[{i}] is empty");
+            names.Add(sprite.name);
+        }
+        foreach (Entry e in Entries())
+            if (Array.IndexOf(ThemeIconKinds, e.kind) >= 0)
+                Assert.IsTrue(names.Contains(e.name), $"{e.name} is not in the theme (run CityBuilder > Sync UI Art)");
+        Type icons = Type.GetType("UiIcons, Assembly-CSharp");
+        Assert.IsNotNull(icons, "UiIcons");
+        var all = (string[])icons.GetProperty("All").GetValue(null);
+        Assert.Greater(all.Length, 30);
+        foreach (string name in all) Assert.IsTrue(names.Contains(name), $"the UI asks for icon '{name}', which the theme lacks");
+    }
+
+    // M32c: every shipped service / utility building has its toolbar icon, and an icon file is always used by its building.
+    [Test]
+    public void ShippedServiceAndUtilityBuildings_HaveTheirIcons()
+    {
+        int withIcon = 0;
+        foreach (string guid in AssetDatabase.FindAssets("t:ScriptableObject", new[] { "Assets/_Game/Scriptables/Buildings" }))
+        {
+            var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(AssetDatabase.GUIDToAssetPath(guid));
+            if (asset == null || asset.GetType().Name != "BuildingDefinition") continue;
+            var so = new SerializedObject(asset);
+            string id = so.FindProperty("m_Id").stringValue;
+            int category = so.FindProperty("m_Category").enumValueIndex;    // 2 = Service, 3 = Utility
+            bool custom = so.FindProperty("m_IsCustom").boolValue;
+            var icon = so.FindProperty("m_Icon").objectReferenceValue as Sprite;
+            var file = AssetDatabase.LoadAssetAtPath<Sprite>($"{Root}buildings/{id}.png");
+            if (file != null) Assert.AreSame(file, icon, $"{id} uses Art/UI/buildings/{id}.png (run CityBuilder > Sync UI Art)");
+            if (!custom && (category == 2 || category == 3)) Assert.IsNotNull(icon, $"{id} has no toolbar icon");
+            if (icon != null) withIcon++;
+        }
+        Assert.GreaterOrEqual(withIcon, 19);
+    }
+
+    private static readonly string[] ThemeIconKinds = { "hud", "tools", "controls" };
+
     [Test]
     public void SmallSprites_ArePackedInTheUiAtlas_AndBigPicturesAreNot()
     {
