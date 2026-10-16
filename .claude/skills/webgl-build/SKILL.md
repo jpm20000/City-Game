@@ -26,7 +26,9 @@ The profile stays active and the target stays WebGL after a build. In a `RunComm
 - **No Quit button** on the title and pause menus (a tab cannot quit).
 - **No Display tab** in Settings and `GameSettings.ApplyDisplay` does nothing (the browser owns window, resolution and frame rate). `SettingsPanel` keeps `m_TabIds` so the highlighted tab button follows the tab, not the button index (the first web build lit the wrong tab).
 - **The showcase city** is fetched with `UnityWebRequest` (`StreamingAssets` is a URL, `File` can't read it): `SaveGameController.LoadShowcaseWeb`. It arrives after `GameFlow` finished its own showcase load, so it brackets the apply with `GameFlow.ShowcaseApplying(true/false)`; without that `OnCityLoaded` took it for a real load and left the title menu. It also applies only while the player is still on the title.
-- The rest is unchanged: saves still use `File` under `persistentDataPath` (the browser keeps them in IndexedDB), `Application.wantsToQuit` never fires.
+- **Saves and settings (M28):** saves still use `File` under `persistentDataPath`, but that is an in-memory file system the game must flush to IndexedDB itself: `WebStorage` + `Plugins/WebGL/ChronoFs.jslib` (`ChronoSyncFs` after every `SaveSlots.Changed`, `PlayerPrefs.Save` + sync 0.5 s after a setting changes). Anything new that writes under `persistentDataPath` or `PlayerPrefs` must call `WebStorage.Flush()` / `WebStorage.PrefsChanged()`, or it is lost on refresh. The site's page should also set `autoSyncPersistentDataPath: true` in its `config` (belt and braces; the generated page has it commented out).
+- **Export / Import** in the Load panel exist only in the web player (`WebStorage.FilesSupported`); the Editor and desktop never show them.
+- `Application.wantsToQuit` never fires.
 
 ## Notes from M26 (1.1.0)
 - Checked in the browser pane against a local `python -m http.server` on `Build/WebGL`: the title, New City, a road drag, **E turns the view**, **F opens the Build menu and key presses fill its search box**. The pane's `type` action (text insertion) does not reach the Unity input field; use the `key` action with the letters. The generated page has a fixed 1920x1080 canvas: set the canvas CSS size (and `body{margin:0;overflow:hidden}`) to see all of it in a small pane.
@@ -39,8 +41,16 @@ The profile stays active and the target stays WebGL after a build. In a `RunComm
 - **How it was found (reusable):** a copy of `index.html` with a `<script>` that wraps `WebGL2RenderingContext.prototype.drawElements` / `useProgram` / `texStorage2D`, recording per draw the program, `gl.getError()` and the texture format bound to each sampler uniform. Console warnings are buffered, so read them right after a reload. A development build with `PlayerSettings.strictShaderVariantMatching = true` reports missing variants.
 - **A web check must include a grown city or the title showcase**, not only the menus and a road: M26's browser pass missed this.
 
+## Checking persistence (M28 recipe)
+- Serve `Build/WebGL` with a background `python -m http.server 8765 --bind 127.0.0.1` and open it in the browser pane; `resize_window` 1940x1200 shows the whole 1920x1080 canvas (re-apply it if the pane changes width; a click right after may be swallowed, click again).
+- Read what reached IndexedDB without the game: `indexedDB.open('/idbfs')` → store `FILE_DATA` → `getAllKeys()`, filter `/Saves/`. A save made in the game must be there within a second.
+- New city → **F5** quicksave (the browser does not take F5 from the canvas) → reload → the title's Continue line names it; a rebuild (the "new upload" case) and a closed tab + new tab keep it too; Settings → Mute → reload → still on.
+- Export / Import without real downloads or dialogs: in the page, wrap `URL.createObjectURL` to keep the Blob, replace `HTMLAnchorElement.prototype.click` to read it, and replace `HTMLInputElement.prototype.click` for `type=file` to set `files` from a `DataTransfer` and dispatch `change`.
+- **Build with `WebGLBuild.Build`** (or set gzip + decompression fallback first): a bare `BuildPipeline.BuildPlayer` after the settings churn was reverted produces **Brotli**, which `http.server` cannot serve ("Unable to parse … framework.js.unityweb! … Content-Encoding").
+- **The first web build after a Windows session drew no buildings again** (the sampler mismatch above) in M28; the second build was fine. Always look at the title showcase, and build twice when it is empty.
+
 ## Not checked
-Save durability across a closed tab and cleared browser data, performance and memory on a large city, mobile browsers, high-DPI sharpness (a page setting). Do not claim them without a browser test.
+Cleared browser data and private windows (they lose browser saves by design: Export), performance and memory on a large city, mobile browsers, high-DPI sharpness (a page setting), the live site with the 1.2 build (M31). Do not claim them without a browser test.
 
 ## Browser caching
 After uploading a new build, a stale `.wasm` / `.data` can still be served (browser cache, CDN, Unity's IndexedDB data cache): test in a private window with the cache disabled, or compare the served size of the `.wasm` with the file on disk. A fix that is "not working" in the browser was a stale file the first time.
