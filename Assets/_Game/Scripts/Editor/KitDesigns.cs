@@ -131,6 +131,7 @@ public sealed class KitSpec
     public int Silos;
     public float SiloH = 0.5f;
     public string SiloCol = "concrete";
+    public string SiloCap = "roofgrey";             // the cone on top (a rick's thatch, a dovecote's tiles)
     public bool Porch;                              // a roofed porch on posts over the front door
     public bool Windpump;
 }
@@ -208,7 +209,7 @@ public static class KitDesigns
         return density == Density.High && age == "modern" ? ModernHigh() : null;
     }
 
-    // Low density (M30): small homes that get nicer by level, markets that become a shop. Farms follow in 30e.
+    // Low density (M30): small homes that get nicer by level, markets that become a shop, and farmland for industry.
     private static KitSpec[] Low(string age)
     {
         var all = new List<KitSpec>();
@@ -225,6 +226,13 @@ public static class KitDesigns
             "renaissance" => RenaissanceLowShops(),
             "industrial" => IndustrialLowShops(),
             _ => ModernLowShops(),
+        });
+        all.AddRange(age switch
+        {
+            "medieval" => MedievalFarms(),
+            "renaissance" => RenaissanceFarms(),
+            "industrial" => IndustrialFarms(),
+            _ => ModernFarms(),
         });
         return all.ToArray();
     }
@@ -282,6 +290,36 @@ public static class KitDesigns
         S(s => { s.NoBody = true; s.Stalls = 3; s.Ground = "path"; s.StallCol = new[] { "awnblue", "awnred", "awnwhite", "awngreen" }; }),
         S(s => { s.W = .82f; s.D = .62f; s.Open = true; s.FloorH = .30f; s.Wall = new[] { "iron", "iron", "soot" }; s.RoofCol = new[] { "glassroof", "tin", "slate" }; s.Rise = .18f; s.AlongX = true; s.Cols = 4; s.Stalls = 4; s.Ground = "stone"; s.FlipV2 = false; }),
         S(s => { s.W = .64f; s.D = .48f; s.BodyZ = -.06f; s.Floors = 1; s.FloorH = .34f; s.Wall = new[] { "brickred", "brickyellow", "brickdark" }; s.Roof = KitRoof.Flat; s.RoofCol = new[] { "slate2", "roofgrey", "slate" }; s.Cornice = true; s.Cols = 2; s.Awning = new[] { "awnblue", "awnteal", "awnred" }; s.Sign = "signteal"; s.Ground = "path"; }),
+    };
+
+    // Farms (M30): fields from the back of the plot at every level, with a shed (L1), a barn (L2) or a barn and its
+    // landmark (L3: a rick, a dovecote, a windpump and a silo, grain bins) at the front.
+    private static KitSpec[] MedievalFarms() => new[]
+    {
+        S(s => { s.W = .18f; s.D = .16f; s.BodyX = .30f; s.BodyZ = .33f; s.FloorH = .14f; s.Wall = new[] { "timber", "woodlight", "timber" }; s.Roof = KitRoof.Lean; s.RoofCol = new[] { "thatch", "thatch2", "thatch" }; s.Rise = .06f; s.Cols = 0; s.SideCols = 0; s.FieldCover = .72f; s.Rows = 5; s.FlipV2 = false; }),
+        S(s => { s.W = .34f; s.D = .30f; s.BodyX = .26f; s.BodyZ = .26f; s.FloorH = .24f; s.Wall = new[] { "woodlight", "timber", "woodlight" }; s.RoofCol = new[] { "thatch", "thatch2", "shingle" }; s.Rise = .18f; s.Cols = 1; s.SideCols = 0; s.FieldCover = .60f; s.Rows = 5; s.Border = "woodlight"; s.BorderH = .03f; s.FlipV2 = false; }),
+        S(s => { s.W = .40f; s.D = .32f; s.BodyX = .24f; s.BodyZ = .25f; s.FloorH = .26f; s.Wall = new[] { "daub", "daub2", "cream" }; s.Timber = true; s.RoofCol = new[] { "thatch", "thatch2", "thatch" }; s.Rise = .20f; s.Cols = 1; s.Chimneys = 1; s.ChimneyH = .05f; s.FieldCover = .58f; s.Rows = 5; s.Border = "hedge"; s.BorderH = .05f; s.Silos = 1; s.SiloH = .14f; s.SiloCol = "thatch2"; s.SiloCap = "thatch"; s.FlipV2 = false; }),
+    };
+
+    private static KitSpec[] RenaissanceFarms() => new[]
+    {
+        S(s => { s.W = .20f; s.D = .16f; s.BodyX = .29f; s.BodyZ = .33f; s.FloorH = .15f; s.Wall = new[] { "stone", "sand", "stone2" }; s.Roof = KitRoof.Lean; s.RoofCol = new[] { "terracotta", "terracotta2", "terracotta" }; s.Rise = .06f; s.Cols = 0; s.SideCols = 0; s.FieldCover = .72f; s.Rows = 6; s.Crops = new[] { "crop", "wheat", "crop2", "pasture" }; s.FlipV2 = false; }),
+        S(s => { s.W = .36f; s.D = .30f; s.BodyX = .25f; s.BodyZ = .26f; s.FloorH = .26f; s.Wall = new[] { "stone", "sand", "ochre" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "terracotta", "terracotta2", "terracotta" }; s.Rise = .14f; s.Cols = 1; s.SideCols = 0; s.FieldCover = .60f; s.Rows = 6; s.Crops = new[] { "crop", "wheat", "crop2", "pasture" }; s.Border = "stone"; s.BorderH = .04f; }),
+        S(s => { s.W = .40f; s.D = .32f; s.BodyX = .24f; s.BodyZ = .25f; s.FloorH = .28f; s.Wall = new[] { "ochre", "sand", "rose" }; s.Roof = KitRoof.Hip; s.RoofCol = new[] { "terracotta2", "terracotta", "terracotta2" }; s.Rise = .16f; s.Cols = 2; s.Chimneys = 1; s.ChimneyH = .05f; s.FieldCover = .58f; s.Rows = 6; s.Crops = new[] { "crop", "wheat", "crop2", "pasture" }; s.Border = "stone"; s.BorderH = .04f; s.Silos = 1; s.SiloH = .36f; s.SiloCol = "stone"; s.SiloCap = "terracotta"; }),
+    };
+
+    private static KitSpec[] IndustrialFarms() => new[]
+    {
+        S(s => { s.W = .20f; s.D = .16f; s.BodyX = .29f; s.BodyZ = .33f; s.FloorH = .15f; s.Wall = new[] { "tin", "woodlight", "tin" }; s.Roof = KitRoof.Lean; s.RoofCol = new[] { "roofgrey", "tin", "slate" }; s.Rise = .05f; s.Cols = 0; s.SideCols = 0; s.FieldCover = .72f; s.Rows = 6; s.FlipV2 = false; }),
+        S(s => { s.W = .36f; s.D = .30f; s.BodyX = .25f; s.BodyZ = .26f; s.FloorH = .27f; s.Wall = new[] { "brickred", "brickdark", "woodlight" }; s.RoofCol = new[] { "slate", "slate2", "tin" }; s.Rise = .18f; s.Cols = 1; s.SideCols = 0; s.FieldCover = .60f; s.Rows = 6; s.Border = "hedge"; s.BorderH = .045f; s.FlipV2 = false; }),
+        S(s => { s.W = .40f; s.D = .32f; s.BodyX = .24f; s.BodyZ = .25f; s.FloorH = .28f; s.Wall = new[] { "brickred", "brickyellow", "brickdark" }; s.RoofCol = new[] { "slate", "slate2", "slate" }; s.Rise = .18f; s.Cols = 1; s.Chimneys = 1; s.ChimneyH = .07f; s.ChimneyCol = "brickdark"; s.FieldCover = .58f; s.Rows = 6; s.Border = "hedge"; s.BorderH = .045f; s.Silos = 1; s.SiloH = .44f; s.SiloCol = "brickred"; s.SiloCap = "slate"; s.Windpump = true; s.FlipV2 = false; }),
+    };
+
+    private static KitSpec[] ModernFarms() => new[]
+    {
+        S(s => { s.W = .22f; s.D = .18f; s.BodyX = .28f; s.BodyZ = .32f; s.FloorH = .16f; s.Wall = new[] { "steel", "tin", "concrete2" }; s.Roof = KitRoof.Lean; s.RoofCol = new[] { "roofgrey", "tin", "roofgrey" }; s.Rise = .04f; s.Cols = 0; s.SideCols = 0; s.FieldCover = .72f; s.Rows = 8; s.Crops = new[] { "crop", "wheat", "crop2", "crop" }; s.FlipV2 = false; }),
+        S(s => { s.W = .38f; s.D = .30f; s.BodyX = .24f; s.BodyZ = .26f; s.FloorH = .28f; s.Wall = new[] { "steel", "tin", "white" }; s.RoofCol = new[] { "roofgrey", "tin", "roofgreen" }; s.Rise = .12f; s.Cols = 0; s.SideCols = 0; s.Doors = 1; s.FieldCover = .60f; s.Rows = 8; s.Crops = new[] { "crop", "wheat", "crop2", "crop" }; s.FlipV2 = false; }),
+        S(s => { s.W = .40f; s.D = .30f; s.BodyX = .24f; s.BodyZ = .26f; s.FloorH = .26f; s.Wall = new[] { "glassroof", "glassroof", "steel" }; s.RoofCol = new[] { "glassroof", "glassroof", "roofgrey" }; s.Rise = .12f; s.Win = "glassteal"; s.Cols = 0; s.SideCols = 0; s.FieldCover = .58f; s.Rows = 8; s.Crops = new[] { "crop", "wheat", "crop2", "crop" }; s.Silos = 2; s.SiloH = .40f; s.SiloCol = "steel"; s.SiloCap = "steel"; s.FlipV2 = false; }),
     };
 
     private static KitSpec[] ModernLowShops() => new[]

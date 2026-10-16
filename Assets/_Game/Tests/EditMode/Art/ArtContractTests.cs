@@ -164,16 +164,16 @@ public sealed class ArtContractTests
     };
 
     // Which Low / High tables hold their own kit art (three variants each, on the Kit material); the rest fall back to
-    // the Medium look drawn lower / taller. M23d: Modern High homes and shops. M30: Low homes (30c) and shops (30d) in
-    // every age.
+    // the Medium look drawn lower / taller. M23d: Modern High homes and shops. M30: Low homes, shops and farms in every
+    // age.
     private static bool HasOwnArt(bool modern, string table)
     {
-        if (table == "m_ResidentialLow" || table == "m_CommercialLow") return true;
+        if (table.EndsWith("Low")) return true;
         if (table.EndsWith("High")) return modern && !table.StartsWith("m_Industrial");
         return false;
     }
 
-    private const int OwnArtPrefabs = 4 * 18 + 18;     // Low homes + shops x 4 ages, Modern High homes + shops
+    private const int OwnArtPrefabs = 4 * 27 + 18;     // Low homes, shops and farms x 4 ages, Modern High homes + shops
 
     [Test]
     public void OwnLowAndHighArt_FillTheExpectedTables_OtherSlotsFallBack()

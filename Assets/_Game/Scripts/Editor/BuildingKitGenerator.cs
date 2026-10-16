@@ -459,7 +459,7 @@ public static class BuildingKitGenerator
         {
             float cx = 0.30f - i * 0.17f, cz = -0.30f, r = 0.075f;
             m.Cylinder(cx, cz, r, 0f, s.SiloH, r, 10, C(s.SiloCol));
-            m.Cylinder(cx, cz, r, s.SiloH, s.SiloH + 0.07f, 0f, 10, C("roofgrey"));
+            m.Cylinder(cx, cz, r, s.SiloH, s.SiloH + 0.07f, 0f, 10, C(s.SiloCap));
         }
         if (s.Windpump) Windpump(m, -0.30f, -0.30f);
         if (s.Stalls > 0 && s.NoBody) Stalls(m, s, v, -0.34f, 0.34f, -0.20f, 0.30f, canopies: true);

@@ -139,17 +139,26 @@ MonoBehaviour:
     RoofColor: {r: 0, g: 0, b: 0, a: 0}
     HeightScale: 1
   m_IndustrialLow:
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 4507778213752202164, guid: 134b44b9a50ed1b449cef033ac24e6f0, type: 3}
+    - {fileID: 8125795099302508918, guid: f8b7f6709885ccf40910c204c5bdf1d6, type: 3}
+    - {fileID: 4420503111059243508, guid: b768b837aff44ff49836f2b4d218cfcb, type: 3}
     Tint: {r: 0, g: 0, b: 0, a: 0}
     Roof: 0
     RoofColor: {r: 0, g: 0, b: 0, a: 0}
     HeightScale: 1
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 2073842902479328134, guid: de8b40ff998a46245a62d94c225451d6, type: 3}
+    - {fileID: 4387495541740669580, guid: cd0b87cb66d225d4fa4d152357fd039e, type: 3}
+    - {fileID: 6076767571852056362, guid: a9960db9f953024409589d5253cbd6b7, type: 3}
     Tint: {r: 0, g: 0, b: 0, a: 0}
     Roof: 0
     RoofColor: {r: 0, g: 0, b: 0, a: 0}
     HeightScale: 1
-  - Prefabs: []
+  - Prefabs:
+    - {fileID: 5565452039863200305, guid: 30e39f16815ce224cb1d29d751d89865, type: 3}
+    - {fileID: 1601747958330932509, guid: e58cd9da4eaa0dd48b3d84675e01902c, type: 3}
+    - {fileID: 713173130706716122, guid: 86104b9c4995cfa47809c6c268c2e9bb, type: 3}
     Tint: {r: 0, g: 0, b: 0, a: 0}
     Roof: 0
     RoofColor: {r: 0, g: 0, b: 0, a: 0}
