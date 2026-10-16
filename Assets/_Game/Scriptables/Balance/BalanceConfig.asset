@@ -69,6 +69,7 @@ MonoBehaviour:
   m_LowDensityLandValue: 0.05
   m_HighDensityLandValuePenalty: 0.03
   m_HighDensityPollution: 1.25
+  m_LowDensityPollution: 0.3
   m_GoodsMinAge: 2
   m_GoodsPerIndustrialJob: 0.2
   m_GoodsPerCommercialJob: 0.35

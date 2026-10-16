@@ -112,6 +112,8 @@ public sealed class BalanceConfig : ScriptableObject
     [SerializeField] private float m_HighDensityLandValuePenalty = 0.03f;
     [Tooltip("(tuned, M23) Extra pollution multiplier of a High-density factory, on top of its larger capacity.")]
     [SerializeField] private float m_HighDensityPollution = 1.25f;
+    [Tooltip("(tuned, M30) Pollution multiplier of a Low-density factory (a farm), on top of its smaller capacity.")]
+    [SerializeField] private float m_LowDensityPollution = 0.3f;
 
     [Header("Goods (M24)")]
     [Tooltip("(tuned, M24d) Age index from which goods are in play (Industrial = 2). 99 = off (24a-24c shipped dark).")]
@@ -420,6 +422,13 @@ public sealed class BalanceConfig : ScriptableObject
     public float LowDensityLandValue => m_LowDensityLandValue;
     public float HighDensityLandValuePenalty => m_HighDensityLandValuePenalty;
     public float HighDensityPollution => m_HighDensityPollution;
+    public float LowDensityPollution => m_LowDensityPollution;
+
+    // Pollution multiplier of a factory by its density (M30: Low blocks are farms); Medium is exactly 1.
+    public float DensityPollution(Density density)
+    {
+        return density == Density.High ? m_HighDensityPollution : density == Density.Low ? m_LowDensityPollution : 1f;
+    }
 
     // Capacity multiplier of a density for a zone (M23); Medium is exactly 1 for every zone.
     public float DensityScale(ZoneType zone, Density density)

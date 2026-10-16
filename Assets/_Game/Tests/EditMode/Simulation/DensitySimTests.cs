@@ -239,6 +239,49 @@ public sealed class DensitySimTests
         Assert.AreEqual(expected, sim.Pollution.EmissionOf(factory), 1e-3f);
     }
 
+    // M30: a Low-density factory is a farm: its smaller capacity and LowDensityPollution on top.
+    [Test]
+    public void Pollution_LowDensityFarmEmitsLessThanItsCapacityAlone()
+    {
+        var grid = new GridData(24, 24);
+        SimulationSystem sim = SeededCity.Run(grid, m_Config, 60);
+        Vector2Int factory = FirstGrownFactory(grid);
+        float medium = sim.Pollution.EmissionOf(factory);
+        int mediumCapacity = sim.Capacity.CapacityOf(grid, factory);
+
+        grid.SetDensity(factory, Density.Low);
+        float expected = medium * sim.Capacity.CapacityOf(grid, factory) / mediumCapacity * m_Config.LowDensityPollution;
+        Assert.Less(m_Config.LowDensityPollution, 1f);
+        Assert.AreEqual(expected, sim.Pollution.EmissionOf(factory), 1e-3f);
+    }
+
+    [Test]
+    public void Pollution_NeighboursOfAFarmAreCleanerThanNextToAMediumFactory()
+    {
+        var grid = new GridData(24, 24);
+        SimulationSystem sim = SeededCity.Run(grid, m_Config, 60);
+        Vector2Int factory = FirstGrownFactory(grid);
+        Vector2Int near = factory + Vector2Int.right;
+        float mediumPollution = sim.Pollution.GetPollution(near);
+
+        grid.SetDensity(factory, Density.Low);
+        Assert.Less(sim.Pollution.GetPollution(near), mediumPollution);
+    }
+
+    private static Vector2Int FirstGrownFactory(GridData grid)
+    {
+        for (int y = 0; y < grid.Height; y++)
+        {
+            for (int x = 0; x < grid.Width; x++)
+            {
+                var cell = new Vector2Int(x, y);
+                if (grid.GetZone(cell) == ZoneType.Industrial && grid.GetBuildingLevel(cell) > 0) return cell;
+            }
+        }
+        Assert.Fail("no grown factory");
+        return default;
+    }
+
     // --- save → load → continue with a mix ---
 
     [Test]

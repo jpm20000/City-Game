@@ -63,7 +63,7 @@ public sealed class PollutionSystem
         if (!m_Grid.InBounds(cell) || m_Grid.GetZone(cell) != ZoneType.Industrial) return 0f;
         int capacity = m_Capacity.CapacityOf(m_Grid, cell);
         if (capacity == 0) return 0f;
-        float density = m_Grid.GetDensity(cell) == Density.High ? m_Config.HighDensityPollution : 1f;
+        float density = m_Config.DensityPollution(m_Grid.GetDensity(cell));
         return m_Config.IndustrialPollution * capacity * ScaleOf(m_Grid.GetBuiltAge(cell)) * Multiplier * density;
     }
 
