@@ -4527,6 +4527,7 @@ GameObject:
   - component: {fileID: 6559977157015654705}
   - component: {fileID: 1245276930232452924}
   - component: {fileID: 2819899212628727656}
+  - component: {fileID: 6833022906566285496}
   m_Layer: 5
   m_Name: AgeText
   m_TagString: Untagged
@@ -4675,6 +4676,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &6833022906566285496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6308947792686088781}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 6
 --- !u!1 &6643518705337479708
 GameObject:
   m_ObjectHideFlags: 0

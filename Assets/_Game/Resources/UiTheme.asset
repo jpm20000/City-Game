@@ -99,3 +99,9 @@ MonoBehaviour:
   - {fileID: 21300000, guid: 41dd623cd67742f48b81b54f47bc983e, type: 3}
   - {fileID: 21300000, guid: 637a937b14aa1c846a6423b563fff5c7, type: 3}
   Font: {fileID: 0}
+  TitleFont: {fileID: 11400000, guid: 69e7aed68b09c0b4f9bed1450c056c36, type: 2}
+  AgeTints:
+  - {r: 1, g: 0.86, b: 0.72, a: 1}
+  - {r: 1, g: 0.93, b: 0.84, a: 1}
+  - {r: 1, g: 1, b: 1, a: 1}
+  - {r: 0.84, g: 0.92, b: 1, a: 1}

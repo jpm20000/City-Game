@@ -926,6 +926,7 @@ GameObject:
   - component: {fileID: 7565270824653317165}
   - component: {fileID: 755780899917116276}
   - component: {fileID: 7062851860998483257}
+  - component: {fileID: 2140965890668225917}
   m_Layer: 5
   m_Name: Title
   m_TagString: Untagged
@@ -1074,6 +1075,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &2140965890668225917
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6861230482127882971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 6
 --- !u!1 &6953182761041168238
 GameObject:
   m_ObjectHideFlags: 0

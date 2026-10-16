@@ -59,6 +59,18 @@ public sealed class UiTheme : ScriptableObject
     [Header("Text")]
     [Tooltip("Empty = the TMP default font.")]
     public TMP_FontAsset Font;
+    [Tooltip("Window, panel and toolbar-section titles and the age name (M32e). Empty = the body font.")]
+    public TMP_FontAsset TitleFont;
+
+    [Header("Age skins (M32e)")]
+    [Tooltip("Tint on the frame, HUD-bar and button art per age (Medieval, Renaissance, Industrial, Modern). The art is full colour, so a tint can only darken and shift it; white = the art as drawn.")]
+    public Color[] AgeTints =
+    {
+        new Color(1.00f, 0.86f, 0.72f),     // Medieval: warm, bronze
+        new Color(1.00f, 0.93f, 0.84f),     // Renaissance: lightly warm
+        Color.white,                        // Industrial: the art as drawn (brass and navy)
+        new Color(0.84f, 0.92f, 1.00f),     // Modern: cool, steel
+    };
 
     private static UiTheme s_Current;
     private Dictionary<string, Sprite> m_IconsByName;
@@ -133,6 +145,7 @@ public sealed class UiTheme : ScriptableObject
             _ => theme.ButtonSprite,
         };
         Paint(image, sprite != null ? sprite : theme.ButtonSprite, tint ?? Color.white);
+        Skin(image, tint ?? Color.white);
         var button = image.GetComponent<Button>();
         if (button == null || button.targetGraphic != image) return;
         bool swap = button.transition != Selectable.Transition.SpriteSwap;
@@ -192,6 +205,7 @@ public sealed class UiTheme : ScriptableObject
             return;
         }
         Paint(image, sprite, Color.white);
+        Skin(image, Color.white);
         if (image.GetComponent<LayoutGroup>() is LayoutGroup layout)
         {
             // The border in canvas units (the art is at 300 PPU, the canvas at 100): a frame's ornaments sit in its
@@ -248,6 +262,49 @@ public sealed class UiTheme : ScriptableObject
         if (font != null) text.font = font;
     }
 
+    // (M32e) The title font on a title text (the body font when the theme has none).
+    public static void ApplyTitleFont(TMP_Text text)
+    {
+        if (text == null) return;
+        TMP_FontAsset font = Current.TitleFont != null ? Current.TitleFont : Current.Font;
+        if (font != null) text.font = font;
+    }
+
+    // (M32e) Per-age skin: the art painted by PaintButton / PaintPanel / PaintHudBar carries a UiSkinned that keeps its
+    // own colour and multiplies in the current age's tint; SetSkinAge re-tints every one (the HUD calls it when a city
+    // loads and when the age advances). -1 (the main menu before a city, and the default) = white, the art as drawn.
+    private static int s_SkinAge = -1;
+
+    public static int SkinAge => s_SkinAge;
+
+    public static Color SkinTint
+    {
+        get
+        {
+            Color[] tints = Current.AgeTints;
+            return tints != null && s_SkinAge >= 0 && s_SkinAge < tints.Length ? tints[s_SkinAge] : Color.white;
+        }
+    }
+
+    public static void SetSkinAge(int age)
+    {
+        if (age == s_SkinAge) return;
+        s_SkinAge = age;
+        UiSkinned.RefreshAll();
+    }
+
+    // The art's own colour (white, or a state tint) times the age tint, kept up to date by UiSkinned.
+    private static void Skin(Image image, Color own)
+    {
+        var skinned = image.GetComponent<UiSkinned>();
+        if (skinned == null) skinned = image.gameObject.AddComponent<UiSkinned>();
+        skinned.Set(image, own);
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetStatics() => s_Current = null;
+    private static void ResetStatics()
+    {
+        s_Current = null;
+        s_SkinAge = -1;
+    }
 }

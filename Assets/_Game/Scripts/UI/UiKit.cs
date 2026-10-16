@@ -161,6 +161,7 @@ public static class UiKit
 
         window.Body = panelRect;
         window.Title = Text(panel.transform, title, 26, TitleColor);
+        UiTheme.ApplyTitleFont(window.Title);
         window.Root.SetActive(false);
         return window;
     }

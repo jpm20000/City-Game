@@ -397,10 +397,12 @@ public sealed class HUDController : MonoBehaviour
     private void OnAgeChanged(int age) => OnCityLoaded();
     private void OnTechCompleted(string techId) => OnCityLoaded();
 
-    // Age name, research line and the Power / Water groups' visibility (power appears with Electricity).
+    // Age name, research line, the Power / Water groups' visibility (power appears with Electricity) and the UI's
+    // age skin (M32e).
     private void OnCityLoaded()
     {
         if (m_GameManager == null || m_GameManager.Simulation == null) return;
+        UiTheme.SetSkinAge(m_GameManager.CurrentAgeIndex);
         bool power = m_GameManager.PowerUnlocked;
         bool water = m_GameManager.WaterUnlocked;
         if (m_PowerGroup != null) m_PowerGroup.SetActive(power || water);

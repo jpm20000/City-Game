@@ -305,6 +305,7 @@ public sealed class TutorialCard
             Refresh(null);
         }, 28f);
         m_Title = UiKit.Text(m_Root.transform, "", 20, UiKit.TitleColor);
+        UiTheme.ApplyTitleFont(m_Title);
 
         var body = new GameObject("Body", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(LayoutElement));
         body.transform.SetParent(m_Root.transform, false);

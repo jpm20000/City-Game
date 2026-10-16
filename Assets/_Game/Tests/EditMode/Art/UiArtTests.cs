@@ -163,6 +163,20 @@ public sealed class UiArtTests
         ("ToggleTickSprite", "controls/toggle_tick"), ("FieldSprite", null),
     };
 
+    // M32e: the title font is the static Cinzel asset with every printable ASCII character, LiberationSans behind it.
+    [Test]
+    public void Theme_TitleFont_IsCinzel_WithEveryAsciiCharacter()
+    {
+        var theme = AssetDatabase.LoadAssetAtPath<ScriptableObject>("Assets/_Game/Resources/UiTheme.asset");
+        var font = new SerializedObject(theme).FindProperty("TitleFont").objectReferenceValue as TMPro.TMP_FontAsset;
+        Assert.IsNotNull(font, "UiTheme.TitleFont (run CityBuilder > Build UI Fonts)");
+        Assert.AreEqual("Assets/_Game/Art/Fonts/Cinzel/Cinzel SDF.asset", AssetDatabase.GetAssetPath(font));
+        Assert.AreEqual(TMPro.AtlasPopulationMode.Static, font.atlasPopulationMode, "static: no atlas churn at runtime");
+        Assert.IsTrue(File.Exists("Assets/_Game/Art/Fonts/Cinzel/OFL.txt"), "the font's licence ships with it");
+        for (char c = ' '; c <= '~'; c++) Assert.IsTrue(font.HasCharacter(c), $"'{c}'");
+        Assert.IsNotEmpty(font.fallbackFontAssetTable, "a fallback for other characters");
+    }
+
     [Test]
     public void Theme_WidgetSlots_HoldTheirArt()
     {

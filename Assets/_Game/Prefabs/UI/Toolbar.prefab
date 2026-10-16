@@ -348,6 +348,7 @@ GameObject:
   - component: {fileID: 346914728357926584}
   - component: {fileID: 5440601819999924580}
   - component: {fileID: 1932043640543493955}
+  - component: {fileID: 3219907572421044163}
   m_Layer: 5
   m_Name: Header
   m_TagString: Untagged
@@ -496,6 +497,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &3219907572421044163
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1435463823955667161}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 6
 --- !u!1 &1697422888802695178
 GameObject:
   m_ObjectHideFlags: 0
@@ -1492,6 +1506,7 @@ GameObject:
   - component: {fileID: 192122189721923681}
   - component: {fileID: 1978192287619331517}
   - component: {fileID: 5691172071719317534}
+  - component: {fileID: 5841897349037499311}
   m_Layer: 5
   m_Name: Header
   m_TagString: Untagged
@@ -1640,6 +1655,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &5841897349037499311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5142029447279282464}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 6
 --- !u!1 &5321365012026701888
 GameObject:
   m_ObjectHideFlags: 0
@@ -2025,6 +2053,7 @@ GameObject:
   - component: {fileID: 3903418920909058128}
   - component: {fileID: 9097071419592625422}
   - component: {fileID: 1638058310608388077}
+  - component: {fileID: 8926505927366111993}
   m_Layer: 5
   m_Name: Header
   m_TagString: Untagged
@@ -2173,6 +2202,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &8926505927366111993
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5847235051018769867}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 6
 --- !u!1 &6732004335989853150
 GameObject:
   m_ObjectHideFlags: 0
@@ -2260,6 +2302,7 @@ GameObject:
   - component: {fileID: 8177494700531051966}
   - component: {fileID: 8347072683547269790}
   - component: {fileID: 1890398305919541978}
+  - component: {fileID: 8395560978451133278}
   m_Layer: 5
   m_Name: Header
   m_TagString: Untagged
@@ -2408,6 +2451,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &8395560978451133278
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7101055629679210986}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 6
 --- !u!1 &8015473423073405885
 GameObject:
   m_ObjectHideFlags: 0
@@ -2420,6 +2476,7 @@ GameObject:
   - component: {fileID: 7361952361241077201}
   - component: {fileID: 149337911958844022}
   - component: {fileID: 1770161344441171827}
+  - component: {fileID: 3930825785344088407}
   m_Layer: 5
   m_Name: Header
   m_TagString: Untagged
@@ -2568,6 +2625,19 @@ MonoBehaviour:
   m_LayoutPriority: 1
   m_MaxWidth: -1
   m_MaxHeight: -1
+--- !u!114 &3930825785344088407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8015473423073405885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 34cf6c94a63b90147af11a5f91f2fe17, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UiThemed
+  m_Slot: 6
 --- !u!1 &8268283541369569805
 GameObject:
   m_ObjectHideFlags: 0

@@ -97,7 +97,7 @@ public sealed class BudgetPanel : MonoBehaviour
         m_Root.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
         RectTransform header = Row(m_Root.transform, 28f);
-        Text(header, "Budget", 22, Color.white, flexible: true);
+        UiTheme.ApplyTitleFont(Text(header, "Budget", 22, Color.white, flexible: true));
         Button close = MakeButton(header, "x", Close, 28f);
         close.GetComponent<LayoutElement>().minWidth = 28f;
 

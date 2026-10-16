@@ -158,6 +158,35 @@ public sealed class UiThemeTests
         }
     }
 
+    // M32e: framed art carries the age skin: painted under an age it takes that age's tint, and SetSkinAge re-tints it
+    // (an enabled UiSkinned; in edit mode the test re-paints instead, as OnEnable doesn't run). -1 is white.
+    [Test]
+    public void AgeSkin_TintsTheFrameArt_AndMinusOneIsTheArtAsDrawn()
+    {
+        var theme = AssetDatabase.LoadAssetAtPath<ScriptableObject>(ThemePath);
+        var tints = (Color[])ThemeType().GetField("AgeTints").GetValue(theme);
+        Assert.AreEqual(4, tints.Length, "one tint per age");
+        Assert.AreEqual(Color.white, tints[2], "Industrial is the art as drawn");
+        PropertyInfo skinAge = ThemeType().GetProperty("SkinAge");
+        int before = (int)skinAge.GetValue(null);
+        var go = new GameObject("Panel", typeof(RectTransform), typeof(Image));
+        try
+        {
+            var image = go.GetComponent<Image>();
+            Call("SetSkinAge", 0);
+            Call("PaintPanel", image, Color.blue, false);
+            Assert.That(Vector4.Distance(tints[0], image.color), Is.LessThan(1e-4f), "Medieval tint");
+            Call("SetSkinAge", -1);
+            Call("PaintPanel", image, Color.blue, false);
+            Assert.AreEqual(Color.white, image.color);
+        }
+        finally
+        {
+            Call("SetSkinAge", before);
+            UnityEngine.Object.DestroyImmediate(go);
+        }
+    }
+
     // M32d: a framed panel is drawn from the panel art and its layout padding clears the frame.
     [Test]
     public void PaintPanel_UsesTheFrame_AndRaisesTheLayoutPadding()

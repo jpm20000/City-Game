@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.TextCore.LowLevel;
 
 // Import settings for the UI art (M32b) that Tools/gen_ui_art.py writes under Art/UI/<kind>/: Sprite at 300 pixels per
 // unit (art is 3x design size, so a 9-slice border draws at its design size on the 100 PPU canvas), the 9-slice border
@@ -142,6 +144,54 @@ public sealed class UiArtImporter : AssetPostprocessor
         }
         AssetDatabase.SaveAssets();
         Debug.Log($"Sync UI Art: {icons.Count} theme icons, {widgets} widget sprites, {buildings} building icons set.");
+    }
+
+    // (M32e) The title font: Cinzel (SIL Open Font License, Art/Fonts/Cinzel/OFL.txt) as a static TMP font asset holding
+    // the characters titles use (printable ASCII and a few marks; anything else falls back to LiberationSans), set as
+    // the theme's TitleFont. Builds the asset only when it is missing: delete it to rebuild.
+    public const string TitleFontSource = "Assets/_Game/Art/Fonts/Cinzel/Cinzel.ttf";
+    public const string TitleFontAsset = "Assets/_Game/Art/Fonts/Cinzel/Cinzel SDF.asset";
+    private const string ExtraTitleCharacters = "·—–×’…éèàçüöä";
+
+    [MenuItem("CityBuilder/Build UI Fonts")]
+    public static void BuildUiFonts()
+    {
+        var asset = AssetDatabase.LoadAssetAtPath<TMP_FontAsset>(TitleFontAsset);
+        if (asset == null)
+        {
+            var font = AssetDatabase.LoadAssetAtPath<Font>(TitleFontSource);
+            if (font == null)
+            {
+                Debug.LogError($"Build UI Fonts: {TitleFontSource} not found.");
+                return;
+            }
+            asset = TMP_FontAsset.CreateFontAsset(font, 64, 6, GlyphRenderMode.SDFAA, 1024, 1024, AtlasPopulationMode.Dynamic);
+            asset.name = "Cinzel SDF";
+            var characters = new System.Text.StringBuilder();
+            for (char c = ' '; c <= '~'; c++) characters.Append(c);
+            characters.Append(ExtraTitleCharacters);
+            asset.TryAddCharacters(characters.ToString(), out string missing);
+            if (!string.IsNullOrEmpty(missing)) Debug.Log($"Build UI Fonts: Cinzel lacks '{missing}' (LiberationSans draws them).");
+            asset.atlasPopulationMode = AtlasPopulationMode.Static;
+            var fallback = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+            if (fallback != null) asset.fallbackFontAssetTable = new List<TMP_FontAsset> { fallback };
+            AssetDatabase.CreateAsset(asset, TitleFontAsset);
+            asset.atlasTextures[0].name = "Cinzel SDF Atlas";
+            AssetDatabase.AddObjectToAsset(asset.atlasTextures[0], asset);
+            asset.material.name = "Cinzel SDF Material";
+            AssetDatabase.AddObjectToAsset(asset.material, asset);
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+        }
+        var theme = AssetDatabase.LoadAssetAtPath<UiTheme>("Assets/_Game/Resources/UiTheme.asset");
+        if (theme != null && theme.TitleFont != asset)
+        {
+            var so = new SerializedObject(theme);
+            so.FindProperty(nameof(UiTheme.TitleFont)).objectReferenceValue = asset;
+            so.ApplyModifiedProperties();
+            AssetDatabase.SaveAssets();
+        }
+        Debug.Log($"Build UI Fonts: {asset.name}, {asset.characterTable.Count} characters, theme title font set.");
     }
 
     // (M32d) Theme sprite slot -> Art/UI file. No field art was made, so FieldSprite stays empty (flat fields).

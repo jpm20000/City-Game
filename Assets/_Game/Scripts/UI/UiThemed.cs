@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-// (M32d) Paints a prefab's Image from the UI theme on Awake, so the HUD, toolbar and side-panel prefabs take the frame
+// (M32d) Paints a prefab's Image (or, slot Title, sets a text's font, M32e) from the UI theme on Awake, so the HUD, toolbar and side-panel prefabs take the frame
 // and button art without their sprites set by hand. With no art in the theme the Image is left as it is (the flat
 // look). Panels built in code call the UiTheme painters themselves.
 public sealed class UiThemed : MonoBehaviour
@@ -14,6 +14,7 @@ public sealed class UiThemed : MonoBehaviour
         Button,         // a plain button
         ChoiceButton,   // a button whose selected choice is the non-interactable one (speed, new-city size / age)
         Slider,         // on the Slider: track, fill (keeps its colour) and handle
+        Title,          // (M32e) on a text: the theme's title font
     }
 
     [SerializeField] private Slot m_Slot;
@@ -23,6 +24,11 @@ public sealed class UiThemed : MonoBehaviour
     private void Awake()
     {
         var image = GetComponent<Image>();
+        if (m_Slot == Slot.Title)
+        {
+            UiTheme.ApplyTitleFont(GetComponent<TMPro.TMP_Text>());
+            return;
+        }
         if (image == null && m_Slot != Slot.Slider) return;
         switch (m_Slot)
         {

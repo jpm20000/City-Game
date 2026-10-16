@@ -63,6 +63,7 @@ public sealed class EventPopup : MonoBehaviour
         panel.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
         m_Title = Text(panel.transform, "", 26, TitleColor);
+        UiTheme.ApplyTitleFont(m_Title);
         m_Body = Text(panel.transform, "", 17, new Color(0.85f, 0.88f, 0.93f));
 
         var choices = new GameObject("Choices", typeof(RectTransform), typeof(VerticalLayoutGroup));
